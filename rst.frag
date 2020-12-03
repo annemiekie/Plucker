@@ -1,0 +1,20 @@
+#version 410 core
+
+// Global variables for lighting calculations
+uniform vec3 viewPos;
+uniform float noPrim;
+
+// Output for on-screen color
+layout(location = 0) out vec4 outColor;
+
+// Interpolated output data from vertex shader
+//in vec3 fragPos; // World-space position
+//in vec3 fragNormal; // World-space normal
+in float fragId;
+
+
+void main() 
+{
+    float col = fragId;
+	outColor = vec4(col, 0, 1-col, 1);
+}
