@@ -2,7 +2,6 @@
 
 // Global variables for lighting calculations
 uniform vec3 viewPos;
-uniform float noPrim;
 
 // Output for on-screen color
 layout(location = 0) out vec4 outColor;

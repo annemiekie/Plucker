@@ -59,12 +59,33 @@
     <ClInclude Include="..\cube.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\models.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shader.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\buffers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\orthocamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\previewcamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\perscamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\rst.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\models.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

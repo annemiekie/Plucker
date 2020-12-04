@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp" />
+    <ClCompile Include="..\models.cpp" />
     <ClCompile Include="..\rst.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -25,7 +26,13 @@
     <None Include="..\standard.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\buffers.h" />
     <ClInclude Include="..\camera.h" />
+    <ClInclude Include="..\orthocamera.h" />
+    <ClInclude Include="..\perscamera.h" />
+    <ClInclude Include="..\previewcamera.h" />
+    <ClInclude Include="..\shader.h" />
+    <ClInclude Include="..\models.h" />
     <ClInclude Include="..\node.h" />
     <ClInclude Include="..\cube.h" />
     <ClInclude Include="..\ray.h" />
