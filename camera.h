@@ -32,8 +32,19 @@ struct Camera
 
 	virtual Ray pixRayDirection(glm::vec2 pos) { return Ray();  };
 
+	void setPositionAndForward(glm::vec3 pos, glm::vec3 lookat) {
+		position = pos;
+		forward = lookat-pos;
+		invview = invVMatrix();
+	}
+
 	void setPosition(glm::vec3 pos) {
 		position = pos;
+		invview = invVMatrix();
+	}
+
+	void setForward(glm::vec3 fw) {
+		forward = fw;
 		invview = invVMatrix();
 	}
 

@@ -17,7 +17,6 @@
 
 // Library for loading .OBJ model
 #define TINYOBJLOADER_IMPLEMENTATION
-//#include <tiny_obj_loader.h>
 
 // Header for camera structure/functions
 #include "perscamera.h"
@@ -31,6 +30,9 @@
 #include "models.h"
 #include "shader.h"
 #include "buffers.h"
+#include "raytracer.h"
+#include "model.h"
+#include "sphere.h"
 
 #include <iostream>
 #include <fstream>
@@ -43,7 +45,8 @@
 // Configuration
 const int width = 800;
 const int height = 800;
-int leafNumber = -1;
+bool update = false;
+bool trace = false;
 
 // Key handle function
 void keyboardHandler(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -54,7 +57,7 @@ void keyboardHandler(GLFWwindow* window, int key, int scancode, int action, int 
 		switch (key)
 		{
 		case GLFW_KEY_1:
-			leafNumber++;
+			update = true;
 			break;
 		case GLFW_KEY_2:
 			break;
@@ -88,19 +91,17 @@ void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 
 void makeSample(glm::ivec2 resolution, Camera& cam, GLfloat* pixels, int triNum, RaySpaceTree* rst) {
 
-	glm::mat4 camToWorld = cam.invVMatrix();
-
 	//cimg_library::CImg<unsigned char> image(resolution.x, resolution.y, 1, 3, 0);
 	for (int y = 0; y < resolution.y; y++) {
 		int yind = (resolution.y - 1 - y);
 		for (int x = 0; x < resolution.x; x++) {
 			const glm::vec2 pixpos { (x + .5f) / resolution.x * 2.0f - 1.0f, 1.0f - (y + .5f) / resolution.y * 2.0f	};
-			Ray ray = cam.pixRayDirection(pixpos);//raydirection(resolution, cam, glm::ivec2(x, y), camToWorld, perspective);
-			float tri = pixels[3*( yind * resolution.x + x)];
+			Ray ray = cam.pixRayDirection(pixpos);
+			float tri = pixels[yind * resolution.x + x];
 			int tri_id = 0;
 			if (tri > 0) {
 				// always add ray to tree to calculate size of a node
-				tri_id = int(triNum * tri) - 1;
+				tri_id = int(tri - 1);//int(triNum * tri - 1.f);
 				rst->putPrimitive(ray, tri_id);
 				//const unsigned char color[] = { 255 , 0, 0 };
 				//image.draw_point(x, y, color);
@@ -111,8 +112,8 @@ void makeSample(glm::ivec2 resolution, Camera& cam, GLfloat* pixels, int triNum,
 	//image.save("file.bmp");
 }
 
-void cameraSamples(Camera& cam, Shader& rstshader, GLuint rsttex, int no_triangles, 
-					glm::ivec2 resolution, std::vector<Vertex>& vertices, RaySpaceTree* rst) {
+void cameraSamples(Camera& cam, Shader& rstshader, GLuint rsttex, Model& model, 
+					glm::ivec2 resolution, RaySpaceTree* rst) {
 	glm::mat4 mvp = cam.vpMatrix();
 	glUniformMatrix4fv(glGetUniformLocation(rstshader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
 	glUniform3fv(glGetUniformLocation(rstshader.index, "viewPos"), 1, glm::value_ptr(cam.position));
@@ -122,16 +123,19 @@ void cameraSamples(Camera& cam, Shader& rstshader, GLuint rsttex, int no_triangl
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Execute draw command
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, model.vertices.size());
 
 	int size = resolution.x * resolution.y;
 	glBindTexture(GL_TEXTURE_2D, rsttex);
-	GLfloat* pixels = new GLfloat[size * 3];
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, pixels);
-	makeSample(resolution, cam, pixels, no_triangles, rst);
+	GLfloat* pixels = new GLfloat[size];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, pixels);
+	makeSample(resolution, cam, pixels, model.primsize, rst);
 }
 
 void setupTextureRender(Shader& rstshader, int rstwidth, int rstheight, GLuint vao, GLuint &rsttex, GLuint &framebuffer) {
+
+	glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
+
 	rsttex = Buffers::generateTexture(rstwidth, rstheight);
 	framebuffer = Buffers::generateFrameBuffer(rsttex);
 	GLuint depthbuffer = Buffers::generateDepthBuffer(rstwidth, rstheight);
@@ -147,37 +151,37 @@ void setupTextureRender(Shader& rstshader, int rstwidth, int rstheight, GLuint v
 	// Set viewport size
 	glViewport(0, 0, rstwidth, rstheight);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 }
 
-void makeRST(RaySpaceTree* rst, std::vector<Vertex> &vertices, GLuint vao, int no_triangles, 
-			Shader &shader, Shader &rstshader, int rstwidth, int rstheight, int option) {
+void makeRST(RaySpaceTree* rst, Model& model, Shader &shader, Shader &rstshader, int rstwidth, int rstheight, int option, int noSample) {
 
 	GLuint rsttex, framebuffer;
-	setupTextureRender(rstshader, rstwidth, rstheight, vao, rsttex, framebuffer);
+	setupTextureRender(rstshader, rstwidth, rstheight, model.vao, rsttex, framebuffer);
 
 	// Initialize tree
 	rst->depth = 8;
 	rst->mainDir = glm::vec3(1, 0, 0);
-	rst->construct(0, vertices, option);
+	rst->construct(0, model.vertices, option);
 
 	// Generate cameras
 	// w,h,near,far all depend on bounding sphere!
-	// Check if this works!!!
-	Orthocamera cam(2, 2, 0.1f, 30.f);
+	Orthocamera cam(model.radius, model.radius, 0.1f, 30.f);
 	//PersCamera cam(0.1f, 30.f);
 
 	//need cube to check intersection - if no intersection, not in rst!!
-	// need center of bounding sphere and radius of bounding sphere
 
 	///////////////// Sample Sphere implementation instead //////////////////////////
-	int noSample = 10;
-	float sampleWidth = 2.f / (float)noSample;
-	float sampleStart[2] = { 0.f, -1.f };
+	float sampleWidth = 2.f / (float)(noSample - 1);
+	float sampleStart[2] = { 0.001f, -1.001f };
+
+	//#pragma omp parallel for
 	for (int z = 0; z < noSample; z++) {
 		for (int y = 0; y < noSample; y++) {
-			cam.setPosition(glm::vec3(-2.f, sampleStart[0] + sampleWidth*y, sampleStart[0] + sampleWidth * z));
-			cam.forward = -cam.position; //should be center of bounding sphere (check if 0,0,0 works)
-			cameraSamples(cam, rstshader, rsttex, no_triangles, glm::ivec2(rstwidth, rstheight), vertices, rst);
+			//cam.setPositionAndForward(glm::vec3(-2.f, sampleStart[0] + sampleWidth*y, sampleStart[1] + sampleWidth * z));
+			glm::vec3 position = glm::vec3(-2.f, sampleStart[0] + sampleWidth * y, sampleStart[1] + sampleWidth * z); //replace with sample
+			cam.setPositionAndForward(position, model.center);
+			cameraSamples(cam, rstshader, rsttex, model, glm::ivec2(rstwidth, rstheight), rst);
 		}
 	}
 
@@ -207,6 +211,45 @@ void getRstStatistics(RaySpaceTree *rst, int no_triangles) {
 		if (duplicates[i] > 0)
 			std::cout << i << " " << duplicates[i] << std::endl;
 	}
+}
+
+GLuint makePoints(int &size) {
+	std::vector<GLfloat> points;
+	float phi, theta, sintheta;
+	float x, y, z;
+	float factorPhi = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));
+	int N = 1000;
+	float factorTheta = 2.f / (2.f * N + 1.f);
+	float r = 1.5f;
+
+	float maxx = -1000.f, maxy = -1000.f, maxz = -1000.f;
+
+	for (int i = -N; i <= N; i++) {
+		phi = i * factorPhi;
+		sintheta = i * factorTheta;
+		theta = asin(sintheta);
+		x = r * cos(theta) * cos(phi);
+		y = r * cos(theta) * sin(phi);
+		z = r * sintheta;
+
+		points.push_back(x);
+		points.push_back(y);
+		points.push_back(z);
+	}
+
+	GLuint pointVAO, pointVBO;
+	glGenVertexArrays(1, &pointVAO);
+	glBindVertexArray(pointVAO);
+
+	glGenBuffers(1, &pointVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, pointVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*points.size(), &points[0], GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*3, (void*)0);
+	size = points.size()/3;
+	return pointVAO;
+
 }
 
 int main() {
@@ -253,22 +296,26 @@ int main() {
 	Shader lineProgram = Shader("line.vert", "line.frag");
 
 	////////////////////////// Load vertices of model
-	std::vector<Vertex> vertices;
-	int noPrimitives = 0;
 	const char *filename = "scene.obj";
-	GLuint vao = Models::loadModel(vertices, noPrimitives, filename);
+	Model model(filename, 1);
 
 	/////////////////////// Create cube and lines for cube
 	float cubeSize = 2.f;
 	glm::vec3 cubeMin = glm::vec3(-1.f, 0.f, -1.f);
 	glm::vec3 cubeMax = cubeMin + cubeSize;
 	Cube cube(cubeMin, cubeSize);
-	GLuint lineVAO = Models::cubelineGeneration(cubeMin, cubeMax);
+	GLuint cubeVAO = cube.cubelineGeneration();
 
-	/////////////////////// Create sphere
-	int spherenum = 0;
-	GLuint spherevbo;
-	GLuint sphereVAO = Models::sphere(10, 20, spherenum, 1.f, spherevbo);
+	////////////////////// Create show bounding box
+	GLuint bboxVAO = model.boundingBox.cubelineGeneration();
+
+	/////////////////////// Create show sphere
+	Sphere sphere(model.center, model.radius);
+	sphere.vaoGeneration(10, 20);
+
+	///////////////////// Create sample locations show
+	int pointsize = 0;
+	GLuint pointsVAO = makePoints(pointsize);
 
 	/////////////////// Create main camera
 	PreviewCamera mainCamera;
@@ -284,45 +331,52 @@ int main() {
 
 	const int w = 400, h = 400;
 	RaySpaceTree rst(&cube);
-	makeRST(&rst, vertices, vao, noPrimitives, texprojProgram, rstProgram, w, h, 0);
-	// Use rst info to visualize
-	splitters = rst.getSplittingLinesInCube();
+	int noSample = 10;
+	makeRST(&rst, model, texprojProgram, rstProgram, w, h, 0, noSample);
 
+	////////////////// Check result by RayTracing
+	Orthocamera raytracecam(model.radius, model.radius, 0.1f, 30.f);
+	raytracecam.setPositionAndForward(glm::vec3(-2.f, 1.f, 0.f), model.center);
+	if (trace) RayTracer::imageTracer(raytracecam, &rst, glm::ivec2(w,h), model);
+
+	////////////////// Use rst info to visualize
+	splitters = rst.getSplittingLinesInCube();
 	GLuint splitterVao = Models::vaoLineGeneration(splitters);
 	GLuint leafRayVao;
 	int noLeaves = std::pow(2, rst.depth);
-	int leafnum = leafNumber;
+	int leafnum = -1;
 	bool showing = false;
 
 	//getRstStatistics(&rst, noPrimitives);
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_CCW);
+	glEnable(GL_PROGRAM_POINT_SIZE);
 
 	while (!glfwWindowShouldClose(window)) {
 
 		glfwPollEvents();
-
-		if (leafnum != leafNumber) {
+		
+		if (update) {
 			leafRays = std::vector<glm::vec3>();
 			splitters = std::vector<glm::vec3>();
 			rayColors = std::vector<glm::vec3>();
 
 			while (leafRays.size() == 0) {
-				leafNumber = leafNumber % noLeaves;
-				rst.getViewingLinesInLeaf(leafNumber, leafRays, rayColors, splitters);
+				leafnum++;
+				leafnum = leafnum % noLeaves;
+				rst.getViewingLinesInLeaf(leafnum, leafRays, rayColors, splitters);
 				splitterVao = Models::vaoLineGeneration(splitters);
-				leafNumber++;
 			}
 
 			leafRayVao = Models::vaoLineGenerationWithColor(leafRays, rayColors, &cube);
 			showing = true;
-
-			leafnum = leafNumber;
+			update = false;
 		}
 
 		updateCamera(mainCamera, width, height);
-		//glm::mat4 mvp = mainCamera.vpmMatrix();
 		glm::mat4 mvp = mainCamera.vpmMatrix();
 
 		// Bind the shader
@@ -337,20 +391,17 @@ int main() {
 		glClearColor(0.1f, 0.2f, 0.3f, 1.0f); 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+		glBindVertexArray(model.vao);
+		glDrawArrays(GL_TRIANGLES, 0, model.vertices.size());
 
-		glBindVertexArray(lineVAO);
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_LINES, 0, 24);
+
+		glBindVertexArray(bboxVAO);
 		glDrawArrays(GL_LINES, 0, 24);
 
 		glBindVertexArray(splitterVao);
 		glDrawArrays(GL_LINES, 0, splitters.size());
-
-		//glBindVertexArray(sphereVAO);
-		//glEnable(GL_PRIMITIVE_RESTART);
-		//glPrimitiveRestartIndex(GL_PRIMITIVE_RESTART_FIXED_INDEX);
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spherevbo);
-		//glDrawElements(GL_QUAD_STRIP, spherenum, GL_UNSIGNED_INT, NULL);
 
 		if (showing) {
 			glUseProgram(lineProgram.index);
@@ -358,6 +409,14 @@ int main() {
 			glBindVertexArray(leafRayVao);
 			glDrawArrays(GL_LINES, 0, leafRays.size());
 		}
+		glUseProgram(mainProgram.index);
+		mvp = mainCamera.vpmMatrix(sphere.center);
+		glUniformMatrix4fv(glGetUniformLocation(mainProgram.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+		glBindVertexArray(sphere.vao);
+		glDrawElements(GL_LINES, sphere.indSize, GL_UNSIGNED_INT, (void*)0);
+
+		glBindVertexArray(pointsVAO);
+		glDrawArrays(GL_POINTS, 0, pointsize);
 
 		// Present result to the screen
 		glfwSwapBuffers(window);

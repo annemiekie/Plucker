@@ -16,7 +16,8 @@ struct Orthocamera : public Camera {
 	virtual Ray pixRayDirection(glm::vec2 pos)
 	{
 		glm::vec3 camRay = glm::vec3(pos.x*w, pos.y*h, 0);
-		glm::vec3 worldSpaceRayStart = glm::normalize(invview * glm::vec4(camRay, 0.0f));
-		return Ray(position + forward, position + worldSpaceRayStart);
+		glm::vec3 worldSpaceRayStart = invview * glm::vec4(camRay, 0.0f);
+		//if (worldSpaceRayStart.length() > 0) worldSpaceRayStart = glm::normalize(worldSpaceRayStart);
+		return Ray(position + worldSpaceRayStart + forward, position + worldSpaceRayStart);
 	};
 };

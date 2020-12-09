@@ -40,6 +40,10 @@ public:
 	void putPrimitive(Ray& ray, int primId);
 	void putPrimitive(Ray& ray, int primId, Node* node);
 
+	Node* descend(Ray& ray);
+	Node* descend(Ray& ray, Node* node);
+
+
 	void construct(int level, std::vector<Vertex>& vertices, int option);
 	void construct(int level, Node* node, std::vector<Vertex>& vertices, int option);
 

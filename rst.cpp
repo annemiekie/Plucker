@@ -59,6 +59,18 @@ void RaySpaceTree::putPrimitive(Ray& ray, int primId, Node* node) {
 	else putPrimitive(ray, primId, node->rightNode);
 }
 
+Node* RaySpaceTree::descend(Ray& ray)
+{
+	return descend(ray, rootNode);
+}
+
+Node* RaySpaceTree::descend(Ray& ray, Node* node)
+{
+	if (node->leaf) return node;
+	if (node->splitter.side(ray)) return descend(ray, node->leftNode);
+	else return descend(ray, node->rightNode);
+}
+
 std::vector<int> RaySpaceTree::countDuplicates(int size, std::vector<int>& nodenr) {
 	std::vector<int> duplicates = std::vector<int>(size);
 	countDuplicates(rootNode, duplicates, nodenr);

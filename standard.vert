@@ -18,4 +18,6 @@ void main() {
     // Pass position and normal through to fragment shader
     fragPos = pos;
     fragNormal = normal;
+
+    gl_PointSize = 2;
 }

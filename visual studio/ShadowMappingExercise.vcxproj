@@ -28,9 +28,12 @@
   <ItemGroup>
     <ClInclude Include="..\buffers.h" />
     <ClInclude Include="..\camera.h" />
+    <ClInclude Include="..\sphere.h" />
+    <ClInclude Include="..\model.h" />
     <ClInclude Include="..\orthocamera.h" />
     <ClInclude Include="..\perscamera.h" />
     <ClInclude Include="..\previewcamera.h" />
+    <ClInclude Include="..\raytracer.h" />
     <ClInclude Include="..\shader.h" />
     <ClInclude Include="..\models.h" />
     <ClInclude Include="..\node.h" />

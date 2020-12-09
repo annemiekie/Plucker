@@ -4,7 +4,7 @@
 uniform vec3 viewPos;
 
 // Output for on-screen color
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out float outColor;
 
 // Interpolated output data from vertex shader
 //in vec3 fragPos; // World-space position
@@ -15,5 +15,5 @@ in float fragId;
 void main() 
 {
     float col = fragId;
-	outColor = vec4(col, 0, 1-col, 1);
+	outColor = col;//vec4(col, 0, 1-col, 1);
 }

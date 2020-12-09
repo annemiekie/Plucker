@@ -77,6 +77,15 @@
     <ClInclude Include="..\perscamera.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\raytracer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\model.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sphere.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp">

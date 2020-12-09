@@ -33,7 +33,7 @@ namespace Buffers {
 		glGenTextures(1, &texRST);
 		glBindTexture(GL_TEXTURE_2D, texRST);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rstwidth, rstheight, 0, GL_RGB, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, rstwidth, rstheight, 0, GL_RED, GL_FLOAT, nullptr);
 
 		//// Set interpolation for texture sampling (GL_NEAREST for no interpolation)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

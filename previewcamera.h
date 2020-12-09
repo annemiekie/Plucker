@@ -13,8 +13,8 @@ struct PreviewCamera {
 	float x_rot = 0.f;
 
 	glm::mat4 world = glm::mat4(1);
-	float radius = 3.f;
-	glm::mat4 view = glm::translate(glm::mat4(1), glm::vec3(0, 0, -radius));
+	float radius = 6.f;
+	glm::mat4 view = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -radius));
 
 	glm::vec3 up;
 
@@ -39,7 +39,14 @@ struct PreviewCamera {
 
 	glm::mat4 vpmMatrix() const
 	{
-		glm::mat4 model = glm::translate(glm::mat4(1), glm::vec3(0.0f, -0.5f, 0.0f));
+		glm::mat4 model = glm::translate(glm::mat4(1), glm::vec3(0.f, -1.f, 0.f));
+		return pMatrix() * view * world *model;
+	}
+
+	glm::mat4 vpmMatrix(glm::vec3 translate) const
+	{
+		glm::mat4 model = glm::translate(glm::mat4(1), glm::vec3(0.f, -1.f, 0.f));
+		model = glm::translate(model, translate);
 		return pMatrix() * view * world * model;
 	}
 
