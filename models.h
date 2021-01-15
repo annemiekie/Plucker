@@ -22,6 +22,8 @@ namespace Models {
 	GLuint quadGeneration();
 	//GLuint cubelineGeneration(glm::vec3& min, glm::vec3& max);
 	GLuint vaoLineGenerationWithColor(std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colorpos, Cube* cube);
+	GLuint rayVao(Ray& r, glm::vec3 color, Cube* cube, glm::vec3 mainDir);
+
 };
 
 

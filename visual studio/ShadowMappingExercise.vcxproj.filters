@@ -86,6 +86,9 @@
     <ClInclude Include="..\sphere.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\sphereSampler.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp">

@@ -16,11 +16,7 @@ GLuint Models::vaoLineGeneration(std::vector<glm::vec3>& lines) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    return lineVAO;
+	return lineVAO;
 }
 
 
@@ -68,6 +64,36 @@ GLuint Models::vaoLineGenerationWithColor(std::vector<glm::vec3>& lines, std::ve
 		colors.push_back(color);
 		colors.push_back(color);
 	}
+
+	GLuint lineVBO[2];
+	glGenBuffers(2, lineVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, lineVBO[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), &lines[0].x, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, lineVBO[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), &colors[0].x, GL_STATIC_DRAW);
+
+	GLuint lineVAO;
+	glGenVertexArrays(1, &lineVAO);
+	glBindVertexArray(lineVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, lineVBO[0]);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, lineVBO[1]);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(1);
+
+	return lineVAO;
+}
+
+
+GLuint Models::rayVao(Ray& r, glm::vec3 color, Cube* cube, glm::vec3 mainDir) {
+	glm::vec3 start, end, x;
+	cube->intersect(r, start, end, mainDir, x);
+	std::vector<glm::vec3> lines = { start, end };
+	std::vector<glm::vec3> colors = { color, color };
 
 	GLuint lineVBO[2];
 	glGenBuffers(2, lineVBO);

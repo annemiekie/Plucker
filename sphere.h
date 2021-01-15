@@ -10,13 +10,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vector>
+#include "vertex.h"
 
 class Sphere {
 public:
     glm::vec3 center = glm::vec3(0);
     float radius = 0.f;
-    GLuint vbo;
-    GLuint ibo;
     GLuint vao;
 
     int indSize = 0;
@@ -26,9 +25,10 @@ public:
     Sphere(glm::vec3 center, float radius) : center(center), radius(radius) {   };
 
     void vaoGeneration(int stackCount, int sectorCount) {
-        std::vector<GLfloat> vertices;
+        std::vector<Vertex> vertices;
+
         GLfloat x, y, z, xy;                              // vertex position
-       // GLfloat nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
+        GLfloat nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
        // GLfloat s, t;                                     // vertex texCoord
 
         GLfloat sectorStep = 2.f * glm::pi<float>() / (float)sectorCount;
@@ -50,17 +50,12 @@ public:
                 // vertex position (x, y, z)
                 x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
                 y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
-                vertices.push_back(x);
-                vertices.push_back(y);
-                vertices.push_back(z);
 
-                //// normalized vertex normal (nx, ny, nz)
-                //nx = x * lengthInv;
-                //ny = y * lengthInv;
-                //nz = z * lengthInv;
-                //normals.push_back(nx);
-                //normals.push_back(ny);
-                //normals.push_back(nz);
+                // normalized vertex normal (nx, ny, nz)
+                nx = x * lengthInv;
+                ny = y * lengthInv;
+                nz = z * lengthInv;
+                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), 0 });
 
                 //// vertex tex coord (s, t) range between [0, 1]
                 //s = (float)j / sectorCount;
@@ -101,17 +96,29 @@ public:
         glBindVertexArray(vao);
 
         // copy interleaved vertex data (V/N/T) to VBO
+       // GLuint vbo[2];
+        GLuint vbo;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
         // copy index data to VBO
+        GLuint ibo;
         glGenBuffers(1, &ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        // The position vectors should be retrieved from the specified Vertex Buffer Object with given offset and stride
+        // Stride is the distance in bytes between vertices
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, pos)));
         glEnableVertexAttribArray(0);
+
+        // The normals should be retrieved from the same Vertex Buffer Object (glBindBuffer is optional)
+        // The offset is different and the data should go to input 1 instead of 0
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, normal)));
+        glEnableVertexAttribArray(1);
 
         indSize = indices.size();
 

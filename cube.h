@@ -10,14 +10,14 @@
 class Cube {
     public:
     //glm::vec3 minvec, maxvec;
-    glm::vec3 bounds[2];
-    float size;
+    glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
+    float size = 0;
 
     Cube() {};
 
-    Cube(glm::vec3 minvec, float size) : size(size) {
-        bounds[0] = minvec;
-        bounds[1] = minvec + size;
+    Cube(glm::vec3 center, float size) : size(size) {
+        bounds[0] = center - size/2.f;
+        bounds[1] = center + size/2.f;
     };
 
     Cube(glm::vec3 minvec, glm::vec3 maxvec) {
@@ -75,6 +75,36 @@ class Cube {
         //}
         tm = r.origin + x * r.direction;
 
+        return true;
+    };
+
+    bool intersect(const Ray& r) const
+    {
+        bool sign[3];
+        sign[0] = (r.invdir.x < 0);
+        sign[1] = (r.invdir.y < 0);
+        sign[2] = (r.invdir.z < 0);
+        float tmin, tmax, txmin, txmax, tymin, tymax, tzmin, tzmax;
+
+        txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
+        txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
+        tmin = txmin;
+        tmax = txmax;
+        tymin = (bounds[sign[1]].y - r.origin.y) * r.invdir.y;
+        tymax = (bounds[1 - sign[1]].y - r.origin.y) * r.invdir.y;
+
+        if ((tmin > tymax) || (tymin > tmax))
+            return false;
+        if (tymin > tmin)
+            tmin = tymin;
+        if (tymax < tmax)
+            tmax = tymax;
+
+        tzmin = (bounds[sign[2]].z - r.origin.z) * r.invdir.z;
+        tzmax = (bounds[1 - sign[2]].z - r.origin.z) * r.invdir.z;
+
+        if ((tmin > tzmax) || (tzmin > tmax))
+            return false;
         return true;
     };
 

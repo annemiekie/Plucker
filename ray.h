@@ -1,8 +1,10 @@
 #pragma once
+#define GLEW_STATIC
+#include <GL/glew.h>
+
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
+#include <vector>
 
 struct Ray {
     glm::vec3 origin{ 0.0f };
@@ -29,5 +31,6 @@ struct Ray {
     float sideVal(Ray& oRay) {
         return float(glm::dot(u, oRay.v) + glm::dot(v, oRay.u));
     };
+
 
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ray.h"
+#include "sample.h"
 #include <utility> 
 #include <sstream>
 #include <set>
@@ -13,7 +14,7 @@ class Node {
 	Node *rightNode = nullptr;
 	Ray splitter = Ray();
 	std::set<int> primitiveSet = std::set<int>();
-	std::vector<std::pair<int, Ray>> primAndRayVector = std::vector<std::pair<int, Ray>>();
+	std::vector<Sample> primAndRayVector = std::vector<Sample>();
 	int index = 0;
 
 	Node() : leaf(false) {};
@@ -22,8 +23,12 @@ class Node {
 
 	Node(int ind) : index(ind), leaf(false) { };
 
+	void insert(int pri) {
+		primitiveSet.insert(pri);
+	}
+
 	void insert(int pri, Ray ray) {
 		primitiveSet.insert(pri);
-		primAndRayVector.push_back(std::pair<int,Ray>(pri, ray));
+		primAndRayVector.push_back(Sample{ray, pri});
 	};
 };
