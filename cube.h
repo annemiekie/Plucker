@@ -64,7 +64,6 @@ class Cube {
         glm::vec3 tmax_xyz = glm::vec3(txmax, tymax, tzmax);
         //glm::vec3 x;
         //if (glm::dot(maindir, glm::vec3(1)) < 0) {
-        float x = glm::dot(maindir * maindir, tmin_xyz);
         start = r.origin + tmin * r.direction;
         end = r.origin + tmax * r.direction;
         //}
@@ -73,6 +72,7 @@ class Cube {
         //    start = r.origin + tmax * r.direction;
         //    end = r.origin + tmin * r.direction;
         //}
+        float x = glm::dot(maindir * maindir, tmin_xyz);
         tm = r.origin + x * r.direction;
 
         return true;

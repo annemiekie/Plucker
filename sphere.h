@@ -49,13 +49,13 @@ public:
 
                 // vertex position (x, y, z)
                 x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
-                y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
+                y = xy * sinf(sectorAngle);            // r * cos(u) * sin(v)
 
                 // normalized vertex normal (nx, ny, nz)
                 nx = x * lengthInv;
                 ny = y * lengthInv;
                 nz = z * lengthInv;
-                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), 0 });
+                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), glm::vec3(0), glm::vec3(0), 0 });
 
                 //// vertex tex coord (s, t) range between [0, 1]
                 //s = (float)j / sectorCount;

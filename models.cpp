@@ -47,8 +47,6 @@ GLuint Models::quadGeneration() {
 	return quadVAO;
 }
 
-
-
 GLuint Models::vaoLineGenerationWithColor(std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colorpos, Cube* cube) {
 
 	std::vector<glm::vec3> colors;

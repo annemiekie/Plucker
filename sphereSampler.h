@@ -13,10 +13,13 @@ struct SphereSampler {
 	std::vector<glm::vec3> samples = std::vector<glm::vec3>();
 	Sphere* sphere;
 	GLuint vao = 0;
+	int ratio = 1;
+	int N = 0;
+	int camLoc = 0;
 	
-	SphereSampler(Sphere* sphere) : sphere(sphere) {};
+	SphereSampler(Sphere* sphere, int N, int ratio) : sphere(sphere), N(N), ratio(ratio) {};
 
-	void createSamples(int sgn, char maindir, int N) {
+	void createSamples(int sgn, char maindir) {
 		float phi, theta, sintheta;
 		float x, y, z;
 		float factorPhi = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));

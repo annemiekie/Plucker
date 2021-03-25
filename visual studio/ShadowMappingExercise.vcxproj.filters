@@ -89,6 +89,15 @@
     <ClInclude Include="..\sphereSampler.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\nodeSamples.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lineThroughFour.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\combinations.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp">

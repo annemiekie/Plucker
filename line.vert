@@ -3,6 +3,8 @@
 // Model/view/projection matrix
 uniform mat4 mvp;
 uniform float alpha;
+uniform int setcol;
+uniform vec3 setcolor;
 
 // Per-vertex attributes
 layout(location = 0) in vec3 pos; // World-space position
@@ -14,5 +16,8 @@ out vec4 lineColor;
 void main() {
 	// Transform 3D position into on-screen position
     gl_Position = mvp * vec4(pos, 1.0);
-    lineColor = vec4(color, alpha);
+    vec4 lc;
+    if (setcol==1) lc = vec4(setcolor, 1.0);
+    else lc = vec4(color, alpha);
+    lineColor = lc;
 }

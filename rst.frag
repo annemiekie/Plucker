@@ -1,19 +1,24 @@
 #version 410 core
 
-// Global variables for lighting calculations
-uniform vec3 viewPos;
-
 // Output for on-screen color
 layout(location = 0) out float outColor;
 
 // Interpolated output data from vertex shader
-//in vec3 fragPos; // World-space position
-//in vec3 fragNormal; // World-space normal
 in float fragId;
-
+in vec3 fragBary;
 
 void main() 
 {
     float col = fragId;
-	outColor = col;//vec4(col, 0, 1-col, 1);
+	outColor = col;
 }
+
+	//if (secondpass==1) col = float(texture2D(rsttex, gl_FragCoord.xy))/2.f;
+	//{
+	//	float idValue = float(texture2D(rsttex, gl_FragCoord.xy));
+	//	if (fragId == idValue) discard;
+	//}
+	//if (fragBary.x < 1E-4 || fragBary.y < 1E-4 ||fragBary.z < 1E-4) col = -1.f;
+	 //depth = gl_FragCoord.z
+	 //uniform int secondpass;
+//uniform sampler2D rsttex;

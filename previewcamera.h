@@ -86,6 +86,7 @@ struct PreviewCamera {
 		else {
 			radiusChange /= 4.f;
 			radius += radiusChange;
+			if (radius <= 0.f) radius = 6.f;
 			glm::mat4 camToWorld = glm::inverse(view);
 
 			glm::vec3 viewpos = camToWorld[3];
