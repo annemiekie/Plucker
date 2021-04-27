@@ -59,18 +59,23 @@ public:
 	void descendWithLines(Ray& ray, Node* node, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors);
 
 	void construct(int option, std::vector<Ray>& rays);
-	void construct(int level, Node* node, int option, std::vector<Ray>& rays);
+	void construct(int level, Node* node, int option, std::vector<Ray>& rays, std::vector<Ray> splitters);
 	
 	void constructAdaptive(glm::ivec2 res, std::vector<Orthocamera>& cams,
 							std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print);
 	void constructAdaptive(int level, Node* node, glm::ivec2 res, std::vector<Orthocamera>& cams,
-		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print);
+		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray> splitters);
 	void constructAdaptive2(int level, Node* node, glm::ivec2 res, std::vector<Orthocamera>& cams,
 		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize);
 
+	void constructSmartRandom(glm::ivec2 res, std::vector<Orthocamera>& cams,
+		std::vector<std::pair<int, int>>& samples, std::set<int>& tris);
+	void constructSmartRandom(int level, Node* node, glm::ivec2 res, std::vector<Orthocamera>& cams,
+		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, std::vector<Ray> splitters);
+
 	bool getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<std::pair<int, int>>& samplesL, std::set<int>& trisL,
 		std::vector<std::pair<int, int>>& samplesR, std::set<int>& trisR, std::vector<Orthocamera>& cams, int tries,
-						std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print);
+						std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray>& splitters);
 	Ray getBestSplitter2(glm::ivec2 res, std::vector<Orthocamera>& cams, int tries,
 		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize);
 
@@ -100,9 +105,9 @@ public:
 	void checkLeaves();
 	bool checkLeaf(Node *node, std::vector<Ray>& rays, bool getRays);
 	bool checkPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, Ray &ray, Node *node);
-	bool checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line);
-
-	bool rayInLeaf(Node* node, Ray& ray, std::vector<Ray>& ignore);
+	bool checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool print);
+	bool checkLineInBox(Ray& ray);
+	bool rayInLeaf(Node* node, Ray& ray, std::vector<Ray>& ignore, bool print);
 
 	void printTree();
 	void printTree(Node* node, int level);

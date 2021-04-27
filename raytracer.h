@@ -19,13 +19,13 @@ namespace RayTracer {
 		edge = Ray(v[i].pos, v[i + 2].pos);
 		if (edge.side(r)) return 0;
 
-		glm::vec3 v0 = v[i].pos;
-		glm::vec3 v1 = v[i + 1].pos;
-		glm::vec3 v2 = v[i + 2].pos;
+		glm::dvec3 v0 = v[i].pos;
+		glm::dvec3 v1 = v[i + 1].pos;
+		glm::dvec3 v2 = v[i + 2].pos;
 
-		glm::vec3 N = glm::cross(v2 - v0, v1 - v0);
-		glm::vec3 L = glm::vec3(-3, 3, -3);
-		diff = std::max(glm::dot(-glm::normalize(N), glm::normalize(L)), 0.f);
+		glm::dvec3 N = glm::cross(v2 - v0, v1 - v0);
+		glm::dvec3 L = glm::vec3(-3, 3, -3);
+		diff = std::max(glm::dot(-glm::normalize(N), glm::normalize(L)), 0.);
 		float ndotdir = glm::dot(N, r.direction);
 		float t = glm::dot(N, v0 - r.origin) / ndotdir;
 		return t;
@@ -51,45 +51,45 @@ namespace RayTracer {
 		return false;
 	};
 
-	bool intersection2(int i, std::vector<Vertex>& v, Ray& r) {
-		glm::vec3 v0 = v[i].pos;
-		glm::vec3 v1 = v[i+1].pos;
-		glm::vec3 v2 = v[i+2].pos;
-
-		glm::vec3 N = glm::cross(v1 - v0, v2 - v0);
-		float D = glm::dot(N, v0);
-
-		float ndotdir = glm::dot(N, r.direction);
-		//if (fabs(ndotdir) < 1E-10) // almost 0 
-		//	return false;
-
-		float t = -(glm::dot(N, r.origin) + D) / ndotdir;
-		if (t < 0) return false; // the triangle is behind 
-
-		glm::vec3 P = r.origin + t * r.direction;
-
-		glm::vec3 C; // vector perpendicular to triangle's plane 
-
-		// edge 0
-		glm::vec3 edge0 = v1 - v0;
-		glm::vec3 vp0 = P - v0;
-		C = glm::cross(edge0,vp0);
-		if (glm::dot(N,C) < 0) return false; // P is on the right side 
-
-		// edge 1
-		glm::vec3 edge1 = v2 - v1;
-		glm::vec3 vp1 = P - v1;
-		C = glm::cross(edge1, vp1);
-		if (glm::dot(N, C) < 0)  return false; // P is on the right side 
-
-		// edge 2
-		glm::vec3 edge2 = v0 - v2;
-		glm::vec3 vp2 = P - v2;
-		C = glm::cross(edge2, vp2);
-		if (glm::dot(N, C) < 0) return false; // P is on the right side; 
-
-		return true;
-	}
+	//bool intersection2(int i, std::vector<Vertex>& v, Ray& r) {
+	//	glm::vec3 v0 = v[i].pos;
+	//	glm::vec3 v1 = v[i+1].pos;
+	//	glm::vec3 v2 = v[i+2].pos;
+	//
+	//	glm::vec3 N = glm::cross(v1 - v0, v2 - v0);
+	//	float D = glm::dot(N, v0);
+	//
+	//	float ndotdir = glm::dot(N, r.direction);
+	//	//if (fabs(ndotdir) < 1E-10) // almost 0 
+	//	//	return false;
+	//
+	//	float t = -(glm::dot(N, r.origin) + D) / ndotdir;
+	//	if (t < 0) return false; // the triangle is behind 
+	//
+	//	glm::vec3 P = r.origin + t * r.direction;
+	//
+	//	glm::vec3 C; // vector perpendicular to triangle's plane 
+	//
+	//	// edge 0
+	//	glm::vec3 edge0 = v1 - v0;
+	//	glm::vec3 vp0 = P - v0;
+	//	C = glm::cross(edge0,vp0);
+	//	if (glm::dot(N,C) < 0) return false; // P is on the right side 
+	//
+	//	// edge 1
+	//	glm::vec3 edge1 = v2 - v1;
+	//	glm::vec3 vp1 = P - v1;
+	//	C = glm::cross(edge1, vp1);
+	//	if (glm::dot(N, C) < 0)  return false; // P is on the right side 
+	//
+	//	// edge 2
+	//	glm::vec3 edge2 = v0 - v2;
+	//	glm::vec3 vp2 = P - v2;
+	//	C = glm::cross(edge2, vp2);
+	//	if (glm::dot(N, C) < 0) return false; // P is on the right side; 
+	//
+	//	return true;
+	//}
 
 
 	std::vector<int> imageTracer(Camera& cam, RaySpaceTree* rst, glm::ivec2 resolution, Model& model) {

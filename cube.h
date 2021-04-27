@@ -8,22 +8,115 @@
 #include <glm/glm.hpp>
 
 class Cube {
-    public:
-    //glm::vec3 minvec, maxvec;
+private:
     glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
-    float size = 0;
+    std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
+    std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
 
-    Cube() {};
+public:
+    //glm::vec3 minvec, maxvec;
+    glm::vec3 size;
+    glm::vec3 center;
 
-    Cube(glm::vec3 center, float size) : size(size) {
-        bounds[0] = center - size/2.f;
-        bounds[1] = center + size/2.f;
+    Cube() { };
+
+    Cube(glm::vec3 center, float cubesize) : center(center) {
+        size = glm::vec3(cubesize);
+       // quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
+        setBounds(center - cubesize / 2.f, center + cubesize / 2.f);
     };
 
     Cube(glm::vec3 minvec, glm::vec3 maxvec) {
+      //  quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
+        setBounds(minvec, maxvec);
+    };
+
+    glm::vec3 getBounds(int minmax) {
+        return bounds[minmax];
+    }
+
+    void setBounds(glm::vec3 minvec, glm::vec3 maxvec) {
         bounds[0] = minvec;
         bounds[1] = maxvec;
-    };
+        center = (bounds[0] + bounds[1]) / 2.f;
+        size = glm::abs(bounds[0] - bounds[1]);
+        makeCubeSideLines();
+    }
+    // CHECK IF THIS WORKS
+    std::vector<Ray> getCubeSideLines(glm::vec3 mainDir) {
+        int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] != 0) return quadLines[3 * b + i];
+        }
+    }
+
+    std::vector<glm::vec3> getCubeCornerPoints(glm::vec3 mainDir) {
+        int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] != 0) return cornerPoints[3 * b + i];
+        }
+    }
+
+    void makeCubeSideLines() {
+        makeCubeSideLine(glm::vec3(1, 0, 0));
+        makeCubeSideLine(glm::vec3(0, 1, 0));
+        makeCubeSideLine(glm::vec3(0, 0, 1));
+        makeCubeSideLine(glm::vec3(-1, 0, 0));
+        makeCubeSideLine(glm::vec3(0, -1, 0));
+        makeCubeSideLine(glm::vec3(0, 0, -1));
+    }
+
+    void makeCubeSideLine(glm::vec3 mainDir) {
+        std::vector<glm::vec3> cPoints(4);
+        int max = -1;
+        int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
+
+        glm::vec3 bigbounds[2] = { center - 1.5f * size, center + 1.5f * size };// {bounds[0], bounds[1]};// 
+
+        bool first = true;
+        int diri = -1;
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] == 0) {
+                if (first) {
+                    for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j % 3 == 0 ? 0 : 1][i];
+                    first = false;
+                }
+                else for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j < 2 ? 0 : 1][i];
+            }
+            else for (int j = 0; j < 4; j++) {
+                diri = i;
+                cPoints[j][i] = bounds[b][i];
+            }
+        }
+
+        std::vector<Ray> sidelines;
+        for (int i = 0; i < 4; i++) sidelines.push_back( Ray(cPoints[i], cPoints[(i+1)%4]) );
+        quadLines[b*3 + diri] = sidelines;
+        cornerPoints[b * 3 + diri] = cPoints;
+    }
+
+    // CHECK IF THIS WORKS
+    bool intersectSide(glm::vec3 mainDir, Ray& r) {
+        int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
+        int diri = -1;
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] != 0) diri = i;
+        }
+        int left = 0;
+        int right = 0;
+        for (int i = 0; i < 4; i++) {
+            double sideVal = quadLines[diri+3*b][i].sideVal(r);
+            if (abs(sideVal) < 1E-10) {
+                left++;
+                right++;
+            }
+            else if (sideVal < 0) left++;
+            else right++;
+        }
+        if (left == 4 || right == 4) return true;
+        else return false;
+
+    }
 
     bool intersect(const Ray& r, glm::vec3& start, glm::vec3& end, glm::vec3 maindir, glm::vec3& tm) const
     {
@@ -57,22 +150,11 @@ class Cube {
         if (tzmax < tmax)
             tmax = tzmax;
 
-        //start = r.origin + std::min(tmin, tmax) * r.direction;
-        //end = r.origin + std::max(tmin,tmax) * r.direction;
-
         glm::vec3 tmin_xyz = glm::vec3(txmin, tymin, tzmin);
         glm::vec3 tmax_xyz = glm::vec3(txmax, tymax, tzmax);
-        //glm::vec3 x;
-        //if (glm::dot(maindir, glm::vec3(1)) < 0) {
-        start = r.origin + tmin * r.direction;
-        end = r.origin + tmax * r.direction;
-        //}
-        //else {
-        //    x = maindir * maindir * tmax_xyz;
-        //    start = r.origin + tmax * r.direction;
-        //    end = r.origin + tmin * r.direction;
-        //}
-        float x = glm::dot(maindir * maindir, tmin_xyz);
+        start = r.origin + (double)tmin * r.direction;
+        end = r.origin + (double)tmax * r.direction;
+        double x = glm::dot(maindir * maindir, tmin_xyz);
         tm = r.origin + x * r.direction;
 
         return true;

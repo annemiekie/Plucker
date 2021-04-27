@@ -19,6 +19,25 @@ struct SphereSampler {
 	
 	SphereSampler(Sphere* sphere, int N, int ratio) : sphere(sphere), N(N), ratio(ratio) {};
 
+	void createSamplesFull() {
+		float x, y, z;
+		float factorTheta = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));
+
+		for (int i = 0; i <= N; i++) {
+			float cosphi = 1.f - 2.f*i/N;//sgn*
+			float theta = i * factorTheta;//sgn*
+			float phi = acos(cosphi);
+			x = sphere->radius * cos(theta) * sin(phi);
+			y = sphere->radius * sin(theta) * sin(phi);
+			z = sphere->radius * cos(phi);
+
+			glm::vec3 sample;
+			sample = glm::vec3(x, y, z);
+			samples.push_back(sample + sphere->center);
+		}
+	}
+
+
 	void createSamples(int sgn, char maindir) {
 		float phi, theta, sintheta;
 		float x, y, z;
@@ -31,8 +50,8 @@ struct SphereSampler {
 		else return;
 
 		for (int i = 0; i <= N; i++) {
-			phi = sgn * i * factorPhi;
-			sintheta = sgn * i * factorTheta;
+			phi = sgn * i * factorPhi;//
+			sintheta = sgn * i * factorTheta;//
 			theta = asin(sintheta);
 			x = sphere->radius * cos(theta) * cos(phi);
 			y = sphere->radius * cos(theta) * sin(phi);

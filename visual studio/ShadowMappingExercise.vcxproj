@@ -37,6 +37,7 @@
     <ClInclude Include="..\buffers.h" />
     <ClInclude Include="..\camera.h" />
     <ClInclude Include="..\combinations.h" />
+    <ClInclude Include="..\edge.h" />
     <ClInclude Include="..\lineThroughFour.h" />
     <ClInclude Include="..\nodeSamples.h" />
     <ClInclude Include="..\sphere.h" />

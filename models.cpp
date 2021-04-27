@@ -51,8 +51,8 @@ GLuint Models::vaoLineGenerationWithColor(std::vector<glm::vec3>& lines, std::ve
 
 	std::vector<glm::vec3> colors;
 	glm::vec3 color;
-	glm::vec3 min = cube->bounds[0] - glm::vec3(cube->size);
-	float size = cube->size * 3.f;
+	glm::vec3 min = cube->getBounds(0) - glm::vec3(cube->size);
+	float size = cube->size.x * 3.f;
 
 	for (int i = 0; i < lines.size() / 2; i++) {
 		glm::vec3 pos = colorpos[i];

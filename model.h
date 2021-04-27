@@ -16,20 +16,27 @@
 #include <sstream>
 #include <vector>
 #include "vertex.h"
+#include "edge.h"
 #include "cube.h"
+#include <set>
+#include <utility>
 
 class Model {
 public:
 	GLuint vao = 0;
+	GLuint vbo = 0;
 	GLuint vao2 = 0;
 
 	std::vector<Vertex> vertices = std::vector<Vertex>();
 	std::vector<glm::vec3> vertices2 = std::vector<glm::vec3>();
 	std::vector<int> indices = std::vector<int>();
+	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
 	std::vector<std::vector<int>> triPerVertex;
+	std::vector<glm::vec3> normalPerTri = std::vector<glm::vec3>();
 
 	int primsize = 0;
 	Cube boundingBox;
+	Cube boundingCube;
 	glm::vec3 center = glm::vec3(0, 0, 0);
 	float radius = 0.f;
 
@@ -63,6 +70,8 @@ public:
 			vertices2[i/3] = vertex;
 		}
 
+		std::vector<int> verticespertri(3);
+		glm::vec3 normalTri(0);
 		std::vector<glm::vec3> centroid(3);
 		for (const auto& shape : shapes) {
 			primsize += shape.mesh.indices.size() / 3;
@@ -80,7 +89,6 @@ public:
 
 				vertex.bary = { count % 3 == 0, (count + 1) % 3 == 0, (count + 2) % 3 == 0 };
 
-
 				if (vertex.pos.x > maxx) maxx = vertex.pos.x;
 				else if (vertex.pos.x < minx) minx = vertex.pos.x;
 				if (vertex.pos.y > maxy) maxy = vertex.pos.y;
@@ -95,15 +103,24 @@ public:
 					attrib.normals[3 * index.normal_index + 2]
 				};
 
-				if (count % 3 == 0) {
-					ind++;
+				verticespertri[count % 3] = index.vertex_index;
+				normalTri += vertex.normal;
+
+				if (count % 3 == 0) ind++;
+				else if (count % 3 == 2) {
+					normalPerTri.push_back(glm::normalize(normalTri / 3.f));
+					normalTri = glm::vec3(0);
+					for (int x = 0; x < 3; x++) {
+						Edge e = Edge({ std::set<int>({verticespertri[x], verticespertri[(x + 1) % 3]}), std::vector<int>() });
+						//auto it = edges.find(e);
+						std::pair<std::set<Edge>::iterator, bool> insert = edges.insert(e);
+						(insert.first)->triangles.push_back(ind - 1);
+					}
 				}
 				vertex.id = (1.f * ind);
-				count++;
-
-				triPerVertex[index.vertex_index].push_back(vertex.id - 1);
-
+				triPerVertex[index.vertex_index].push_back(ind - 1);
 				vertices.push_back(vertex);
+				count++;
 			}
 		}
 
@@ -117,10 +134,41 @@ public:
 		boundingBox = Cube(glm::vec3(minx, miny, minz), glm::vec3(maxx, maxy, maxz));
 		center = glm::vec3((minx + maxx) / 2.f, (miny + maxy) / 2.f, (minz + maxz) / 2.f);
 		radius = glm::length(glm::vec3(maxx, maxy, maxz) - center);
+		boundingCube = Cube(center, std::max(std::max(maxx-minx, maxy-miny),maxz-minz));
 
+		findPotentialSilhouettes(glm::vec3(1,0,0));
 		createVAO();
 		createIBO();
 	};
+
+	void findPotentialSilhouettes(glm::vec3 maindir) {
+		std::vector<glm::vec3> cpoints = boundingCube.getCubeCornerPoints(maindir);
+		for (auto &e : edges) {
+			bool check = false;
+			if (e.triangles.size() == 1) check = true;
+			else {
+				int count = 0;
+				for (auto &c : cpoints) {
+					glm::vec3 halfway = 0.5f * (vertices2[*e.vertices.begin()] + vertices2[*e.vertices.rbegin()]);
+					bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
+					bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
+					if (dot1 != dot2) {
+						check = true;
+						break;
+					}
+					else if (!dot1) count++;
+				}
+				if (!check && count > 0 && count < 4) check = true;
+			}
+			if (check) {
+				for (auto t : e.triangles) {
+					vertices[3 * t].selected = -1.f;
+					vertices[3 * t + 1].selected = -1.f;
+					vertices[3 * t + 2].selected = -1.f;
+				}
+			}
+		}
+	}
 	
 	void createIBO() {
 		glGenVertexArrays(1, &vao2); // make VAO
@@ -147,9 +195,17 @@ public:
 
 	}
 
+	void changeSelected() {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+		glBindVertexArray(vao);
+		glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, selected)));
+		glEnableVertexAttribArray(4);
+	}
+
 	void createVAO() {
 		//////////////////// Create Vertex Buffer Object
-		GLuint vbo;
+		//GLuint vbo;
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
