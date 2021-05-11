@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{3d842efb-5dc9-4f65-83e4-05602831b85b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{26a6a49f-9d16-4ba5-b16b-bda18ff90a76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{ddc6d107-2b05-44ef-9060-39d3f60068d0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="models.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="rst.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="line.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="rst.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="standard.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="texproj.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="line.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="rst.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="standard.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="texproj.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="buffers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="combinations.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cube.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="edge.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="lineThroughFour.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="models.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="node.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="nodeSamples.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="orthocamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="perscamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="previewcamera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ray.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="raytracer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="rst.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sample.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="shader.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sphere.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sphereSampler.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="vertex.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="geoObject.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="linemodel.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
