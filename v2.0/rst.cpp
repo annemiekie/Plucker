@@ -73,7 +73,7 @@ void RaySpaceTree::construct(int lvl, Node* node, int option, std::vector<Ray>& 
 void RaySpaceTree::constructSmartRandom(glm::ivec2 res, std::vector<Camera*>& cams,
 										std::vector<std::pair<int, int>>& samples, std::set<int>& tris) {
 	int t = (int)time(NULL);
-	//srand(t);
+	srand(t);
 	std::vector<Ray> splitters;
 	constructSmartRandom(0, rootNode, res, cams, samples, tris, splitters);
 }
@@ -150,8 +150,6 @@ void RaySpaceTree::constructAdaptive(glm::ivec2 res, std::vector<Camera*>& cams,
 	constructAdaptive(0, rootNode, res, cams, samples, tris, print, splitters);
 	samples = std::vector < std::pair<int, int>>();
 	tris = std::set<int>();
-	//nodeSamples next = { tris, samples, rootNode, 0 };
-	//toProcess.push(next);
 
 	while (!toProcess.empty()) {
 		nodeSamples ns = toProcess.front();
@@ -299,7 +297,6 @@ Ray RaySpaceTree::getRay(std::vector<Camera*>& cams, int raynr, glm::ivec2 res) 
 
 bool RaySpaceTree::intoLeftNode(Ray &splitter, std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
 	Ray ray = getRay(cams, raynr, res);
-	//if (abs(splitter.sideVal(ray)) < 1E-8) std::cout << "OH NOOOOOO " << abs(splitter.sideVal(ray)) <<" ";
 	return splitter.side(ray);
 }
 
@@ -593,19 +590,6 @@ Node* RaySpaceTree::descend(Ray& ray, Node* node)
 	else return descend(ray, node->rightNode);
 }
 
-//void RaySpaceTree::descendWithLines(Ray& ray, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, GeoObject* object)
-//{
-//	return descendWithLines(ray, rootNode, splitters, rays, colors, object);
-//}
-//
-//void RaySpaceTree::descendWithLines(Ray& ray, Node* node, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, GeoObject* object)
-//{
-//	if (node->leaf) return getViewingLinesInLeafInGeo(node, rays, colors, object);
-//	addLineInGeo(node->splitter, object, splitters);
-//	if (node->splitter.side(ray)) return descendWithLines(ray, node->leftNode, splitters, rays, colors, object);
-//	else return descendWithLines(ray, node->rightNode, splitters, rays, colors, object);
-//}
-
 std::vector<int> RaySpaceTree::countDuplicates(int size, std::vector<int>& nodenr) {
 	std::vector<int> duplicates = std::vector<int>(size);
 	countDuplicates(rootNode, duplicates, nodenr);
@@ -675,6 +659,32 @@ std::vector<glm::vec3> RaySpaceTree::getSplittingLinesInGeo(GeoObject* object) {
 	return splitters;
 }
 
+void RaySpaceTree::getSplittingLinesInLeafWithSide(Node* n, std::vector<Ray>& lines, std::vector<int>& sides) {
+	if (n == rootNode) return;
+	else {
+		if (n->parent->leftNode == n) sides.push_back(1);
+		else sides.push_back(0);
+		lines.push_back(n->parent->splitter);
+		return getSplittingLinesInLeafWithSide(n->parent, lines, sides);
+	}
+} 
+
+//std::vector<Ray> RaySpaceTree::filterSplittingLines(std::vector<Ray>& lines, std::vector<int>& sides) {
+//	std::vector<Ray> filtered;
+//	for (auto &l : lines) {
+//		if (onCorrectSide(lines, sides, l)) filtered.push_back(l);
+//	}
+//	return filtered;
+//}
+
+bool RaySpaceTree::onCorrectSide(std::vector<Ray>& lines, std::vector<int>& sides, Ray& r) {
+	for (int i = 0; i < lines.size(); i++) {
+		if (lines[i].sideVal(r) > -1E-8 && sides[i])
+			return false;
+	}
+	return true;
+}
+
 int RaySpaceTree::numOfLeaf(int index) {
 	int count = 0;
 	for (Node* n: nodes) {
@@ -712,26 +722,12 @@ std::vector<Ray> RaySpaceTree::getViewingLinesInLeaf(Node *node)
 	return rays;
 }
 
-//void RaySpaceTree::addSplittersForLeaf(std::vector<glm::vec3>& splitters, Node* node, GeoObject* object) {
-//	addSplitter(splitters, node, object);
-//	if (node != rootNode) return addSplittersForLeaf(splitters, node->parent, object);
-//	return;
-//}
-//
-//void RaySpaceTree::addSplitter(std::vector<glm::vec3>& splitters, Node* node, GeoObject* object) {
-//	glm::vec3 s, t;
-//	object->intersect(node->splitter, s, t);
-//
-//	splitters.push_back(s);
-//	splitters.push_back(t);
-//}
-
 // add ignore list
 bool RaySpaceTree::checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool print) {
 
-	for (auto er : edgeRays) {
+	for (auto &er : edgeRays) {
 		bool equal = false;
-		for (auto igray : lines4) {
+		for (auto &igray : lines4) {
 			if (igray.equal(er, 1E-8)) { //-8
 				equal = true;
 				break;
@@ -743,7 +739,6 @@ bool RaySpaceTree::checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::v
 		}
 	}
 	glm::dvec3 cross = glm::cross(glm::normalize(edgeRays[0].direction), glm::normalize(edgeRays[1].direction));
-	line.get3DfromPlucker();
 	double v = fabsf(glm::dot(line.direction, cross));
 	if (v < 1E-10) { //-10
 		if (print) std::cout << std::endl << "In plane: " << v << std::endl;
@@ -758,11 +753,27 @@ bool RaySpaceTree::checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::v
 		return false;
 	}
 	return true;
-	//return !(v < 1E-10);
 }
 
 
-bool RaySpaceTree::rayInLeaf(Node* node, Ray& ray, std::vector<Ray>& ignore, bool print) {
+bool RaySpaceTree::rayInLeaf(std::vector<Ray>& splitLines, std::vector<int>& sides, const Ray& ray, std::vector<Ray>& ignore, bool print) {
+	for (int l = 0; l < splitLines.size(); l++) {
+		bool ignay = false;
+		for (Ray& ign : ignore) {
+			if (splitLines[l].equal(ign, 1E-8)) {
+				ignay = true;
+				break;
+			}
+		}
+		if (ignay) continue;
+		double sidev = ray.sideVal(splitLines[l]);
+		if (abs(sidev) < 1E-8) continue;
+		if (sidev > 0 && sides[l]) return false;
+	}
+	return true;
+}
+bool RaySpaceTree::rayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& ignore, bool print) {
+
 	if (node == rootNode) return true;
 	Node* parent = node->parent;
 	bool ign = false;
@@ -784,17 +795,39 @@ bool RaySpaceTree::rayInLeaf(Node* node, Ray& ray, std::vector<Ray>& ignore, boo
 	}
 }
 
-//bool RaySpaceTree::checkLineInBox(Ray& ray) {
-//	//float planeVal = glm::dot(glm::abs(mainDir), cube->bounds[b])
-//	return model->boundingCube.intersectSide(mainDir, ray);
-//}
+// take into account silhouette edges / splitting lines from edges, could be flagged as intersection!!
+bool RaySpaceTree::visible(const Ray &ray, const int prim) {
 
-bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, Ray &ray, Node* leaf) {
+	float primdepth = model->getIntersectionDepthForPrim(prim * 3, ray);
+	int embreePrim = -1;
+	float embreeDepth = 0.f;
+	//model->getIntersectionNoAcceleration(ray, prim1, depth1);
+	model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
+
+	//if (fabsf(depth2 - depth1) > 1E-3) {
+	//	//if (prim2 != -1) wronglines.push_back(ray);
+	////if (prim1 != prim2) {
+	//	std::cout <<
+	//		//depth2 / depth1 <<
+	//		"Plucker: " << prim1 << " t:" << depth1 << //" o+td:" << (ray.origin + (double)depth1 * ray.direction).x <<
+	//		" Embree: " << prim2 << " t : " << depth2 << //" o+td:" << (ray.origin + (double)depth2 * ray.direction).x <<
+	//		" Original : " << prim << " t : " << primdepth <<// " o+td:" << (ray.origin + (double)primdepth * ray.direction).x <<
+	//		std::endl;
+	//}
+
+	if (embreePrim == prim) return true;
+	else return (fabsf(embreeDepth - primdepth) < 1E-6);
+};
+
+bool RaySpaceTree::checkLineInBox(const Ray& ray) {
+	//float planeVal = glm::dot(glm::abs(mainDir), cube->bounds[b])
+	return model->boundingCube.intersectSide(maindir, ray);
+}
+
+bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, std::vector<int>& sides, Ray &ray, Node* leaf) {
 	bool print = false;
 	bool printAll = false;
 	bool details = false;
-	//if (leaf->index == 41) print == true;
-	//if (prim == 42 && print) printAll = true;
 
 	glm::vec3 v1 = model->vertices[3 * prim].pos;
 	glm::vec3 v2 = model->vertices[3 * prim + 1].pos;
@@ -843,6 +876,7 @@ bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& spli
 				if (found) break;
 				Ray line = intersectLines[i/2];
 				if (i % 2 == 1) line.inverseDir(); // check both directions of extremal stabbing line
+
 				if (printAll) {
 					std::cout << "Leaf:" << leaf->index << " Prim:" << prim << " c:" << c << " edges: ";
 					edgeRays[edges[e][0]].print();
@@ -854,9 +888,31 @@ bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& spli
 					std::cout << " test in leaf: " << rayInLeaf(leaf, line, ignore, printAll && (c==5 || c==7));
 					std::cout << std::endl;
 				}
-				//if (!checkLineInBox(line)) continue;
-				if (!checkLineInPrim(edgeRays, line, lines, prim, false)) continue;
+
+				if (!alldir) if (!checkLineInBox(line)) continue;
 				if (!rayInLeaf(leaf, line, ignore, details)) continue;
+
+				line.get3DfromPlucker();
+				if (!checkLineInPrim(edgeRays, line, lines, prim, false)) continue;
+
+				////// TEST TEST TEST
+				double ttest = (model->boundingBox.getBounds(0).x-0.1 - line.origin.x) / line.direction.x;
+				glm::dvec3 neworig = glm::dvec3(line.origin + ttest * line.direction);
+				Ray line2 = Ray(neworig + line.direction, neworig);
+				/*bool visline1 = visible(line2, prim);
+				bool visline2 = visible(line, prim);
+				double primdepth1 = model->getIntersectionDepthForPrim(prim * 3, line2);
+				double primdepth2 = model->getIntersectionDepthForPrim(prim * 3, line);
+				float depth1, depth2;
+				int prim1, prim2;
+				model->getIntersectionNoAcceleration(line2, prim1, depth1);
+				model->getIntersectionNoAcceleration(line, prim2, depth2);
+				if (visline1 != visline2) std::cout << "1: " << visline1 << " 2: " << visline2 <<
+					" primdepth1: " << primdepth1 << " 2: " << primdepth2 << 
+					" prim: " << prim << "prim1: " << prim1 << " 2 : " << prim2 <<
+					" depth1: " << depth1 << " 2: " << depth2 << std::endl;*/
+
+				if (!visible(line2, prim)) continue;
 				ray = line;
 				found = true;
 				if (print) {
@@ -875,16 +931,20 @@ bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& spli
 }
 
 bool RaySpaceTree::checkLeaf(Node* node, std::vector<Ray>& rays, bool getrays) {
+	////// TEST TEST /////
+	wronglines = std::vector<Ray>();
+
 	std::vector<Ray> splitLines;
-	getSplittingLinesInLeaf(node, splitLines);
-	//std::vector<Ray> boxSides = model->boundingBox.getCubeSideLines(mainDir);
-	//for (auto r : boxSides) splitLines.push_back(r);
+	std::vector<int> sideLines;
+
+	getSplittingLinesInLeafWithSide(node, splitLines, sideLines);
+	std::vector<Ray> boxSides = model->boundingCube.getCubeSideLines(maindir);
+	for (auto r : boxSides) splitLines.push_back(r);
 	int size = splitLines.size();// +boxSides.size();
 	std::vector<std::vector<int>> combi2 = Combinations::combi2(size);
 	std::vector<std::vector<int>> combi3 = Combinations::combi3(size);
 	std::vector<std::vector<int>> combi4 = Combinations::combi4(size);
 	
-
 	bool foundAll = true;
 	int notfound = 0;
 
@@ -894,9 +954,9 @@ bool RaySpaceTree::checkLeaf(Node* node, std::vector<Ray>& rays, bool getrays) {
 
 	for (int i : node->primitiveSet) {
 		Ray ray;
-		bool found = checkPrim(i, combi2, splitLines, ray, node);
-		if (!found) found = checkPrim(i, combi3, splitLines, ray, node); // only for occlusion!!!
-	//	if (!found) found = checkPrim(i, combi4, splitLines, ray, node); // only for occlusion!!!
+		bool found = checkPrim(i, combi2, splitLines, sideLines, ray, node);
+		if (!found) found = checkPrim(i, combi3, splitLines, sideLines, ray, node); // only for occlusion!!!
+		//if (!found) found = checkPrim(i, combi4, splitLines, sideLines, ray, node); // only for occlusion!!!
 		if (!found) {
 			foundAll = false;
 			notfound++;

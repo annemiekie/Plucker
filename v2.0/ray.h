@@ -35,24 +35,12 @@ struct Ray {
     };
 
     void get3DfromPlucker() {
-        //glm::vec3 plane1a = glm::vec3(1, 0, 0);
-        //float plane1a0 = -3.f;
-        //glm::vec3 plane2a = glm::vec3(1, 1, 0);
-        //float plane2a0 = 2.f;
-        //glm::vec3 q = (glm::cross(plane1a, v) - plane1a0 * u) / glm::dot(plane1a, u);
-        //glm::vec3 p = (glm::cross(plane2a, v) - plane2a0 * u) / glm::dot(plane2a, u);
-
         glm::dvec3 ucrossv = glm::cross(v, u);
         double udotu = glm::dot(u, u);
         glm::dvec3 p = ucrossv / udotu;
-       // glm::vec3 q = p + u;
-       // p -= (2.f * u);
-       // q += (2.f * u);
-
         origin = p;
         direction = glm::normalize(u);
         invdir = 1. / direction;
-
     }
 
     void dividefirst() {
@@ -73,21 +61,21 @@ struct Ray {
         v = v / norm;
     }
 
-    void normalizeU() {
-        double norm = sqrt(glm::dot(u, u));
-        u = u / norm;
-        v = v / norm;
-    }
+    //void normalizeU() {
+    //    double norm = sqrt(glm::dot(u, u));
+    //    u = u / norm;
+    //    v = v / norm;
+    //}
     std::vector<double> plucker() {
         std::vector<double> pluck = { u[0], u[1], u[2], v[0], v[1], v[2] };
         return pluck;
     }
 
-    bool side(Ray& oRay) {
+    bool side(const Ray& oRay) const {
         return glm::dot(u, oRay.v) + glm::dot(v, oRay.u) < 0;
     };
 
-    double sideVal(Ray& oRay) {
+    double sideVal(const Ray& oRay) const {
         return glm::dot(u, oRay.v) + glm::dot(v, oRay.u);
     };
 

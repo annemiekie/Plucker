@@ -12,12 +12,13 @@
 class Cube : public GeoObject {
 private:
     glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
-  //  std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
-  //  std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
+    std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
+    std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
 
 public:
 
     glm::vec3 size;
+
 
     Cube() { };
 
@@ -39,83 +40,84 @@ public:
         bounds[1] = maxvec;
         center = (bounds[0] + bounds[1]) / 2.f;
         size = glm::abs(bounds[0] - bounds[1]);
-       // makeCubeSideLines();
+        makeCubeSideLines();
     }
+
+    int getSgn(glm::vec3 mainDir) {
+        return glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
+    }
+
+    int getIndex(glm::vec3 mainDir) {
+        int b = getSgn(mainDir);
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] != 0) return 3 * b + i;
+        }
+        return -1;
+    }
+
     // CHECK IF THIS WORKS
-    //std::vector<Ray> getCubeSideLines(glm::vec3 mainDir) {
-    //    int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
-    //    for (int i = 0; i < 3; i++) {
-    //        if (mainDir[i] != 0) return quadLines[3 * b + i];
-    //    }
-    //}
+    std::vector<Ray> getCubeSideLines(glm::vec3 mainDir) {
+        return quadLines[getIndex(mainDir)];
+    }
 
-    //std::vector<glm::vec3> getCubeCornerPoints(glm::vec3 mainDir) {
-    //    int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
-    //    for (int i = 0; i < 3; i++) {
-    //        if (mainDir[i] != 0) return cornerPoints[3 * b + i];
-    //    }
-    //}
+    std::vector<glm::vec3> getCubeCornerPoints(glm::vec3 mainDir) {
+        return cornerPoints[getIndex(mainDir)];
 
-    //void makeCubeSideLines() {
-    //    makeCubeSideLine(glm::vec3(1, 0, 0));
-    //    makeCubeSideLine(glm::vec3(0, 1, 0));
-    //    makeCubeSideLine(glm::vec3(0, 0, 1));
-    //    makeCubeSideLine(glm::vec3(-1, 0, 0));
-    //    makeCubeSideLine(glm::vec3(0, -1, 0));
-    //    makeCubeSideLine(glm::vec3(0, 0, -1));
-    //}
-    //
-    //void makeCubeSideLine(glm::vec3 mainDir) {
-    //    std::vector<glm::vec3> cPoints(4);
-    //    int max = -1;
-    //    int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
-    //
-    //    glm::vec3 bigbounds[2] = { center - 1.5f * size, center + 1.5f * size };// {bounds[0], bounds[1]};// 
-    //
-    //    bool first = true;
-    //    int diri = -1;
-    //    for (int i = 0; i < 3; i++) {
-    //        if (mainDir[i] == 0) {
-    //            if (first) {
-    //                for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j % 3 == 0 ? 0 : 1][i];
-    //                first = false;
-    //            }
-    //            else for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j < 2 ? 0 : 1][i];
-    //        }
-    //        else for (int j = 0; j < 4; j++) {
-    //            diri = i;
-    //            cPoints[j][i] = bounds[b][i];
-    //        }
-    //    }
-    //
-    //    std::vector<Ray> sidelines;
-    //    for (int i = 0; i < 4; i++) sidelines.push_back( Ray(cPoints[i], cPoints[(i+1)%4]) );
-    //    quadLines[b*3 + diri] = sidelines;
-    //    cornerPoints[b * 3 + diri] = cPoints;
-    //}
-    //
+    }
+
+    void makeCubeSideLines() {
+        makeCubeSideLine(glm::vec3(1, 0, 0));
+        makeCubeSideLine(glm::vec3(0, 1, 0));
+        makeCubeSideLine(glm::vec3(0, 0, 1));
+        makeCubeSideLine(glm::vec3(-1, 0, 0));
+        makeCubeSideLine(glm::vec3(0, -1, 0));
+        makeCubeSideLine(glm::vec3(0, 0, -1));
+    }
+    // bounds need to be the right way 'around'
+    void makeCubeSideLine(glm::vec3 mainDir) {
+        std::vector<glm::vec3> cPoints(4);
+        int max = -1;
+        int b = getSgn(mainDir);
+
+        glm::vec3 bigbounds[2] = { center - 1.5f * size, center + 1.5f * size };// {bounds[0], bounds[1]};// 
+    
+        bool first = true;
+        int diri = -1;
+        for (int i = 0; i < 3; i++) {
+            if (mainDir[i] == 0) {
+                if (first) {
+                    for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j % 3 == 0 ? 0 : 1][i];
+                    first = false;
+                }
+                else for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j < 2 ? 0 : 1][i];
+            }
+            else for (int j = 0; j < 4; j++) {
+                diri = i;
+                cPoints[j][i] = bounds[b][i];
+            }
+        }
+    
+        std::vector<Ray> sidelines;
+        for (int i = 0; i < 4; i++) sidelines.push_back( Ray(cPoints[i], cPoints[(i+1)%4]) );
+        quadLines[b*3 + diri] = sidelines;
+        cornerPoints[b * 3 + diri] = cPoints;
+    }
+    
     //// CHECK IF THIS WORKS
-    //bool intersectSide(glm::vec3 mainDir, Ray& r) {
-    //    int b = glm::dot(mainDir, glm::vec3(1)) < 0 ? 1 : 0;
-    //    int diri = -1;
-    //    for (int i = 0; i < 3; i++) {
-    //        if (mainDir[i] != 0) diri = i;
-    //    }
-    //    int left = 0;
-    //    int right = 0;
-    //    for (int i = 0; i < 4; i++) {
-    //        double sideVal = quadLines[diri+3*b][i].sideVal(r);
-    //        if (abs(sideVal) < 1E-10) {
-    //            left++;
-    //            right++;
-    //        }
-    //        else if (sideVal < 0) left++;
-    //        else right++;
-    //    }
-    //    if (left == 4 || right == 4) return true;
-    //    else return false;
-    //
-    //}
+    bool intersectSide(glm::vec3 mainDir, const Ray& r) {
+        int ind = getIndex(mainDir);
+        int left = 0;
+        int right = 0;
+        for (int i = 0; i < 4; i++) {
+            double sideVal = quadLines[ind][i].sideVal(r);
+            if (abs(sideVal) < 1E-10) { left++; right++; }
+            else if (sideVal < 0) left++;
+            else right++;
+        }
+        if (right == 4) return true;// || left == 4
+        else return false;
+    
+    }
 
     virtual bool intersect(const Ray& r, glm::vec3& start, glm::vec3& end, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
     {
@@ -235,6 +237,26 @@ public:
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
         return lineVAO;
     };
+
+    GLuint vaoSideQuad(glm::vec3 mainDir) {
+        int ind = getIndex(mainDir);
+        std::vector<glm::vec3> lines;
+        for (int i = 0; i < 4; i++) {
+            lines.push_back(cornerPoints[ind][i]);
+            lines.push_back(cornerPoints[ind][(i + 1) % 4]);
+        }
+
+        GLuint lineVAO, lineVBO;
+        glGenVertexArrays(1, &lineVAO);
+        glGenBuffers(1, &lineVBO);
+        glBindVertexArray(lineVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*lines.size(), &lines[0], GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+
+        return lineVAO;
+    }
 
 };
 

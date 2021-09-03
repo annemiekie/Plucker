@@ -26,6 +26,8 @@
   <ItemGroup>
     <None Include="line.frag" />
     <None Include="line.vert" />
+    <None Include="pick.frag" />
+    <None Include="pick.vert" />
     <None Include="rst.frag" />
     <None Include="rst.vert" />
     <None Include="standard.frag" />
@@ -35,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="buffers.h" />
+    <ClInclude Include="bvh.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
@@ -49,13 +52,16 @@
     <ClInclude Include="orthocamera.h" />
     <ClInclude Include="perscamera.h" />
     <ClInclude Include="previewcamera.h" />
+    <ClInclude Include="primitive.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="raytracer.h" />
+    <ClInclude Include="raytracer_embree.h" />
     <ClInclude Include="rst.h" />
     <ClInclude Include="sample.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="sphereSampler.h" />
+    <ClInclude Include="textureRenderer.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -129,7 +135,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4;$(ProjectDir)..\libraries\eigen-3.3.9</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4;$(ProjectDir)..\libraries\libconfig-1.7.2\lib;$(ProjectDir)..\libraries\eigen-3.3.9;C:\Program Files\Intel\Embree3\include</AdditionalIncludeDirectories>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <OpenMPSupport>true</OpenMPSupport>
@@ -137,8 +143,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\Intel\Embree3\lib;$(ProjectDir)..\libraries\libconfig-1.7.2\Debug;$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;opengl32.lib;glew32s.lib;glfw3.lib;libconfig++.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -148,7 +154,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries\embree3;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\include;$(ProjectDir)..\libraries\CImg-2.9.4;C:\Program Files\Intel\Embree3\include;$(ProjectDir)..\libraries\libconfig-1.7.2\lib;$(ProjectDir)..\libraries\eigen-3.3.9</AdditionalIncludeDirectories>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <OpenMPSupport>true</OpenMPSupport>
@@ -156,8 +162,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\x64;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\lib-vc2015;C:\Program Files\Intel\Embree3\lib;$(ProjectDir)..\libraries\libconfig-1.7.2\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;opengl32.lib;glew32s.lib;glfw3.lib;libconfig++.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,7 +175,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries\eigen-3.3.9;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\Intel\Embree3\include;$(ProjectDir)..\libraries\eigen-3.3.9;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4;$(ProjectDir)..\libraries\libconfig-1.7.2\lib</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -177,8 +183,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\Intel\Embree3\lib;$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(ProjectDir)..\libraries\libconfig-1.7.2\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;libconfig++.lib;embree3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -190,7 +196,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\include;$(ProjectDir)..\libraries\CImg-2.9.4</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\libraries\embree3;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\include;$(ProjectDir)..\libraries\CImg-2.9.4;C:\Program Files\Intel\Embree3\include;$(ProjectDir)..\libraries\libconfig-1.7.2\lib;$(ProjectDir)..\libraries\eigen-3.3.9</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -198,8 +204,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\Win32;$(ProjectDir)..\libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\libraries\glew-2.0.0\lib\Release\x64;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\lib-vc2015;C:\Program Files\Intel\Embree3\lib;$(ProjectDir)..\libraries\libconfig-1.7.2\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;opengl32.lib;glew32s.lib;glfw3.lib;libconfig++.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

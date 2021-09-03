@@ -1,0 +1,13 @@
+alldir = false
+dir = "X"
+sgn = 1
+depth = 8
+noSamples = 1000
+createRatio = 10
+w = 400
+h = 400
+constructOption = 3
+filename = "../models/dragon.obj"
+width = 800
+height = 800
+trace = false

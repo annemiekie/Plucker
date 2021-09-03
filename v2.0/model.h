@@ -7,10 +7,8 @@
 #include <glm/common.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-//// Library for loading .OBJ model
-//#define TINYOBJLOADER_IMPLEMENTATION
+#include <embree3/rtcore.h>
 #include <tiny_obj_loader.h>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -20,6 +18,7 @@
 #include "cube.h"
 #include <set>
 #include <utility>
+#include "primitive.h"
 
 class Model {
 public:
@@ -27,9 +26,12 @@ public:
 	GLuint vbo = 0;
 	GLuint vao2 = 0;
 
+	//enlarged triangles
+	std::vector<Vertex> verticesL = std::vector<Vertex>();
+
 	std::vector<Vertex> vertices = std::vector<Vertex>();
 	std::vector<glm::vec3> vertices2 = std::vector<glm::vec3>();
-	std::vector<int> indices = std::vector<int>();
+	std::vector<glm::uint> indices = std::vector<glm::uint>();
 	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
 	std::vector<std::vector<int>> triPerVertex;
 	std::vector<glm::vec3> normalPerTri = std::vector<glm::vec3>();
@@ -40,13 +42,46 @@ public:
 	glm::vec3 center = glm::vec3(0, 0, 0);
 	float radius = 0.f;
 
-	Model(const char* filename) {
+	RTCDevice device;
+	RTCScene scene;
+	struct RTCIntersectContext context;
+
+	Model() {};
+
+	~Model() {
+		rtcReleaseScene(scene);
+	}
+
+	Model(const char* filename, bool indexed = true) {
+		loadModelFromFile(filename);
+		findPotentialSilhouettes(glm::vec3(1, 0, 0));
+		setUpEmbreeTracer();
+		addGeometry(indexed);
+		createVAO();
+		createIBO();
+		//enlargeModel();
+	}
+
+	void enlargeModel() {
+		//Model newmodel = Model(*this);
+		verticesL = std::vector<Vertex>(vertices.size());
+		for (int i = 0; i < vertices.size(); i++)
+			verticesL[i].pos = vertices[i].pos + glm::normalize(vertices[i].pos - vertices[i].center) * 0.00001f;
+
+		detachGeometry();
+		rtcReleaseScene(scene);
+		setUpEmbreeTracer();
+		addGeometry(false);
+	}
+
+
+	void loadModelFromFile(const char* filename) {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
-		std::string err;
+		std::string err, warn;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename)) {
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename)) {
 			std::cerr << err << std::endl;
 			return;
 		}
@@ -58,7 +93,6 @@ public:
 		float minx = n, miny = n, minz = n;
 
 		vertices2 = std::vector<glm::vec3>(attrib.vertices.size() / 3);
-		indices = std::vector<int>();
 		triPerVertex = std::vector<std::vector<int>>(attrib.vertices.size() / 3);
 
 		for (int i = 0; i < attrib.vertices.size(); i+=3) {
@@ -135,41 +169,143 @@ public:
 		center = glm::vec3((minx + maxx) / 2.f, (miny + maxy) / 2.f, (minz + maxz) / 2.f);
 		radius = glm::length(glm::vec3(maxx, maxy, maxz) - center);
 		boundingCube = Cube(center, std::max(std::max(maxx-minx, maxy-miny),maxz-minz));
-
-		//findPotentialSilhouettes(glm::vec3(1,0,0));
-		createVAO();
-		createIBO();
 	};
 
-	//void findPotentialSilhouettes(glm::vec3 maindir) {
-	//	std::vector<glm::vec3> cpoints = boundingCube.getCubeCornerPoints(maindir);
-	//	for (auto &e : edges) {
-	//		bool check = false;
-	//		if (e.triangles.size() == 1) check = true;
-	//		else {
-	//			int count = 0;
-	//			for (auto &c : cpoints) {
-	//				glm::vec3 halfway = 0.5f * (vertices2[*e.vertices.begin()] + vertices2[*e.vertices.rbegin()]);
-	//				bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
-	//				bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
-	//				if (dot1 != dot2) {
-	//					check = true;
-	//					break;
-	//				}
-	//				else if (!dot1) count++;
-	//			}
-	//			if (!check && count > 0 && count < 4) check = true;
-	//		}
-	//		if (check) {
-	//			for (auto t : e.triangles) {
-	//				vertices[3 * t].selected = -1.f;
-	//				vertices[3 * t + 1].selected = -1.f;
-	//				vertices[3 * t + 2].selected = -1.f;
-	//			}
-	//		}
-	//	}
-	//}
-	
+	RTCGeometry makeEmbreeGeom(bool indexed = true) {
+		RTCGeometry model_geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+		int vertexsize = indexed ? vertices2.size() : vertices.size();
+		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexsize);
+		unsigned* triangles_embr = (unsigned*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), indices.size() / 3);
+		for (int i = 0; i < vertexsize; i++) {
+			vertices_embr[i * 3] = indexed ? vertices2[i][0] : verticesL[i].pos.x;
+			vertices_embr[i * 3 + 1] = indexed ? vertices2[i][1] : verticesL[i].pos.y;
+			vertices_embr[i * 3 + 2] = indexed ? vertices2[i][2] : verticesL[i].pos.z;
+		}
+		for (int i = 0; i < indices.size(); i++)
+			triangles_embr[i] = indexed ? indices[i] : i;
+		return model_geometry;
+	}
+
+	void setUpEmbreeTracer() {
+		device = rtcNewDevice(NULL);
+		scene = rtcNewScene(device);
+	}
+
+	void detachGeometry() {
+		rtcDetachGeometry(scene, 0);
+	}
+
+	void addGeometry(bool indexed = true) {
+		RTCGeometry model_geometry = makeEmbreeGeom(indexed);
+		rtcCommitGeometry(model_geometry);
+		rtcAttachGeometry(scene, model_geometry);
+		rtcReleaseGeometry(model_geometry);
+		rtcCommitScene(scene);
+		rtcInitIntersectContext(&context);
+	}
+
+	void findPotentialSilhouettes(glm::vec3 maindir) {
+		std::vector<glm::vec3> cpoints = boundingCube.getCubeCornerPoints(maindir);
+		for (auto &e : edges) {
+			bool check = false;
+			if (e.triangles.size() == 1) check = true;
+			else {
+				int count = 0;
+				for (auto &c : cpoints) {
+					glm::vec3 halfway = 0.5f * (vertices2[*e.vertices.begin()] + vertices2[*e.vertices.rbegin()]);
+					bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
+					bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
+					if (dot1 != dot2) {
+						check = true;
+						break;
+					}
+					else if (!dot1) count++;
+				}
+				if (!check && count > 0 && count < 4) check = true;
+			}
+			if (check) {
+				for (auto t : e.triangles) {
+					vertices[3 * t].selected = -1.f;
+					vertices[3 * t + 1].selected = -1.f;
+					vertices[3 * t + 2].selected = -1.f;
+				}
+			}
+		}
+	}
+
+
+	bool getIntersectionEmbree(const Ray& ray, int& primIndex, float& depth) {
+		struct RTCRayHit rayhit;
+		rayhit.ray.org_x = ray.origin.x;
+		rayhit.ray.org_y = ray.origin.y;
+		rayhit.ray.org_z = ray.origin.z;
+		rayhit.ray.dir_x = ray.direction.x;
+		rayhit.ray.dir_y = ray.direction.y;
+		rayhit.ray.dir_z = ray.direction.z;
+		rayhit.ray.tnear = 0;
+		rayhit.ray.tfar = std::numeric_limits<float>::infinity();
+		rayhit.ray.mask = 0;
+		rayhit.ray.flags = 0;
+		rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+		rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+		rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+		rtcIntersect1(scene, &context, &rayhit);
+		if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
+		{
+			// check orientation
+			//glm::vec3 norm = vertices[rayhit.hit.primID * 3].normal;
+			//if (glm::dot(norm, (glm::vec3)ray.direction) > 0) return false;
+			primIndex = rayhit.hit.primID;
+			depth = rayhit.ray.tfar;
+			return true;
+		}
+		//std::cout << "The ray did not collide with the object." << std::endl;
+
+		return false;
+	}
+
+	float getIntersectionDepthForPrim(int i, const Ray& r) { 
+		glm::dvec3 v0 = vertices[i].pos;
+		glm::dvec3 v1 = vertices[i + 1].pos;
+		glm::dvec3 v2 = vertices[i + 2].pos;
+
+		glm::dvec3 N = glm::cross(v2 - v0, v1 - v0);
+		//glm::dvec3 L = glm::vec3(-3, 3, -3);
+		//diff = std::max(glm::dot(-glm::normalize(N), glm::normalize(L)), 0.);
+		float ndotdir = glm::dot(N, r.direction);
+		float t = glm::dot(N, v0 - r.origin) / ndotdir;
+		return t;
+	}
+
+	bool getIntersectionWithPrim(int i, const Ray& r, float &depth) {
+		Ray edge;
+		// clockwise triangle edges
+		edge = Ray(verticesL[i + 1].pos, verticesL[i].pos);
+		if (edge.side(r)) return false;
+		edge = Ray(verticesL[i + 2].pos, verticesL[i + 1].pos);
+		if (edge.side(r)) return false;
+		edge = Ray(verticesL[i].pos, verticesL[i + 2].pos);
+		if (edge.side(r)) return false;
+		depth = getIntersectionDepthForPrim(i, r);
+		return true;
+	};
+
+	bool getIntersectionNoAcceleration(const Ray& r, int& primIndex, float& depth) {
+		primIndex = -1;
+		depth = 10000.f;
+		for (int index = 0; index < primsize; index++) {
+			float newdepth;
+			if (getIntersectionWithPrim(index * 3, r, newdepth)) {
+				if (newdepth < depth) {
+					depth = newdepth;
+					primIndex = index;
+				}
+			}
+		}
+		return primIndex >= 0;
+	};
+
+
 	void createIBO() {
 		glGenVertexArrays(1, &vao2); // make VAO
 		glBindVertexArray(vao2);

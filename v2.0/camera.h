@@ -20,7 +20,7 @@ struct Camera
 	float near;
 	float far;
 
-	Camera(float near, float far)
+	Camera(float near = 0.1f, float far = 30.f)
 	: position(glm::vec3(0, 0, 0))
 	, forward (glm::vec3(0, 0,-1))
 	, up      (glm::vec3(0, 1, 0)) 

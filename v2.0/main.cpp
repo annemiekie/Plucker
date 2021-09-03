@@ -10,10 +10,12 @@
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 // Library for loading an image
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#include <cstring>
+
 
 // Library for loading .OBJ model
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -36,6 +38,7 @@
 #include "sphereSampler.h"
 #include "geoObject.h"
 #include "linemodel.h"
+#include "textureRenderer.h"
 
 #include <iostream>
 #include <fstream>
@@ -44,13 +47,14 @@
 #include <chrono>
 
 #include <CImg.h>
-
+#include <libconfig.h++>
 
 // Configuration
-const int width = 800;
-const int height = 800;
+int width = 800;	// TESSST
+int height = 800;	 // TESSST
 bool update = false;
-bool trace = false;
+bool update4lines = false;
+//bool trace = false;
 bool togglePoints = false;
 bool toggle4lines = false;
 bool toggleSphere = false;
@@ -86,8 +90,7 @@ bool checkTriIntersect(int i, Ray& r, RaySpaceTree* rst) {
 	return true;
 }
 
-void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst, bool storeRays, 
-				std::vector<Ray>& raytraceRays) {
+void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst, bool storeRays) {
 
 	for (int y = 0; y < res.y; y++) {
 		int yind = (res.y - 1 - y);
@@ -97,26 +100,20 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 			float tri = pixels[yind * res.x + x];
 			if (tri > 0) {
 				int tri_id = int(tri - 1);
-				if (checkTriIntersect(tri_id*3, ray, rst)) 
+				if (checkTriIntersect(tri_id * 3, ray, rst)) {
 					rst->putPrimitive(ray, tri_id, storeRays);
-				else raytraceRays.push_back(ray);
+				}
+				//else if (tri_id2 >= 0) {
+				else {
+					//rst->putPrimitive(ray, tri_id2, storeRays);
+					float t;
+					if (rst->model->getIntersectionEmbree(ray, tri_id, t))
+						rst->putPrimitive(ray, tri_id, storeRays);
+				}
 
 			}
 		}
 	}
-}
-
-int traceMissingRay(Ray ray, RaySpaceTree *rst) {
-	float depth = 1000;
-	int prim = -1;
-	float diff;
-	for (int tri_id = 0; tri_id < rst->model->vertices.size() / 3; tri_id++) {
-		float t = RayTracer::intersection(tri_id * 3, rst->model->vertices, ray, diff);
-		if (t > 0 && t < depth) {
-			prim = tri_id;
-		}
-	}
-	return prim;
 }
 
 void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst, std::vector<std::pair<int, int>>& samples,
@@ -129,124 +126,36 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 			Ray ray = cam->pixRayDirection(pixpos);
 			float tri = pixels[yind * res.x + x];
 			int tri_id = int(tri - 1);
-			if (tri_id > -2) {
-				if (tri_id >= 0) {
-					if (checkTriIntersect(tri_id * 3, ray, rst)) tris.insert(tri_id);
-					else {
-						tri_id = traceMissingRay(ray, rst);
+			if (tri_id >= 0) {
+				if (checkTriIntersect(tri_id * 3, ray, rst)) tris.insert(tri_id);
+				else {
+					float t;
+					if (rst->model->getIntersectionEmbree(ray, tri_id, t))
 						if (tri_id >= 0) tris.insert(tri_id);
-					}
-					samples.push_back({ count, tri_id});
 				}
-				else if (tri_id == -1) samples.push_back({ count, -1 });
+				samples.push_back({ count, tri_id});
 			}
+			else if (tri_id == -1) samples.push_back({ count, -1 });
 			count++;
 		}
 	}
 }
 
-GLfloat* cameraSamples(Camera* cam, Shader& rstshader, GLuint rsttex, Model* model, glm::ivec2 resolution, int second) {
-	glm::mat4 mvp = cam->vpMatrix();
-	glUniformMatrix4fv(glGetUniformLocation(rstshader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
-	//glUniform1i(glGetUniformLocation(rstshader.index, "secondpass"), second);
-		//GLuint texUnitLoc = glGetUniformLocation(rsttex, "texUnit");
-		//glProgramUniform1i(rsttex, texUnitLoc, 0);
-
-	glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, secondtex);
-	glBindTexture(GL_TEXTURE_2D, rsttex);
-
-	glClearDepth(1.0f);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Execute draw command
-	glDrawArrays(GL_TRIANGLES, 0, model->vertices.size());
-
-
-	int size = resolution.x * resolution.y;
-	GLfloat* pixels = new GLfloat[size];
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, pixels);
-
-	return pixels;
-}
-
-void setupTextureRender(Shader& rstshader, int rstwidth, int rstheight, GLuint vao, GLuint &rsttex, GLuint &depthtex, GLuint &framebuffer) {
-
-	glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
-	rsttex = Buffers::generateTexture(rstwidth, rstheight);
-	depthtex = Buffers::generateDepthTexture(rstwidth, rstheight);
-	framebuffer = Buffers::generateFrameBuffer(rsttex, depthtex);
-	//GLuint depthbuffer = Buffers::generateDepthBuffer(rstwidth, rstheight);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) return;
-
-
-	// Bind the shader
-	glUseProgram(rstshader.index);
-
-	// Bind vertex data & buffer
-	glBindVertexArray(vao);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	// Set viewport size
-	glViewport(0, 0, rstwidth, rstheight);
-	glEnable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LESS);
-	glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-}
-
-void fillMoreSamples(RaySpaceTree* rst, SphereSampler& sampler,
-					Shader& rstshader, GLuint rsttex, glm::ivec2 res, Camera* cam, bool storeRays) {
+void fillMoreSamples(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, TextureRenderer& texrender) {
 
 	std::cout << "Rasterizing camera samples to fill tree..." << std::endl;
 	auto start_time = std::chrono::high_resolution_clock::now();
-	std::vector<Ray> raytraceRays;
 	for (int i = 0; i < sampler.samples.size(); i++) {
 		if (i % sampler.ratio == 0) continue;
 		cam->setPositionAndForward(sampler.samples[i], rst->model->center);
-		GLfloat* pixels = cameraSamples(cam, rstshader, rsttex, rst->model, res, 0);
-		makeSample(res, cam, pixels, rst, false, raytraceRays);
+		GLfloat* pixels = texrender.render(cam);
+		makeSample(texrender.res, cam, pixels, rst, false);
 	}
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-	int noSamples = (sampler.samples.size() - (sampler.samples.size() / sampler.ratio + 1)) * res.x*res.y;
+	int noSamples = (sampler.samples.size() - (sampler.samples.size() / sampler.ratio + 1)) * texrender.height* texrender.width;
 	std::cout << "Put " << noSamples << " samples in RST in " << diff << " ms." << std::endl;
 
-}
-
-Ray makeRayHorizontal(int num, Model* model) {
-	Vertex v = model->vertices[num];
-	return 	Ray(glm::vec3(v.pos.x, 0, v.pos.z), glm::vec3(v.pos.x, 1,v.pos.z));
-}
-
-Ray makeRayVertical(int num, Model* model) {
-	Vertex v = model->vertices[num];
-	return 	Ray(glm::vec3(v.pos.x, v.pos.y, 0), glm::vec3(v.pos.x, v.pos.y, 1));
-}
-
-std::vector<Ray> constructRays(Model* model) {
-	std::vector<Ray> rays = std::vector<Ray>();
-	rays.push_back(makeRayHorizontal(0, model));
-	rays.push_back(makeRayVertical(1000, model));
-	rays.push_back(makeRayHorizontal(50000, model));
-	rays.push_back(makeRayVertical(400, model));
-	rays.push_back(makeRayHorizontal(800, model));
-	rays.push_back(makeRayVertical(20000, model));
-	rays.push_back(makeRayHorizontal(80, model));
-	rays.push_back(makeRayVertical(300, model));
-	return rays;
-}
-
-std::vector<Ray> constructRaysForPyramid(Model* model) {
-	std::vector<Ray> rays = std::vector<Ray>();
-	rays.push_back(Ray(model->vertices2[0], model->vertices2[1]));
-	rays.push_back(Ray(model->vertices2[2], model->vertices2[1]));
-	rays.push_back(Ray(model->vertices2[0], model->vertices2[2]));
-	rays.push_back(Ray(model->vertices2[0], model->vertices2[3]));
-	rays.push_back(Ray(model->vertices2[1], model->vertices2[3]));
-	rays.push_back(Ray(model->vertices2[2], model->vertices2[3]));
-	return rays;
 }
 
 std::vector<Ray> constructRaysRandom(Model* model, int level) {
@@ -270,8 +179,7 @@ std::vector<Ray> constructRaysRandom(Model* model, int level) {
 	return rays;
 }
 
-void makeRST(RaySpaceTree* rst, SphereSampler& sampler, Shader &rstshader, glm::ivec2 res, 
-			Camera* cam, GLuint rsttex, int option, bool storeRays) {
+void makeRST(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, TextureRenderer& texrender, int option, bool storeRays) {
 
 	std::vector<Ray> rays = constructRaysRandom(rst->model, rst->depth);
 	// Initialize tree
@@ -283,32 +191,41 @@ void makeRST(RaySpaceTree* rst, SphereSampler& sampler, Shader &rstshader, glm::
 	std::cout << "Rasterizing camera samples to create tree..." << std::endl;
 
 	for (int i = 0; i < sampler.samples.size(); i += sampler.ratio) {
-		std::cout << i << std::endl;
 		cam->setPositionAndForward(sampler.samples[i], rst->model->center);
-		GLfloat *pixels = cameraSamples(cam, rstshader, rsttex, rst->model, res, 0);
-		makeSample(res, cam, pixels, rst, storeRays, raytraceRays);
+		GLfloat* pixels = texrender.render(cam);
+		makeSample(texrender.res, cam, pixels, rst, storeRays);
 	}
-
-	//std::cout << "Raytracing " << raytraceRays.size() << " faulty rays..." << std::endl;
-
-	//for (Ray ray : raytraceRays) {
-	//	float depth = 1000;
-	//	int prim = -1;
-	//	float diff;
-	//	for (int tri_id = 0; tri_id < rst->model->vertices.size() / 3; tri_id++) {
-	//		float t = RayTracer::intersection(tri_id * 3, rst->model->vertices, ray, diff);
-	//		if (t > 0 && t < depth) {
-	//			prim = tri_id;
-	//		}
-	//	}
-	//	if (prim > -1) rst->putPrimitive(ray, prim, storeRays);
-	//}
 }
 
-void makeAdaptiveRST(RaySpaceTree* rst, SphereSampler& sampler, Shader& rstshader,  
-					 glm::ivec2 res, Camera* cam, GLuint rsttex, int option) {
+void makeRSTembree(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, int pixels_W, int pixels_H, int option, bool storeRays) {
 
-	int imgsize = res.x * res.y;
+	std::vector<Ray> rays = constructRaysRandom(rst->model, rst->depth);
+	// Initialize tree
+	rst->construct(option, rays);
+
+	// Generate cameras
+	std::vector<Ray> raytraceRays;
+
+	std::cout << "Raytracing camera samples to create tree..." << std::endl;
+
+	for (int i = 0; i < sampler.samples.size(); i += sampler.ratio) {
+		cam->setPositionAndForward(sampler.samples[i], rst->model->center);
+		for (int y = 0; y < pixels_H; y++) {
+			int yind = (pixels_H - 1 - y);
+			for (int x = 0; x < pixels_W; x++) {
+				const glm::vec2 pixpos{ (x + .5f) / pixels_W * 2.0f - 1.0f, 1.0f - (y + .5f) / pixels_H * 2.0f };
+				Ray ray = cam->pixRayDirection(pixpos);
+				int tri_id = -1;
+				float t = 0.f;
+				if (rst->model->getIntersectionEmbree(ray, tri_id, t))
+					rst->putPrimitive(ray, tri_id, storeRays);				
+			}
+		}
+	}
+}
+
+void makeAdaptiveRST(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, TextureRenderer& texrender, int option) {
+	int imgsize = texrender.width * texrender.height;
 	std::vector<std::pair<int, int>> samples = std::vector<std::pair<int,int>>();
 	std::set<int> tris = std::set<int>();
 	std::vector<Camera*> cams = std::vector<Camera*>();
@@ -323,44 +240,72 @@ void makeAdaptiveRST(RaySpaceTree* rst, SphereSampler& sampler, Shader& rstshade
 		Camera* cam1 = cam->makeCopy();
 		cam1->setPositionAndForward(sampler.samples[i], rst->model->center);
 		
-		GLfloat* pixels = cameraSamples(cam1, rstshader, rsttex, rst->model, res, false);
-		makeSample(res, cam1, pixels, rst, samples, tris, count);
+		GLfloat* pixels = texrender.render(cam1);
+		makeSample(texrender.res, cam1, pixels, rst, samples, tris, count);
 		cams.push_back(cam);
 	}
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	std::cout << "Made and stored " << samples.size() << " samples in " << diff << " ms." << std::endl;
-	std::cout << "Removed " << res.x * res.y * (sampler.samples.size() / sampler.ratio + 1) - samples.size() << " samples for being too close to a primitive edge." << std::endl;
+	std::cout << "Removed " << texrender.width * texrender.height * (sampler.samples.size() / sampler.ratio + 1) - samples.size() << " samples for being too close to a primitive edge." << std::endl;
 
 	std::cout << "Constructing the tree..." << std::endl;
 	start_time = std::chrono::high_resolution_clock::now();
-	if (option == 0) rst->constructAdaptive(res, cams, samples, tris, print);
-	else if (option == 1) rst->constructSmartRandom(res, cams, samples, tris);
+	if (option == 0) rst->constructAdaptive(texrender.res, cams, samples, tris, print);
+	else if (option == 1) rst->constructSmartRandom(texrender.res, cams, samples, tris);
 	end_time = std::chrono::high_resolution_clock::now();
 	diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	std::cout << "Constructed RST in " << diff << " ms." << std::endl;
 }
 
-void checkTreeByTracing(Camera* cam, glm::ivec2 traceRes, RaySpaceTree* rst, Shader rstProgram, GLuint rsttex) {
+void compareIntersectionMethods(Camera* cam, Model* model, TextureRenderer& texrender) {
+	/////////////// compare with raytrace
+	//GLfloat* pixels = texrender.render(cam);
+
+	for (int y = 0; y < texrender.height; y++) {
+		int yind = (texrender.height - 1 - y);
+		for (int x = 0; x < texrender.width; x++) {
+			const glm::vec2 pixpos{ (x + .5f) / texrender.width * 2.0f - 1.0f, 1.0f - (y + .5f) / texrender.width * 2.0f };
+			Ray ray = cam->pixRayDirection(pixpos);
+			//int triRast = int(pixels[yind * texrender.width + x])-1;
+			float t1 = 0.f; float t2 = 0.f;
+			int triTracePlucker = -1;
+			model->getIntersectionNoAcceleration(ray, triTracePlucker, t1);
+			int triTraceEmbree = -1;
+			model->getIntersectionEmbree(ray, triTraceEmbree, t2);
+			//if (triRast != triTracePlucker || triRast != triTraceEmbree || 
+			if (triTraceEmbree != triTracePlucker) {
+				//std::cout << "Rasterization: " << triRast << 
+				std::cout << "Trace Plucker: " << triTracePlucker << " Trace Embree: " << triTraceEmbree << std::endl;
+			}
+			if (triTraceEmbree >= 0 && std::fabs(t1-t2) > 1E-8 ) {
+				std::cout << "Trace Plucker depth: " << t1 << "Trace Embree depth: " << t2 << std::endl;
+			}
+
+		}
+	}
+}
+
+void checkTreeByTracing(Camera* cam, RaySpaceTree* rst, TextureRenderer& texrender) {
 	std::cout << "Raytracing to check tree..." << std::endl;
 	auto start_time = std::chrono::high_resolution_clock::now();
 
-	std::vector<int> raytraceTri = RayTracer::imageTracer(cam, rst, traceRes);
+	std::vector<int> raytraceTri = RayTracer::imageTracer(cam, rst, texrender.res);
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	std::cout << "Raytraced image in " << diff << " ms." << std::endl;
 
 	/////////////// compare with raytrace
-	GLfloat* pixels = cameraSamples(cam, rstProgram, rsttex, rst->model, traceRes, false);
-	cimg_library::CImg<unsigned char> image(traceRes.x, traceRes.y, 1, 3, 0);
+	GLfloat* pixels = texrender.render(cam);
+	cimg_library::CImg<unsigned char> image(texrender.width, texrender.height, 1, 3, 0);
 	const unsigned char white[] = { 255 , 255, 255 };
 	const unsigned char black[] = { 0 , 0, 0 };
 
-	for (int y = 0; y < traceRes.y; y++) {
-		int yind = (traceRes.y - 1 - y);
-		for (int x = 0; x < traceRes.x; x++) {
-			int triRast = int(pixels[yind * traceRes.x + x]);
-			int triTrace = raytraceTri[y * traceRes.x + x];
+	for (int y = 0; y < texrender.height; y++) {
+		int yind = (texrender.height - 1 - y);
+		for (int x = 0; x < texrender.width; x++) {
+			int triRast = int(pixels[yind * texrender.width + x]);
+			int triTrace = raytraceTri[y * texrender.width + x];
 			if (triRast - triTrace != 0) {
 				image.draw_point(x, y, white);
 				//std::cout << std::endl << triRast << " " << triTrace << " " << x << " " << y << std::endl;
@@ -373,6 +318,7 @@ void checkTreeByTracing(Camera* cam, glm::ivec2 traceRes, RaySpaceTree* rst, Sha
 	image.save("rasterizer.bmp");
 }
 
+////// MOVE TO RST
 void getRstStatistics(RaySpaceTree* rst, int no_triangles) {
 	// Some statistics
 	std::vector<int> nodenr = std::vector<int>(rst->nodes.size());
@@ -439,6 +385,7 @@ void keyboardHandler(GLFWwindow* window, int key, int scancode, int action, int 
 		case GLFW_KEY_6:
 			toggle4lines = !toggle4lines;
 			update = true;
+			update4lines = true;
 			break;
 		case GLFW_KEY_7:
 			togglePicking = !togglePicking;
@@ -473,6 +420,7 @@ void mouseButtonHandler(GLFWwindow* window, int button, int action, int mods)
 		glfwGetCursorPos(window, &xpos, &ypos);
 		if (togglePicking) {
 			pickingPos = { xpos, ypos };
+			drawRayPos = { (xpos + .5f) / float(width) * 2.0f - 1.0f, 1.0f - (ypos + .5f) / float(height) * 2.0f };
 			picking = true;
 		}
 	}
@@ -491,6 +439,53 @@ void scrollHandler(GLFWwindow* window, double xoffset, double yoffset) {
 int main() {
 
 	#pragma region Setup
+	/*create an instance of config*/
+	libconfig::Config config;
+
+	/*read a configuration file*/
+	try {
+		config.readFile("init.txt");
+	}
+	catch (libconfig::FileIOException& e) {
+		/*inform user about IOException*/
+		std::cerr << "FileIOException occurred. Could not read \"init.txt\"!!\n";
+		/*terminate program*/
+		exit(EXIT_FAILURE);
+	}
+	catch (libconfig::ParseException& e) {
+		/*inform user about the parse exception*/
+		std::cerr << "Parse error at " << e.getFile() << ":" << e.getLine()
+			<< " - " << e.getError() << std::endl;
+		/*terminate program*/
+		return(EXIT_FAILURE);
+	}
+
+	std::string filestr;// = "dragon.obj";
+	bool alldir, trace;
+	char dir;
+	int sgn, depth, noSamples, createRatio, w, h, constructOption;
+
+	try {
+		alldir = config.lookup("alldir");
+		std::string dir1 = config.lookup("dir");
+		dir = dir1.c_str()[0];
+		sgn = config.lookup("sgn");
+		depth = config.lookup("depth");
+		noSamples = config.lookup("noSamples");
+		createRatio = config.lookup("createRatio");
+		w = config.lookup("w");
+		h = config.lookup("h");
+		constructOption = config.lookup("constructOption");
+		std::string str = config.lookup("filename");
+		filestr = str;
+		width = config.lookup("width");
+		height = config.lookup("height");
+		trace = config.lookup("trace");
+	}
+	catch (libconfig::SettingNotFoundException& e) {
+		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
+	}
+
 
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW!" << std::endl;
@@ -504,7 +499,6 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
 
 	GLFWwindow* window = glfwCreateWindow(width, height, "Shadow mapping practical", nullptr, nullptr);
 	if (!window) {
@@ -536,66 +530,63 @@ int main() {
 	std::cout << "Set up shader programs." << std::endl;
 
 	////////////////////////// Load vertices of model
-	const char *filename = "../models/scene.obj";
-	Model model(filename);
+	const char* filename = filestr.c_str();
+	Model model(filename, true);
+
+	////////////////////// Create bounding box
+	GLuint bboxVAO = model.boundingCube.vaoGeneration();
 
 	/////////////////////// Create cube and lines for cube
-	float cubeSize = 2.f;
-	Cube cube(model.center, cubeSize);
+	Cube cube(model.center, model.radius*1.5);
 	GLuint cubeVAO = cube.vaoGeneration();
 	std::cout << "Generated viewing cube." << std::endl;
-
-	/////////////////////// Second cube for longer lines
-	cubeSize = 20.f;
-	Cube cube2(model.center, cubeSize);
-
-	////////////////////// Create show bounding box
-	GLuint bboxVAO = model.boundingCube.vaoGeneration();
 
 	/////////////////////// Create show sphere
 	Sphere sphere(model.center, model.radius);
 	sphere.vaoGeneration(10, 20);
-	Sphere sampleSphere(model.center, 2.f);
+	Sphere sampleSphere(model.center, model.radius*1.5);
 	sampleSphere.vaoGeneration(10, 20);
 
 	///////////////////// Create sample locations
-	int noSamples = 1000;
-	int createRatio = 10;
 	SphereSampler sampler(&sampleSphere, noSamples, createRatio);
-	char dir = 'X';
-	sampler.createSamplesFull();// createSamples(-1, dir); 
+	if (alldir) dir = 'All';
+	if (alldir) sampler.createSamplesFull();
+	else sampler.createSamples(sgn, dir); 
 	sampler.vaoGeneration();
-	glm::vec3 mainDir(1, 0, 0); /// check thisssss!!!!!!!!!!!
-	std::cout << "Created " << sampler.samples.size() << " camera locations in " << dir << " direction" << std::endl;
+	std::cout << "Created " << sampler.samples.size() << " camera locations in all directions" << std::endl;
 
 	/////////////////// Create main camera
-	PreviewCamera mainCamera;
+	PreviewCamera mainCamera(model.radius * 4, model.radius * 5 > 30.f ? model.radius * 5 : 30.f);
 	mainCamera.aspect = width / (float)height;
 
 	////////////////// Create sampling canvas and sampling camera
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	GLuint rsttex, depthtex, framebuffer;
-	const int w = 400, h = 400;
-	glm::ivec2 resolution(w, h);
-	setupTextureRender(rstProgram, w, h, model.vao, rsttex, depthtex, framebuffer);
-	Orthocamera ocam(model.radius, model.radius, 0.1f, 30.f);
+	TextureRenderer texrender = TextureRenderer(rstProgram, w, h, &model);
+	Orthocamera ocam(model.radius, model.radius, model.radius * 2 > 30.f ? model.radius * 2 : 30.f);
 	Camera* cam = &ocam;
+
+	//cam->setPositionAndForward(glm::vec3(-2.f, 1.f, 0.f), model.center);
+	//compareIntersectionMethods(cam, &model, texrender);
 
 	#pragma endregion
 
 	/////////////////// Make rayspacetree
-	RaySpaceTree rst = RaySpaceTree();
-	rst.depth = 8;
-	rst.model = &model;
-	int constructOption = 3;
-	std::cout << "Constructing RST with depth = " << rst.depth << " and camera sample size = " << w << "x" << h << "..." << std::endl;
-	//makeAdaptiveRST(&rst, sampler, rstProgram, resolution, cam, rsttex, constructOption);
+	std::cout << "Constructing RST for direction " << dir << " with depth = " << depth << " and camera sample size = " << w << "x" << h << "..." << std::endl;
+	RaySpaceTree rst = RaySpaceTree(&model, depth, alldir, sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z'));
 	bool storeRays = true;
-	makeRST(&rst, sampler, rstProgram, resolution, cam, rsttex, constructOption, storeRays);
+
+	auto start_time = std::chrono::high_resolution_clock::now();
+	//makeRST(&rst, sampler, cam, texrender, constructOption, storeRays);
+	makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	//makeAdaptiveRST(&rst, sampler, rstProgram, resolution, cam, rsttex, constructOption);
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+	std::cout << "Completed RST1 in " << diff << " ms" << std::endl;
 	//fillMoreSamples(&rst, sampler, rsttex, rstProgram, resolution, cam, storeRays);
+	model.enlargeModel();
 
 	////////////////// Statistics and checks
 	getRstStatistics(&rst, model.primsize);
+
 	//rst.checkLeaves();
 	if (print) rst.printTree();
 
@@ -603,15 +594,12 @@ int main() {
 	if (trace) {
 		glm::ivec2 traceRes = glm::ivec2(400, 400);
 		cam->setPositionAndForward(glm::vec3(-2.f, 1.f, 0.f), model.center);
-		checkTreeByTracing(cam, traceRes, &rst, rstProgram, rsttex);
+		checkTreeByTracing(cam, &rst, texrender);
 	}
 
 	#pragma region rendersetup
 
 	////////////////// Cleanup
-	glDeleteFramebuffers(1, &framebuffer);
-	glDeleteTextures(1, &rsttex);
-	glDeleteTextures(1, &depthtex);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	////////////////// Objects to intersect lines with
@@ -621,15 +609,19 @@ int main() {
 
 	///////////////// Line Models & settings
 	LineModel splitters = LineModel();
-	splitters.updateVaoWithLines(rst.getAllSplittingLines(), geoObject, mainDir);
+	splitters.updateVaoWithLines(rst.getAllSplittingLines(), geoObject, rst.maindir);
 	LineModel samples = LineModel(true);
 	LineModel extremalStabbing = LineModel();
 	LineModel clickRay = LineModel();
+	LineModel wrongRays = LineModel();
 	int leafnum = -1;
 	Node* leaf;
 	bool showing = false;
 	bool viewline = false;
 	float alphaLines = 1.f;
+
+	GLuint sideQuadVao = 0;
+	if (!alldir) sideQuadVao = model.boundingCube.vaoSideQuad(rst.maindir);
 
 	////////////////// Colors
 	glm::vec3 green = { 0, 1, 0 };
@@ -649,9 +641,8 @@ int main() {
 	#pragma endregion
 
 	while (!glfwWindowShouldClose(window)) {
-
 		glfwPollEvents();
-
+		glUseProgram(0);
 		if (nextleaf) {
 			alphaLines = 1.f;
 			int trinum = 0;
@@ -667,15 +658,14 @@ int main() {
 		}
 
 		if (picking) {
-			setupTextureRender(rstProgram, width, height, model.vao, rsttex, depthtex, framebuffer);
-
-			GLfloat* pixels = cameraSamples(&mainCamera, rstProgram, rsttex, &model, glm::ivec2(width,height), 0);
-			//int id = pixels
-			glDeleteFramebuffers(1, &framebuffer);
-			glDeleteTextures(1, &rsttex);
-			glDeleteTextures(1, &depthtex);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			pickingPos = { 0, 0 };
+			Ray r = mainCamera.pixRayDirection(drawRayPos);
+			int primindex = -1;
+			float t = 0;
+			model.getIntersectionEmbree(r, primindex, t);
+			std::cout << primindex << std::endl;
+			//model.vertices[3 * primindex].selected = 1.f;
+			//model.vertices[3 * primindex + 1].selected = 1.f;
+			//model.vertices[3 * primindex + 2].selected = 1.f;
 			picking = false;
 		}
 		
@@ -684,10 +674,8 @@ int main() {
 			Ray r = mainCamera.pixRayDirection(drawRayPos);
 			std::vector<Ray> rays = { r };
 			leaf = rst.descend(r);
-			//rst.descendWithLines(r, splitters, leafRays, rayColors, geoObject);
 			glm::vec3 color(0, 1, 0);
-			clickRay.updateVaoWithLines(rays, geoObject, mainDir);
-			//rayVAO = Models::rayVao(r, color, geoObject, mainDir);
+			clickRay.updateVaoWithLines(rays, geoObject, rst.maindir);
 			drawRay = false;
 			viewline = true;
 			update = true;
@@ -697,14 +685,9 @@ int main() {
 			if (sphereOrCube) geoObject = &sampleSphere;
 			else geoObject = &cube;
 
-			if (storeRays && toggleLines) 
-				samples.updateVaoWithLines(rst.getViewingLinesInLeaf(leaf), geoObject, mainDir);
-			if (toggle4lines)
-				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf), geoObject, mainDir);
-
 			std::vector<Ray> split;
 			rst.getSplittingLinesInLeaf(leaf, split);
-			splitters.updateVaoWithLines(split, geoObject, mainDir);
+			splitters.updateVaoWithLines(split, geoObject, rst.maindir);
 
 			for (int i = 0; i < model.vertices.size(); i++) {
 				model.vertices[i].selected = 0.f;
@@ -715,6 +698,16 @@ int main() {
 				model.vertices[3 * i + 2].selected = 1.f;
 			}
 			model.changeSelected();
+
+			if (storeRays && toggleLines)
+				samples.updateVaoWithLines(rst.getViewingLinesInLeaf(leaf), geoObject, rst.maindir);
+			if (toggle4lines && update4lines) {
+				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf), geoObject, rst.maindir);
+				update4lines = false;
+				//wrongRays.updateVaoWithLines(rst.wronglines, geoObject, rst.maindir);
+			}
+
+
 			update = false;
 		}
 		else update = false;
@@ -743,6 +736,10 @@ int main() {
 		if (toggleBbox) {
 			glBindVertexArray(bboxVAO);
 			glDrawArrays(GL_LINES, 0, 24);
+			if (!alldir) {
+				glBindVertexArray(sideQuadVao);
+				glDrawArrays(GL_LINES, 0, 8);
+			}
 		}
 
 		if (togglePoints) {
@@ -762,18 +759,16 @@ int main() {
 			glDrawArrays(GL_LINES, 0, splitters.size);
 
 			if (toggle4lines) {
+				//glBindVertexArray(extremalStabbing.vao);
+				//glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
+				//glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
+				//glDrawArrays(GL_LINES, 0, extremalStabbing.size);
+
 				glBindVertexArray(extremalStabbing.vao);
 				glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
 				glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
 				glDrawArrays(GL_LINES, 0, extremalStabbing.size);
-				//glBindVertexArray(checklinesVao);
-				//glm::vec3 blue = { 0, 1, 0 };
-				//glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(blue));
-				//glDrawArrays(GL_LINES, 0, through4lines.size());
-				//glBindVertexArray(edgesVao);
-				//glm::vec3 green = { 0, 1 , 0 };
-				//glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
-				//glDrawArrays(GL_LINES, 0, 6);
+
 			}
 			if (toggleSampleLines) {
 				glBindVertexArray(samples.vao);

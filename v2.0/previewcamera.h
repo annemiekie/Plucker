@@ -26,13 +26,14 @@ struct PreviewCamera : Camera {
 	glm::vec3 lookat;
 
 
-	PreviewCamera::PreviewCamera()
-		: Camera (0.1f, 30.f)
+	PreviewCamera::PreviewCamera(float radius, float far = 30.f, float near = 0.1f)
+		: Camera (near, far)
 		, up(glm::vec3(0, 1, 0))
 		, lookat(glm::vec3(0, 0, 0))
 		, fov(glm::pi<float>() / 4.f)
 		, aspect(1.f)
 		, halfscreen(std::tan(fov / 2.f))
+		, radius(radius)
 	{
 		//invview = invVMatrix();
 		position = radius * glm::vec3(1, 0, 0);

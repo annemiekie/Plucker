@@ -47,6 +47,12 @@
     <None Include="texproj.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="pick.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="pick.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="buffers.h">
@@ -116,6 +122,18 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="linemodel.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="primitive.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="textureRenderer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="bvh.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="raytracer_embree.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -13,6 +13,7 @@ class Shader {
 public:
 	GLuint index;
 
+	Shader() {};
 
 	Shader(std::string vert, std::string frag) {
 		////////////////// Load and compile rst shader program

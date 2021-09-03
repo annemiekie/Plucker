@@ -1,21 +1,16 @@
 #ifndef PRIMITIVE_H
 #define PRIMITIVE_H
+#include <vector>
+#include <set>
+#include "edge.h"
+#include "vertex.h"
 
 #pragma once
-// Per-vertex data
 struct Primitive {
 	int index;
-	// vertices
-	// edges
-
-	//std::set<int> vertices;
-	//mutable std::vector<int> triangles = std::vector<int>();
+	glm::vec3 normal;
+	std::vector<Vertex> vertices;
+	mutable std::vector<Edge> edges = std::vector<Edge>();
 };
-
-//struct cmp_by_v {
-//	bool operator()(const Edge& a, const Edge& b) const {
-//		return a.vertices < b.vertices;
-//	}
-//};
 
 #endif

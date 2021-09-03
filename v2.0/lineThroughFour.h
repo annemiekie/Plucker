@@ -60,6 +60,8 @@ namespace LineThroughFour {
 		l0.v = F.v * t0 + G.v;
 		l1.v = F.v * t1 + G.v;
 		l1.u = F.u * t1 + G.u;
+		l0.normalize();
+		l1.normalize();
 		intersectLines.push_back(l0);
 		if (delta > 1E-6) intersectLines.push_back(l1);
 		return delta == 0.0 ? 1 : 2;

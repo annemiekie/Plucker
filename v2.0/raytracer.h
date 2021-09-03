@@ -12,6 +12,7 @@ namespace RayTracer {
 
 	float intersection(int i, std::vector<Vertex>& v, Ray& r, float &diff) {
 		Ray edge;
+		// clockwise triangle edges
 		edge = Ray(v[i + 1].pos, v[i].pos);
 		if (edge.side(r)) return 0;
 		edge = Ray(v[i + 2].pos, v[i + 1].pos);
@@ -51,46 +52,19 @@ namespace RayTracer {
 		return false;
 	};
 
-	//bool intersection2(int i, std::vector<Vertex>& v, Ray& r) {
-	//	glm::vec3 v0 = v[i].pos;
-	//	glm::vec3 v1 = v[i+1].pos;
-	//	glm::vec3 v2 = v[i+2].pos;
-	//
-	//	glm::vec3 N = glm::cross(v1 - v0, v2 - v0);
-	//	float D = glm::dot(N, v0);
-	//
-	//	float ndotdir = glm::dot(N, r.direction);
-	//	//if (fabs(ndotdir) < 1E-10) // almost 0 
-	//	//	return false;
-	//
-	//	float t = -(glm::dot(N, r.origin) + D) / ndotdir;
-	//	if (t < 0) return false; // the triangle is behind 
-	//
-	//	glm::vec3 P = r.origin + t * r.direction;
-	//
-	//	glm::vec3 C; // vector perpendicular to triangle's plane 
-	//
-	//	// edge 0
-	//	glm::vec3 edge0 = v1 - v0;
-	//	glm::vec3 vp0 = P - v0;
-	//	C = glm::cross(edge0,vp0);
-	//	if (glm::dot(N,C) < 0) return false; // P is on the right side 
-	//
-	//	// edge 1
-	//	glm::vec3 edge1 = v2 - v1;
-	//	glm::vec3 vp1 = P - v1;
-	//	C = glm::cross(edge1, vp1);
-	//	if (glm::dot(N, C) < 0)  return false; // P is on the right side 
-	//
-	//	// edge 2
-	//	glm::vec3 edge2 = v0 - v2;
-	//	glm::vec3 vp2 = P - v2;
-	//	C = glm::cross(edge2, vp2);
-	//	if (glm::dot(N, C) < 0) return false; // P is on the right side; 
-	//
-	//	return true;
-	//}
-
+	int rayTrace(Ray& ray, Model* model) {
+		float diff = 0;
+		float depth = 10000;
+		int prim = -1;
+		for (int index = 0; index < model->primsize; index++) {
+			float t = intersection(index * 3, model->vertices, ray, diff);
+			if (t > 0 && t < depth) {
+				depth = t;
+				prim = index;
+			}
+		}
+		return prim;
+	}
 
 	std::vector<int> imageTracer(Camera* cam, RaySpaceTree* rst, glm::ivec2 resolution) {
 		cimg_library::CImg<unsigned char> image(resolution.x, resolution.y, 1, 3, 0);
@@ -107,7 +81,6 @@ namespace RayTracer {
 				const unsigned char colorb[] = { 255,255, 255 };
 				image.draw_point(x, y, colorb);
 				for (int index : leaf->primitiveSet) {
-				//for (int index =0; index < model.primsize; index++) {
 					float t = intersection(index * 3, rst->model->vertices, ray, diff);
 					if (t >0 && t < depth) {
 						char col = char(diff * 255.f);

@@ -7,7 +7,7 @@ struct PersCamera : public Camera {
 	float     aspect;
 	float halfscreen = 0.f;
 
-	PersCamera(float near, float far)
+	PersCamera(float far = 30.f, float near = 0.1f)
 		: Camera{near, far}, fov(glm::pi<float>() / 4.f), aspect(1.f)
 	{
 		halfscreen = std::tan(fov / 2.f);

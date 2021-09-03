@@ -39,6 +39,7 @@ struct SphereSampler {
 
 
 	void createSamples(int sgn, char maindir) {
+		sgn *= -1;
 		float phi, theta, sintheta;
 		float x, y, z;
 		float factorPhi = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));

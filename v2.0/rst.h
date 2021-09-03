@@ -15,6 +15,9 @@
 #include "nodeSamples.h"
 #include "lineThroughFour.h"
 #include "combinations.h"
+#include "textureRenderer.h"
+#include <embree3/rtcore.h>
+//#include "raytracer.h"
 
 class RaySpaceTree {
 
@@ -25,21 +28,25 @@ public:
 
 	Node* rootNode;
 	Model* model;
+	//Model model_enlarge;
 	int depth = 0;
 	int noLeaves = 0;
 	glm::vec3 maindir;
-
+	bool alldir = false;
 	std::vector<Node*> nodes = std::vector<Node*>();
 	std::set<int> visPrims = std::set<int>();
+	
+	std::vector<Ray> wronglines = std::vector<Ray>();
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
 	};
 
-	RaySpaceTree(int depth) : depth(depth) {
+	RaySpaceTree(Model *model, int depth, bool alldir = false, glm::vec3 maindir = glm::vec3()) : model(model), depth(depth), alldir(alldir), maindir(maindir) {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
+		//model_enlarge = model->enlargeModel();
 	};
 	~RaySpaceTree() {};
 
@@ -88,24 +95,27 @@ public:
 	Node* getLeafFromNum(int leafNum);
 	void getSplittingLinesInLeaf(int leafnum, std::vector<Ray>& lines);
 	void getSplittingLinesInLeaf(Node* n, std::vector<Ray>& lines);
-	//void addSplitter(std::vector<glm::vec3>& splitters, Node* node, GeoObject* object);
-	//void addSplittersForLeaf(std::vector<glm::vec3>& splitters, Node* node, GeoObject* object);
+	void getSplittingLinesInLeafWithSide(Node* n, std::vector<Ray>& lines, std::vector<int>& sides);
+	//std::vector<Ray> filterSplittingLines(std::vector<Ray>& lines, std::vector<int>& sides);
+	bool onCorrectSide(std::vector<Ray>& lines, std::vector<int>& sides, Ray &r);
 
 	int numOfLeaf(int ind);
 	int getNumberOfTriInleaf(int leafnum);
 
-	//void addViewingLines(std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, Node* node, GeoObject* object);
-
 	std::vector<Ray> getExtremalStabbingInLeaf(Node* n);
 	void checkLeaves();
 	bool checkLeaf(Node *node, std::vector<Ray>& rays, bool getRays);
-	bool checkPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, Ray &ray, Node *node);
+	bool checkPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, std::vector<int>& sides, Ray &ray, Node *node);
 	bool checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool print);
-	//bool checkLineInBox(Ray& ray);
-	bool rayInLeaf(Node* node, Ray& ray, std::vector<Ray>& ignore, bool print);
+	bool checkLineInBox(const Ray& ray);
+	bool rayInLeaf(std::vector<Ray>& splitLines, std::vector<int>& sides, const Ray& ray, std::vector<Ray>& ignore, bool print);
+	bool rayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& ignore, bool print);
+
+	bool visible(const Ray& ray, const int prim);
 
 	void printTree();
 	void printTree(Node* node, int level);
+
 
 	//void postProcessNeighbours();
 
