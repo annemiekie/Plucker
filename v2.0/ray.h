@@ -83,6 +83,10 @@ struct Ray {
         std::cout << "U: (" << u.x << "," << u.y << "," << u.z << ") V: (" << v.x << "," << v.y << "," << v.z << ")";
     }
 
+    void printod() {
+        std::cout << "Origin: (" << origin.x << "," << origin.y << "," << origin.z << ") Direction: (" << direction.x << "," << direction.y << "," << direction.z << ")";
+    }
+
     bool equal(Ray o, double eps) {
         normalize();
         o.normalize();

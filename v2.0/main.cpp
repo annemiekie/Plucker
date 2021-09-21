@@ -538,6 +538,7 @@ int main() {
 
 	/////////////////////// Create cube and lines for cube
 	Cube cube(model.center, model.radius*1.5);
+	//Cube largecube(model.center, model.boundingBox.size.x * 3);
 	GLuint cubeVAO = cube.vaoGeneration();
 	std::cout << "Generated viewing cube." << std::endl;
 
@@ -630,14 +631,24 @@ int main() {
 	glm::vec3 yellow = { 1, 1, 0 };
 	glm::vec3 white = { 1, 1, 1 };
 	glm::vec3 black = { 0, 0, 0 };
+	glm::vec3 hotpink = { 1, 0.4, 0.7 };
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	// Lighting
+	float lightdis = 3 * model.radius;
+	glm::vec3 lightPos = glm::vec3(-lightdis, 2*lightdis, -lightdis);
+	glm::vec3 lightPos2 = glm::vec3(-lightdis, 2*lightdis, lightdis);
+	glm::vec3 lightPos3 = glm::vec3(lightdis, -2*lightdis, 0);
+	glUseProgram(mainProgram.index);
+	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos"), 1, glm::value_ptr(lightPos));
+	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos2"), 1, glm::value_ptr(lightPos2));
+	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos3"), 1, glm::value_ptr(lightPos3));
 	#pragma endregion
 
 	while (!glfwWindowShouldClose(window)) {
@@ -661,8 +672,14 @@ int main() {
 			Ray r = mainCamera.pixRayDirection(drawRayPos);
 			int primindex = -1;
 			float t = 0;
+			//model.getIntersectionNoAcceleration(r, primindex, t);
 			model.getIntersectionEmbree(r, primindex, t);
-			std::cout << primindex << std::endl;
+			if (primindex >= 0) {
+				std::cout << primindex << std::endl;
+				Ray extremalLine;
+				rst.check1Prim(primindex, extremalLine, leaf, true);
+				extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
+			}
 			//model.vertices[3 * primindex].selected = 1.f;
 			//model.vertices[3 * primindex + 1].selected = 1.f;
 			//model.vertices[3 * primindex + 2].selected = 1.f;
@@ -755,7 +772,7 @@ int main() {
 		if (toggleLines) {
 			glBindVertexArray(splitters.vao);
 			glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
-			glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(black));
+			glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(yellow));
 			glDrawArrays(GL_LINES, 0, splitters.size);
 
 			if (toggle4lines) {

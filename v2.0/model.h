@@ -31,6 +31,7 @@ public:
 
 	std::vector<Vertex> vertices = std::vector<Vertex>();
 	std::vector<glm::vec3> vertices2 = std::vector<glm::vec3>();
+
 	std::vector<glm::uint> indices = std::vector<glm::uint>();
 	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
 	std::vector<std::vector<int>> triPerVertex;
@@ -264,27 +265,80 @@ public:
 		return false;
 	}
 
-	float getIntersectionDepthForPrim(int i, const Ray& r) { 
+	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir, int &silhouettesize, 
+									std::vector<int>& tris, std::vector<glm::vec3>& silhouetteVerts) {
+		std::vector<Vertex> primvertices = { vertices[3 * prim], vertices[3 * prim + 1], vertices[3 * prim + 2] };
+
+		for (auto& e : edges) {
+			//bool skipedge = false;
+
+			glm::vec3 v1 = vertices2[*e.vertices.begin()];
+			glm::vec3 v2 = vertices2[*e.vertices.rbegin()];
+			// Don't use same vertex / triangle as silhouette edge.
+
+			if (e.triangles[0] == prim || e.triangles[1] == prim) continue;
+
+			//for (auto& v : primvertices) {
+			//	if (glm::distance(v1, v.pos) < 1E-8 || glm::distance(v2, v.pos) < 1E-8) {
+			//		skipedge = true;
+			//		break;
+			//	}
+			//}
+			//if (skipedge) continue;
+
+
+			for (auto& v : primvertices) {
+
+				bool dot1 = false;
+				bool dot2 = false;
+
+				if (e.triangles.size() == 2) {
+					if (!alldir && (glm::dot(v1, maindir) > glm::dot(v.pos, maindir) &&
+						glm::dot(v2, maindir) > glm::dot(v.pos, maindir))) continue;
+
+					glm::vec3 halfway = 0.5f * (v1 + v2);
+					float tri1normallinedot = glm::dot(glm::normalize(halfway - v.pos), normalPerTri[e.triangles[0]]);
+					float tri2normallinedot = glm::dot(glm::normalize(halfway - v.pos), normalPerTri[e.triangles[1]]);
+
+					// don't use edges in planes
+					if (fabs(tri1normallinedot) < 1E-8 && fabs(tri2normallinedot) < 1E-8) continue;
+					dot1 = tri1normallinedot < 0;
+					dot2 = tri2normallinedot < 0;
+				}
+				if (e.triangles.size() == 1 || dot1 != dot2) {
+					for (int tri : e.triangles) tris.push_back(tri);
+					if (e.triangles.size() == 1) tris.push_back(-1);
+					silhouetteVerts.push_back(v1);
+					silhouetteVerts.push_back(v2);
+					//splitLines.push_back(Ray(v1, v2));
+					silhouettesize++;
+					break;
+				}
+			}
+		}
+	}
+
+	double getIntersectionDepthForPrim(const int i, const Ray& r) { 
 		glm::dvec3 v0 = vertices[i].pos;
 		glm::dvec3 v1 = vertices[i + 1].pos;
 		glm::dvec3 v2 = vertices[i + 2].pos;
 
-		glm::dvec3 N = glm::cross(v2 - v0, v1 - v0);
+		glm::dvec3 N = glm::normalize(glm::cross(v2 - v0, v1 - v0));
 		//glm::dvec3 L = glm::vec3(-3, 3, -3);
 		//diff = std::max(glm::dot(-glm::normalize(N), glm::normalize(L)), 0.);
-		float ndotdir = glm::dot(N, r.direction);
-		float t = glm::dot(N, v0 - r.origin) / ndotdir;
+		double ndotdir = glm::dot(N, r.direction);
+		double t = glm::dot(N, v0 - r.origin) / ndotdir;
 		return t;
 	}
 
 	bool getIntersectionWithPrim(int i, const Ray& r, float &depth) {
 		Ray edge;
 		// clockwise triangle edges
-		edge = Ray(verticesL[i + 1].pos, verticesL[i].pos);
+		edge = Ray(vertices[i + 1].pos, vertices[i].pos);
 		if (edge.side(r)) return false;
-		edge = Ray(verticesL[i + 2].pos, verticesL[i + 1].pos);
+		edge = Ray(vertices[i + 2].pos, vertices[i + 1].pos);
 		if (edge.side(r)) return false;
-		edge = Ray(verticesL[i].pos, verticesL[i + 2].pos);
+		edge = Ray(vertices[i].pos, vertices[i + 2].pos);
 		if (edge.side(r)) return false;
 		depth = getIntersectionDepthForPrim(i, r);
 		return true;

@@ -14,7 +14,7 @@ struct PreviewCamera : Camera {
 	float x_rot = 0.f;
 
 	glm::mat4 world = glm::mat4(1);
-	float radius = 6.f;
+	float radius;
 	glm::mat4 view = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -radius));
 
 	glm::vec3 up;
@@ -80,15 +80,15 @@ struct PreviewCamera : Camera {
 	void updateRadius(float radiusChange) {
 		if (radiusChange == 0) return;
 		else {
-			radiusChange /= 4.f;
-			radius += radiusChange;
-			if (radius <= 0.f) radius = 6.f;
-			glm::mat4 camToWorld = glm::inverse(view);
-
-			glm::vec3 viewpos = camToWorld[3];
-			glm::vec3 norm = glm::normalize(viewpos);
-			view = glm::translate(view, norm * radiusChange);
-
+			//radiusChange /= 4.f;
+			radiusChange = radius * (radiusChange < 0 ? -1 : 1) * 0.05;
+			if (radius + radiusChange > 0) {
+				radius += radiusChange;
+				glm::mat4 camToWorld = glm::inverse(view);
+				glm::vec3 viewpos = camToWorld[3];
+				glm::vec3 norm = glm::normalize(viewpos);
+				view = glm::translate(view, norm * radiusChange);
+			}
 		}
 	};
 

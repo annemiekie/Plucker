@@ -5,6 +5,28 @@
 
 namespace Combinations {
 
+	static std::vector<std::vector<int>> combi21(int size1, int size2) {
+		//std::vector<std::vector<int>> combinations;
+		//for (int i = 0; i < size1; i++) {
+		//	for (int j = size1; j < size1 + size2; j++) {
+		//		std::vector<int> num = { i, j };
+		//		combinations.push_back(num);
+		//	}
+		//}
+		//return combinations;
+	}
+
+	static std::vector<std::vector<int>> combi11(int size1, int size2) {
+		std::vector<std::vector<int>> combinations;
+		for (int i = 0; i < size1; i++) {
+			for (int j = size1; j < size1+size2; j++) {
+				std::vector<int> num = { i, j };
+				combinations.push_back(num);
+			}
+		}
+		return combinations;
+	}
+
 	static std::vector<std::vector<int>> combi2(int size) {
 		std::vector<std::vector<int>> combinations;
 		for (int i = 0; i < size; i++) {

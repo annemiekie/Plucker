@@ -104,18 +104,34 @@ public:
     }
     
     //// CHECK IF THIS WORKS
-    bool intersectSide(glm::vec3 mainDir, const Ray& r) {
+    bool intersectSide(glm::vec3 mainDir, const Ray& r, std::vector<Ray>& ignore, bool print) {
         int ind = getIndex(mainDir);
         int left = 0;
         int right = 0;
         for (int i = 0; i < 4; i++) {
+            bool ign = false;
+            for (auto& igray : ignore) {
+                if (igray.equal(quadLines[ind][i], 1E-8)) {
+                    ign = true; //-8
+                    break;
+                }
+            }
+            if (ign) continue;
             double sideVal = quadLines[ind][i].sideVal(r);
-            if (abs(sideVal) < 1E-10) { left++; right++; }
-            else if (sideVal < 0) left++;
-            else right++;
+            if (sideVal < -1E-5) {
+                if (print) std::cout << "Ray not in Box (wrong side of edge, should be >0): " << sideVal << std::endl <<std::endl;
+                return false;
+            }
+            //if (abs(sideVal) < 1E-5) { left++; right++; }
+            //else if (sideVal < 0) left++;
+           // else right++;
         }
-        if (right == 4) return true;// || left == 4
-        else return false;
+        return true;
+       // if (right == 4) return true;// || left == 4
+       // else {
+       //     if (print)
+       //     return false;
+        //}
     
     }
 

@@ -27,12 +27,12 @@ namespace LineThroughFour {
 		Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeFullU | Eigen::ComputeFullV);
 		int rank = svd.nonzeroSingularValues();
 		dim = 5 - rank;
-		if (rank < 4) {
-			std::cout << "rank: " << rank << std::endl;
-		}
-		if (rank > 4) {
-			std::cout << "rank: " << rank <<  std::endl;
-		}
+		//if (rank < 4) {
+		//	std::cout << "rank: " << rank << std::endl;
+		//}
+		//if (rank > 4) {
+		//	std::cout << "rank: " << rank <<  std::endl;
+		//}
 		Eigen::VectorXd singularvalues = svd.singularValues();
 
 		Eigen::MatrixXd fg = svd.matrixV();
