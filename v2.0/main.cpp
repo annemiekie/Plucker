@@ -62,6 +62,7 @@ bool toggleBbox = false;
 bool toggleLines = true;
 bool toggleSampleLines = false;
 bool nextleaf = false;
+bool prevleaf = false;
 bool drawRay = false;
 bool print = false;
 glm::vec2 drawRayPos(0, 0);
@@ -179,6 +180,11 @@ std::vector<Ray> constructRaysRandom(Model* model, int level) {
 	return rays;
 }
 
+void makeEmptyRST(RaySpaceTree* rst, int option) {
+	std::vector<Ray> rays = constructRaysRandom(rst->model, rst->depth);
+	rst->construct(option, rays);
+}
+
 void makeRST(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, TextureRenderer& texrender, int option, bool storeRays) {
 
 	std::vector<Ray> rays = constructRaysRandom(rst->model, rst->depth);
@@ -218,7 +224,8 @@ void makeRSTembree(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, int p
 				int tri_id = -1;
 				float t = 0.f;
 				if (rst->model->getIntersectionEmbree(ray, tri_id, t))
-					rst->putPrimitive(ray, tri_id, storeRays);				
+					rst->putPrimitive(ray, tri_id, storeRays);
+				//else rst->putPrimitive(ray, tri_id, storeRays, false);
 			}
 		}
 	}
@@ -369,6 +376,9 @@ void keyboardHandler(GLFWwindow* window, int key, int scancode, int action, int 
 		case GLFW_KEY_1:
 			nextleaf = true;
 			break;
+		case GLFW_KEY_0:
+			prevleaf = true;
+			break;
 		case GLFW_KEY_2:
 			togglePoints = !togglePoints;
 			break;
@@ -385,7 +395,7 @@ void keyboardHandler(GLFWwindow* window, int key, int scancode, int action, int 
 		case GLFW_KEY_6:
 			toggle4lines = !toggle4lines;
 			update = true;
-			update4lines = true;
+			//update4lines = true;
 			break;
 		case GLFW_KEY_7:
 			togglePicking = !togglePicking;
@@ -500,7 +510,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(width, height, "Shadow mapping practical", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(width, height, "Ray Space Tree", nullptr, nullptr);
 	if (!window) {
 		std::cerr << "Failed to create OpenGL context!" << std::endl;
 		std::cout << "Press enter to close."; getchar();
@@ -538,7 +548,6 @@ int main() {
 
 	/////////////////////// Create cube and lines for cube
 	Cube cube(model.center, model.radius*1.5);
-	//Cube largecube(model.center, model.boundingBox.size.x * 3);
 	GLuint cubeVAO = cube.vaoGeneration();
 	std::cout << "Generated viewing cube." << std::endl;
 
@@ -557,7 +566,7 @@ int main() {
 	std::cout << "Created " << sampler.samples.size() << " camera locations in all directions" << std::endl;
 
 	/////////////////// Create main camera
-	PreviewCamera mainCamera(model.radius * 4, model.radius * 5 > 30.f ? model.radius * 5 : 30.f);
+	PreviewCamera mainCamera(model.radius * 4, model.center, model.radius * 5 > 30.f ? model.radius * 5 : 30.f);
 	mainCamera.aspect = width / (float)height;
 
 	////////////////// Create sampling canvas and sampling camera
@@ -577,7 +586,20 @@ int main() {
 
 	auto start_time = std::chrono::high_resolution_clock::now();
 	//makeRST(&rst, sampler, cam, texrender, constructOption, storeRays);
-	makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	
+	//makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	makeEmptyRST(&rst, constructOption);
+	rst.fillExact();
+
+	//for (Node* n : rst.nodes) {
+	//	if (n->leaf) {
+	//		std::cout << n->index-rst.noLeaves+1 << ": ";
+	//		for (int t : n->primitiveSet)
+	//			std::cout << t << " ";
+	//		std::cout << std::endl;
+	//	}
+	//}
+	
 	//makeAdaptiveRST(&rst, sampler, rstProgram, resolution, cam, rsttex, constructOption);
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -588,7 +610,6 @@ int main() {
 	////////////////// Statistics and checks
 	getRstStatistics(&rst, model.primsize);
 
-	//rst.checkLeaves();
 	if (print) rst.printTree();
 
 	////////////////// Check result by RayTracing
@@ -651,6 +672,10 @@ int main() {
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos3"), 1, glm::value_ptr(lightPos3));
 	#pragma endregion
 
+
+	//rst.checkLeaves();
+
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glUseProgram(0);
@@ -668,6 +693,20 @@ int main() {
 			viewline = false;
 		}
 
+		if (prevleaf) {
+			alphaLines = 1.f;
+			int trinum = 0;
+			while (trinum == 0) {
+				leafnum--;
+				leafnum = leafnum % rst.noLeaves;
+				trinum = rst.getNumberOfTriInleaf(leafnum);
+			}
+			leaf = rst.getLeafFromNum(leafnum);
+			prevleaf = false;
+			update = true;
+			viewline = false;
+		}
+
 		if (picking) {
 			Ray r = mainCamera.pixRayDirection(drawRayPos);
 			int primindex = -1;
@@ -677,8 +716,8 @@ int main() {
 			if (primindex >= 0) {
 				std::cout << primindex << std::endl;
 				Ray extremalLine;
-				rst.check1Prim(primindex, extremalLine, leaf, true);
-				extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
+				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0))
+					extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
 			}
 			//model.vertices[3 * primindex].selected = 1.f;
 			//model.vertices[3 * primindex + 1].selected = 1.f;
@@ -699,6 +738,8 @@ int main() {
 		}
 
 		if (update && leafnum >= 0) {
+			std::cout << leafnum << std::endl;
+
 			if (sphereOrCube) geoObject = &sampleSphere;
 			else geoObject = &cube;
 
@@ -718,9 +759,9 @@ int main() {
 
 			if (storeRays && toggleLines)
 				samples.updateVaoWithLines(rst.getViewingLinesInLeaf(leaf), geoObject, rst.maindir);
-			if (toggle4lines && update4lines) {
-				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf), geoObject, rst.maindir);
-				update4lines = false;
+			if (toggle4lines) {// && update4lines) {
+				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf, true), geoObject, rst.maindir);
+				//update4lines = false;
 				//wrongRays.updateVaoWithLines(rst.wronglines, geoObject, rst.maindir);
 			}
 

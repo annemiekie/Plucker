@@ -50,8 +50,8 @@ public:
 	};
 	~RaySpaceTree() {};
 
-	void putPrimitive(Ray& ray, int primId, bool putRay);
-	void putPrimitive(Ray& ray, int primId, Node* node, bool putRay);
+	void putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim = true);
+	void putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim = true);
 
 	Node* descend(Ray& ray);
 	Node* descend(Ray& ray, Node* node);
@@ -61,6 +61,9 @@ public:
 
 	void construct(int option, std::vector<Ray>& rays);
 	void construct(int level, Node* node, int option, std::vector<Ray>& rays, std::vector<Ray> splitters);
+
+	void fillExact();
+	void fillExact(Node* node);
 	
 	void constructAdaptive(glm::ivec2 res, std::vector<Camera*>& cams,
 							std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print);
@@ -95,31 +98,38 @@ public:
 	Node* getLeafFromNum(int leafNum);
 	void getSplittingLinesInLeaf(int leafnum, std::vector<Ray>& lines);
 	void getSplittingLinesInLeaf(Node* n, std::vector<Ray>& lines);
-	void getSplittingLinesInLeafWithSide(Node* n, std::vector<Ray>& lines, std::vector<int>& sides);
+	void getSplittingLinesInLeafWithSide(Node* n, std::vector<Ray>& lines, std::vector<bool>& sides);
 	//std::vector<Ray> filterSplittingLines(std::vector<Ray>& lines, std::vector<int>& sides);
 	//bool onCorrectSide(std::vector<Ray>& lines, std::vector<int>& sides, Ray &r);
 
 	int numOfLeaf(int ind);
 	int getNumberOfTriInleaf(int leafnum);
 
-	std::vector<Ray> getExtremalStabbingInLeaf(Node* n);
+	std::vector<Ray> getExtremalStabbingInLeaf(Node* n, bool print=false);
 	void checkLeaves();
-	bool checkLeaf(Node *node, std::vector<Ray>& rays, bool getRays);
-	bool check1Prim(const int prim, Ray& ray, Node* leaf, bool print);
+	bool checkLeaf(Node* node, std::vector<Ray>& rays, bool getRays, int edgeSelection, bool print = false);
+	bool check1Prim(const int prim, Ray& ray, Node* leaf, bool print, int edgeSelection);
 	bool checkPrim(const int prim, std::vector<std::vector<int>>& combi2, std::vector<std::vector<int>>& combi3, std::vector<std::vector<int>>& combi4,
-		std::vector<Ray>& splitLines, Ray& ray, Node* leaf, bool print);
+					std::vector<Ray>& splitLines, std::vector<bool>& sideLines, Ray& ray, Node* leaf, bool print, int edgeSelection);
 
+	
 	bool findExtremalStabbingForPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, 
 								Ray &ray, Node *node, const int splitsize, std::vector<Ray>& edgeRays, 
 								bool print = false, int nrOfsilhEdges = 0, std::vector<int>& visibleTriIgnore = std::vector<int>());
-	bool checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, bool print = false,
-									std::vector<int>& visibleTriIgnore = std::vector<int>(), std::vector<Ray>& rayIgnore = std::vector<Ray>(),
-									std::vector<Ray>& lines = std::vector<Ray>());
+	bool checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, 
+									bool print = false,std::vector<int>& visibleTriIgnore = std::vector<int>(), 
+									std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0);
+	bool checkRayAndReverse(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
+		bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
+		std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0);
+	bool checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
+		bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
+		std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0);
 	bool checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool &inPlane, bool print);
-	bool checkLineInBox(const Ray& ray, std::vector<Ray>& ignore, bool print);
-	//bool rayInLeaf(std::vector<Ray>& splitLines, std::vector<int>& sides, const Ray& ray, std::vector<Ray>& ignore, bool print);
-	bool rayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& ignore, bool print);
-
+	bool checkLineInBox(const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
+	bool checkRayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
+	bool checkRayThroughVertices(int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
+		bool print, std::vector<int>& triIgnore, std::vector<Ray>& lines, int rayIgnoresize);
 	bool checkPrimVisibleForLine(Ray& ray, const int prim, std::vector<int>& ignore, bool inplane, bool print);
 
 	void printTree();

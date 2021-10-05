@@ -104,14 +104,15 @@ public:
     }
     
     //// CHECK IF THIS WORKS
-    bool intersectSide(glm::vec3 mainDir, const Ray& r, std::vector<Ray>& ignore, bool print) {
+    bool intersectSide(glm::vec3 mainDir, const Ray& r, std::vector<Ray>& lines, int rayIgnoresize, bool print) {
+      //  
         int ind = getIndex(mainDir);
-        int left = 0;
-        int right = 0;
         for (int i = 0; i < 4; i++) {
             bool ign = false;
-            for (auto& igray : ignore) {
-                if (igray.equal(quadLines[ind][i], 1E-8)) {
+             for (int j = 0; j < rayIgnoresize; j++) {
+                if (lines[j].equal(quadLines[ind][i], 1E-8)) {
+           // for (auto& igray : lines) {
+          //      if (igray.equal(quadLines[ind][i], 1E-8)) {
                     ign = true; //-8
                     break;
                 }
@@ -122,17 +123,8 @@ public:
                 if (print) std::cout << "Ray not in Box (wrong side of edge, should be >0): " << sideVal << std::endl <<std::endl;
                 return false;
             }
-            //if (abs(sideVal) < 1E-5) { left++; right++; }
-            //else if (sideVal < 0) left++;
-           // else right++;
         }
-        return true;
-       // if (right == 4) return true;// || left == 4
-       // else {
-       //     if (print)
-       //     return false;
-        //}
-    
+        return true;    
     }
 
     virtual bool intersect(const Ray& r, glm::vec3& start, glm::vec3& end, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
@@ -257,6 +249,7 @@ public:
     GLuint vaoSideQuad(glm::vec3 mainDir) {
         int ind = getIndex(mainDir);
         std::vector<glm::vec3> lines;
+
         for (int i = 0; i < 4; i++) {
             lines.push_back(cornerPoints[ind][i]);
             lines.push_back(cornerPoints[ind][(i + 1) % 4]);
@@ -267,12 +260,12 @@ public:
         glGenBuffers(1, &lineVBO);
         glBindVertexArray(lineVAO);
         glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*lines.size(), &lines[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), &lines[0], GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
 
         return lineVAO;
-    }
+    };
 
 };
 

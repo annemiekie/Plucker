@@ -87,13 +87,32 @@ struct Ray {
         std::cout << "Origin: (" << origin.x << "," << origin.y << "," << origin.z << ") Direction: (" << direction.x << "," << direction.y << "," << direction.z << ")";
     }
 
+    bool throughVertex(glm::dvec3 vertex, double eps) {
+        glm::dvec3 dir = vertex - origin;
+        if (dir.x * direction.x < 0) dir = -dir;
+        double dist = glm::distance(glm::normalize(dir), glm::normalize(direction));
+        return (dist < eps);
+    }
+
+    bool inPlane(Ray& ray1, Ray& ray2, double eps) {
+        glm::dvec3 cross = glm::cross(glm::normalize(ray1.direction), glm::normalize(ray2.direction));
+        double v = fabsf(glm::dot(direction, cross));
+        return (v < 1E-10);
+    }
+
+    // Checks whether rays are the same
+    // Not checking orientation 
     bool equal(Ray o, double eps) {
         normalize();
         o.normalize();
-        glm::dvec3 diffv = glm::abs(v/u.x - o.v/o.u.x);
-        glm::dvec3 diffu = glm::abs(u/u.x - o.u/o.u.x);
-        if (!glm::all(glm::lessThan(diffu, glm::dvec3(eps)))) return false;
-        if (!glm::all(glm::lessThan(diffv, glm::dvec3(eps)))) return false;
-        return true;
+        if ((glm::distance(u, o.u) < eps && glm::distance(v, o.v) < eps)) return true;
+        o.inverseDir();
+        if ((glm::distance(u, o.u) < eps && glm::distance(v, o.v) < eps)) return true;
+        return false;
+       // glm::dvec3 diffv = glm::abs(v - o.v);
+       // glm::dvec3 diffu = glm::abs(u - o.u);
+       // if (!glm::all(glm::lessThan(diffu, glm::dvec3(eps)))) return false;
+       // if (!glm::all(glm::lessThan(diffv, glm::dvec3(eps)))) return false;
+       // return true;
     }
 };

@@ -37,6 +37,19 @@ struct SphereSampler {
 		}
 	}
 
+	void findMinMax(glm::vec3 &min, glm::vec3 &max) {
+		min = { 1000, 1000, 1000 };
+		max = { -1000, -1000, -1000 };
+		for (glm::vec3& s : samples) {
+			if (s.x < min.x) min.x = s.x;
+			else if (s.x > max.x) max.x = s.x;
+			if (s.y < min.y) min.y = s.y;
+			else if (s.y > max.y) max.y = s.y;
+			if (s.z < min.z) min.z = s.z;
+			else if (s.z > max.z) max.z = s.z;
+		}
+
+	}
 
 	void createSamples(int sgn, char maindir) {
 		sgn *= -1;

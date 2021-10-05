@@ -7,6 +7,7 @@ struct Edge {
 	//int v1;
 	//int v2;
 	mutable std::vector<int> triangles = std::vector<int>();
+	mutable int index;
 };
 
 struct cmp_by_v {

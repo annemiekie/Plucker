@@ -34,6 +34,12 @@ public:
 
 	std::vector<glm::uint> indices = std::vector<glm::uint>();
 	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
+
+	std::set<Edge, cmp_by_v> silhouetteEdges = std::set<Edge, cmp_by_v>();
+
+	std::vector<std::vector<Edge>> edgesPerTriangle = std::vector<std::vector<Edge>>();
+	std::vector<std::vector<Edge>> edgesPerVertex = std::vector<std::vector<Edge>>();
+
 	std::vector<std::vector<int>> triPerVertex;
 	std::vector<glm::vec3> normalPerTri = std::vector<glm::vec3>();
 
@@ -75,7 +81,6 @@ public:
 		addGeometry(false);
 	}
 
-
 	void loadModelFromFile(const char* filename) {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
@@ -95,6 +100,7 @@ public:
 
 		vertices2 = std::vector<glm::vec3>(attrib.vertices.size() / 3);
 		triPerVertex = std::vector<std::vector<int>>(attrib.vertices.size() / 3);
+		edgesPerVertex = std::vector<std::vector<Edge>>(attrib.vertices.size()/3);
 
 		for (int i = 0; i < attrib.vertices.size(); i+=3) {
 			glm::vec3 vertex = {
@@ -106,7 +112,7 @@ public:
 		}
 
 		std::vector<int> verticespertri(3);
-		glm::vec3 normalTri(0);
+		//glm::vec3 normalTri(0);
 		std::vector<glm::vec3> centroid(3);
 		for (const auto& shape : shapes) {
 			primsize += shape.mesh.indices.size() / 3;
@@ -139,22 +145,28 @@ public:
 				};
 
 				verticespertri[count % 3] = index.vertex_index;
-				normalTri += vertex.normal;
-
-				if (count % 3 == 0) ind++;
-				else if (count % 3 == 2) {
-					normalPerTri.push_back(glm::normalize(normalTri / 3.f));
-					normalTri = glm::vec3(0);
-					for (int x = 0; x < 3; x++) {
-						Edge e = Edge({ std::set<int>({verticespertri[x], verticespertri[(x + 1) % 3]}), std::vector<int>() });
-						//auto it = edges.find(e);
-						std::pair<std::set<Edge>::iterator, bool> insert = edges.insert(e);
-						(insert.first)->triangles.push_back(ind - 1);
-					}
-				}
 				vertex.id = (1.f * ind);
 				triPerVertex[index.vertex_index].push_back(ind - 1);
 				vertices.push_back(vertex);
+
+				if (count % 3 == 0) ind++;
+				else if (count % 3 == 2) {
+					normalPerTri.push_back(glm::normalize(glm::cross(vertices[vertices.size() - 3].pos - vertices[vertices.size() - 1].pos,
+																	 vertices[vertices.size() - 2].pos - vertices[vertices.size() - 1].pos)));
+					edgesPerTriangle.push_back(std::vector<Edge>(3));
+
+					for (int x = 0; x < 3; x++) {
+						Edge e = Edge({ std::set<int>({verticespertri[x], verticespertri[(x + 1) % 3]}), std::vector<int>(), -1 });
+						std::pair<std::set<Edge>::iterator, bool> insert = edges.insert(e);
+						(insert.first)->triangles.push_back(ind - 1);
+						if (((insert.first)->index) == -1) {
+							(insert.first)->index = edges.size() - 1;
+							edgesPerVertex[verticespertri[x]].push_back(*(insert.first));
+							edgesPerVertex[verticespertri[(x + 1) % 3]].push_back(*(insert.first));
+						}
+						edgesPerTriangle[edgesPerTriangle.size() - 1][x] = *(insert.first);
+					}
+				}
 				count++;
 			}
 		}
@@ -225,6 +237,7 @@ public:
 				if (!check && count > 0 && count < 4) check = true;
 			}
 			if (check) {
+				silhouetteEdges.insert(e);
 				for (auto t : e.triangles) {
 					vertices[3 * t].selected = -1.f;
 					vertices[3 * t + 1].selected = -1.f;
@@ -265,11 +278,20 @@ public:
 		return false;
 	}
 
-	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir, int &silhouettesize, 
-									std::vector<int>& tris, std::vector<glm::vec3>& silhouetteVerts) {
+	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir, 
+									std::vector<Edge>& silhouetteEdge,
+									std::set<int>& checktris = std::set<int>()) {
+
+		std::set<Edge, cmp_by_v> edgesToCheck = std::set<Edge, cmp_by_v>();
+
+		if (checktris.size() != 0) 	for (int tri : checktris) for (Edge& edge : edgesPerTriangle[tri]) edgesToCheck.insert(edge);
+		else edgesToCheck = edges;
+
 		std::vector<Vertex> primvertices = { vertices[3 * prim], vertices[3 * prim + 1], vertices[3 * prim + 2] };
 
-		for (auto& e : edges) {
+		for (const Edge& e : edgesToCheck) {
+			// If edge is not in potential silhouettes
+			if (!alldir && silhouetteEdges.find(e) == silhouetteEdges.end()) continue;
 			//bool skipedge = false;
 
 			glm::vec3 v1 = vertices2[*e.vertices.begin()];
@@ -287,7 +309,7 @@ public:
 			//if (skipedge) continue;
 
 
-			for (auto& v : primvertices) {
+			for (Vertex& v : primvertices) {
 
 				bool dot1 = false;
 				bool dot2 = false;
@@ -306,12 +328,11 @@ public:
 					dot2 = tri2normallinedot < 0;
 				}
 				if (e.triangles.size() == 1 || dot1 != dot2) {
-					for (int tri : e.triangles) tris.push_back(tri);
-					if (e.triangles.size() == 1) tris.push_back(-1);
-					silhouetteVerts.push_back(v1);
-					silhouetteVerts.push_back(v2);
-					//splitLines.push_back(Ray(v1, v2));
-					silhouettesize++;
+					//for (int tri : e.triangles) tris.push_back(tri);
+					//if (e.triangles.size() == 1) tris.push_back(-1);
+					silhouetteEdge.push_back(e);
+					//silhouetteVerts.push_back(v1);
+					//silhouetteVerts.push_back(v2);
 					break;
 				}
 			}

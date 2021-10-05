@@ -26,10 +26,10 @@ struct PreviewCamera : Camera {
 	glm::vec3 lookat;
 
 
-	PreviewCamera::PreviewCamera(float radius, float far = 30.f, float near = 0.1f)
+	PreviewCamera::PreviewCamera(float radius, glm::vec3 lookat = glm::vec3(0, 0, 0), float far = 30.f, float near = 0.1f)
 		: Camera (near, far)
 		, up(glm::vec3(0, 1, 0))
-		, lookat(glm::vec3(0, 0, 0))
+		, lookat(lookat)
 		, fov(glm::pi<float>() / 4.f)
 		, aspect(1.f)
 		, halfscreen(std::tan(fov / 2.f))
