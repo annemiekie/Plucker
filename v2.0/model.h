@@ -30,7 +30,7 @@ public:
 	std::vector<Vertex> verticesL = std::vector<Vertex>();
 
 	std::vector<Vertex> vertices = std::vector<Vertex>();
-	std::vector<glm::vec3> vertices2 = std::vector<glm::vec3>();
+	std::vector<glm::vec3> verticesIndexed = std::vector<glm::vec3>();
 
 	std::vector<glm::uint> indices = std::vector<glm::uint>();
 	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
@@ -98,18 +98,18 @@ public:
 		float maxx = -n, maxy = -n, maxz = -n;
 		float minx = n, miny = n, minz = n;
 
-		vertices2 = std::vector<glm::vec3>(attrib.vertices.size() / 3);
+		verticesIndexed = std::vector<glm::vec3>(attrib.vertices.size() / 3);
 		triPerVertex = std::vector<std::vector<int>>(attrib.vertices.size() / 3);
 		edgesPerVertex = std::vector<std::vector<Edge>>(attrib.vertices.size()/3);
 
-		for (int i = 0; i < attrib.vertices.size(); i+=3) {
-			glm::vec3 vertex = {
-				attrib.vertices[i],
-				attrib.vertices[i + 1],
-				attrib.vertices[i + 2]
-			};
-			vertices2[i/3] = vertex;
-		}
+		//for (int i = 0; i < attrib.vertices.size(); i+=3) {
+		//	glm::vec3 vertex = {
+		//		attrib.vertices[i],
+		//		attrib.vertices[i + 1],
+		//		attrib.vertices[i + 2]
+		//	};
+		//	vertices2[i/3] = vertex;
+		//}
 
 		std::vector<int> verticespertri(3);
 		//glm::vec3 normalTri(0);
@@ -147,6 +147,7 @@ public:
 				verticespertri[count % 3] = index.vertex_index;
 				vertex.id = (1.f * ind);
 				triPerVertex[index.vertex_index].push_back(ind - 1);
+				verticesIndexed[index.vertex_index] = vertex.pos;
 				vertices.push_back(vertex);
 
 				if (count % 3 == 0) ind++;
@@ -278,6 +279,86 @@ public:
 		return false;
 	}
 
+	int checkSilhouetteEdge2(glm::vec3& vpos, const Edge& e, bool alldir, glm::vec3& maindir, bool& side) {
+
+		if (e.triangles.size() == 2) {
+
+			int v1 = *e.vertices.begin();
+			int v2 = *e.vertices.rbegin();
+			glm::vec3 v1pos = verticesIndexed[v1];
+			glm::vec3 v2pos = verticesIndexed[v2];
+			if (!alldir && (glm::dot(v1pos, maindir) > glm::dot(vpos, maindir) &&
+				glm::dot(v2pos, maindir) > glm::dot(vpos, maindir))) return -1;
+
+			// concave/convex check
+			int t1 = e.triangles[0];
+			int t2 = e.triangles[1];
+			glm::vec3 vNotOnEdge1pos;
+			glm::vec3 vNotOnEdge2pos;
+			for (int i = 0; i < 3; i++) {
+				int vNotOnEdge1 = indices[t1 * 3 + i];
+				int vNotOnEdge2 = indices[t2 * 3 + i];
+				if (vNotOnEdge1 != v1 && vNotOnEdge1 != v2) vNotOnEdge1pos = verticesIndexed[vNotOnEdge1];
+				if (vNotOnEdge2 != v1 && vNotOnEdge2 != v2) vNotOnEdge2pos = verticesIndexed[vNotOnEdge2];
+			}
+			glm::vec3 normal1 = normalPerTri[e.triangles[0]];
+			float concaveConvex = glm::dot(vNotOnEdge2pos - vNotOnEdge1pos, normal1);
+			if (fabsf(concaveConvex) < 1E-8 || concaveConvex > 0) return -1; // in plane or concave
+
+			// define plane of triangle 1 and 2
+			glm::vec3 normal2 = normalPerTri[e.triangles[1]];
+			float plane1Const = glm::dot(normal1, v1pos);
+			float plane2Const = glm::dot(normal2, v2pos);
+			bool pointToPlane1 = (glm::dot(normal1, vpos) - plane1Const) < 0;
+			bool pointToPlane2 = (glm::dot(normal2, vpos) - plane2Const) < 0;
+			if (pointToPlane1 != pointToPlane2) return 1;
+			else { side = pointToPlane1; return 0; }
+
+			// optional check: if the triangle projected via vertices of edge falls outside box bounds
+		}
+		else if (e.triangles.size() == 1) return 1;
+		return -1;
+	}
+
+	bool checkSilhouetteEdge(glm::vec3& vpos, const Edge& e, bool alldir, glm::vec3& maindir) {
+
+
+		if (e.triangles.size() == 2) {
+
+			glm::vec3 v1 = vertices2[*e.vertices.begin()];
+			glm::vec3 v2 = vertices2[*e.vertices.rbegin()];
+			if (!alldir && (glm::dot(v1, maindir) > glm::dot(vpos, maindir) &&
+				glm::dot(v2, maindir) > glm::dot(vpos, maindir))) return false;
+
+			glm::vec3 halfway = 0.5f * (v1 + v2);
+			float tri1normallinedot = glm::dot(glm::normalize(halfway - vpos), normalPerTri[e.triangles[0]]);
+			float tri2normallinedot = glm::dot(glm::normalize(halfway - vpos), normalPerTri[e.triangles[1]]);
+
+			// don't use edges in planes
+			if (fabs(tri1normallinedot) < 1E-8 && fabs(tri2normallinedot) < 1E-8) return false;
+			bool dot1 = tri1normallinedot < 0;
+			bool dot2 = tri2normallinedot < 0;
+
+			if (dot1 == dot2) return false;
+			glm::vec3 jitter = glm::normalize(halfway - vpos- vertices[e.triangles[0] * 3].center);
+			float dotjittertri1 = glm::dot(jitter, normalPerTri[e.triangles[0]]);
+			float dotjittertri2 = glm::dot(jitter, normalPerTri[e.triangles[1]]);
+			if (dotjittertri1 > 0 || dotjittertri2 > 0) {
+				return true;
+			}
+
+		}
+		else if (e.triangles.size() == 1) return true;
+		return false;
+	}
+
+	//bool checkEdgeConnection(Edge& e1, Edge& e2) {
+	//	if (e1.triangles.size() == 1) return true;
+	//	else {
+
+	//	}
+	//}
+
 	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir, 
 									std::vector<Edge>& silhouetteEdge,
 									std::set<int>& checktris = std::set<int>()) {
@@ -286,63 +367,31 @@ public:
 
 		if (checktris.size() != 0) 	for (int tri : checktris) for (Edge& edge : edgesPerTriangle[tri]) edgesToCheck.insert(edge);
 		else edgesToCheck = edges;
-
-		std::vector<Vertex> primvertices = { vertices[3 * prim], vertices[3 * prim + 1], vertices[3 * prim + 2] };
-
 		for (const Edge& e : edgesToCheck) {
 			// If edge is not in potential silhouettes
-			if (!alldir && silhouetteEdges.find(e) == silhouetteEdges.end()) continue;
-			//bool skipedge = false;
+			//if (!alldir && silhouetteEdges.find(e) == silhouetteEdges.end()) continue;
 
-			glm::vec3 v1 = vertices2[*e.vertices.begin()];
-			glm::vec3 v2 = vertices2[*e.vertices.rbegin()];
-			// Don't use same vertex / triangle as silhouette edge.
-
+			// Don't use same triangle as silhouette edge.
 			if (e.triangles[0] == prim || e.triangles[1] == prim) continue;
 
-			//for (auto& v : primvertices) {
-			//	if (glm::distance(v1, v.pos) < 1E-8 || glm::distance(v2, v.pos) < 1E-8) {
-			//		skipedge = true;
-			//		break;
-			//	}
-			//}
-			//if (skipedge) continue;
-
-
-			for (Vertex& v : primvertices) {
-
-				bool dot1 = false;
-				bool dot2 = false;
-
-				if (e.triangles.size() == 2) {
-					if (!alldir && (glm::dot(v1, maindir) > glm::dot(v.pos, maindir) &&
-						glm::dot(v2, maindir) > glm::dot(v.pos, maindir))) continue;
-
-					glm::vec3 halfway = 0.5f * (v1 + v2);
-					float tri1normallinedot = glm::dot(glm::normalize(halfway - v.pos), normalPerTri[e.triangles[0]]);
-					float tri2normallinedot = glm::dot(glm::normalize(halfway - v.pos), normalPerTri[e.triangles[1]]);
-
-					// don't use edges in planes
-					if (fabs(tri1normallinedot) < 1E-8 && fabs(tri2normallinedot) < 1E-8) continue;
-					dot1 = tri1normallinedot < 0;
-					dot2 = tri2normallinedot < 0;
+			bool sideCheck = false;
+			for (int i = 0; i < 3; i++) {
+				bool side = false;
+				int checkEdge = checkSilhouetteEdge2(vertices[3 * prim + i].pos, e, alldir, maindir, side);
+				if (checkEdge == 0) {
+					if (i > 0 && side != sideCheck) silhouetteEdge.push_back(e);
+					else { sideCheck = side; continue; }
 				}
-				if (e.triangles.size() == 1 || dot1 != dot2) {
-					//for (int tri : e.triangles) tris.push_back(tri);
-					//if (e.triangles.size() == 1) tris.push_back(-1);
-					silhouetteEdge.push_back(e);
-					//silhouetteVerts.push_back(v1);
-					//silhouetteVerts.push_back(v2);
-					break;
-				}
+				else if (checkEdge > 0) silhouetteEdge.push_back(e);
+				//break;
 			}
 		}
 	}
 
 	double getIntersectionDepthForPrim(const int i, const Ray& r) { 
-		glm::dvec3 v0 = vertices[i].pos;
-		glm::dvec3 v1 = vertices[i + 1].pos;
-		glm::dvec3 v2 = vertices[i + 2].pos;
+		glm::dvec3 v0 = verticesL[i].pos;
+		glm::dvec3 v1 = verticesL[i + 1].pos;
+		glm::dvec3 v2 = verticesL[i + 2].pos;
 
 		glm::dvec3 N = glm::normalize(glm::cross(v2 - v0, v1 - v0));
 		//glm::dvec3 L = glm::vec3(-3, 3, -3);

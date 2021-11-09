@@ -143,26 +143,30 @@ namespace Combinations {
 	static std::vector<std::vector<int>> combiAddSelective(int size, std::vector<std::vector<int>>& combiChecked) {
 		std::vector<std::vector<int>> combinations;
 		std::vector<std::vector<int>> combifind;
-		if (combiChecked[0].size() == 2) combifind = combi1(2);
-		else if (combiChecked[0].size() == 3) combifind = combi2(3);
+		if (combiChecked[0].size() == 2) combifind = combi1(2); 
+		else if (combiChecked[0].size() == 3) combifind = combi2(3); 
 
 		for (std::vector<int>& cc : combiChecked) {
-			for (int i = cc[cc.size()-1] + 1; i < size; i++) {
-				for (int j = 0; j < cc.size() - 1; j++) {
-					int found = 0;
-					for (std::vector<int>& cf : combifind) {
-						bool add = false;
-						std::vector<int> check;
-						for (int f : cf) check.push_back(f);
-						check.push_back(j);
-						for (std::vector<int>& cc2 : combiChecked) if (cc2 == check) found++;
+			for (int i = cc[cc.size() - 1] + 1; i < size; i++) {
+				int found = 0;
+				for (std::vector<int>& cf : combifind) {
+					bool add = false;
+					std::vector<int> check;
+					for (int f : cf) check.push_back(cc[f]); 
+					check.push_back(i);  
+					for (std::vector<int>& cc2 : combiChecked) {
+						if (cc2 == check) {
+							found++;
+							break;
+						}
 					}
-					if (found == cc.size()) {
-						std::vector<int> num;
-						for (int c : cc) num.push_back(c);
-						num.push_back(j);
-						combinations.push_back(num);
-					}
+				}
+
+				if (found == cc.size()) {
+					std::vector<int> num;
+					for (int c : cc) num.push_back(c);
+					num.push_back(i);
+					combinations.push_back(num);
 				}
 			}
 		}

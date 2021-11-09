@@ -471,7 +471,7 @@ int main() {
 	}
 
 	std::string filestr;// = "dragon.obj";
-	bool alldir, trace;
+	bool alldir, trace, exact;
 	char dir;
 	int sgn, depth, noSamples, createRatio, w, h, constructOption;
 
@@ -491,6 +491,7 @@ int main() {
 		width = config.lookup("width");
 		height = config.lookup("height");
 		trace = config.lookup("trace");
+		exact = config.lookup("exact");
 	}
 	catch (libconfig::SettingNotFoundException& e) {
 		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
@@ -585,27 +586,26 @@ int main() {
 	bool storeRays = true;
 
 	auto start_time = std::chrono::high_resolution_clock::now();
-	//makeRST(&rst, sampler, cam, texrender, constructOption, storeRays);
 	
-	//makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
-	makeEmptyRST(&rst, constructOption);
-	rst.fillExact();
+	if (!exact) makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	model.enlargeModel();
+	if (exact) {
+		makeEmptyRST(&rst, constructOption);
+		rst.fillExact();
+	}
 
-	//for (Node* n : rst.nodes) {
-	//	if (n->leaf) {
-	//		std::cout << n->index-rst.noLeaves+1 << ": ";
-	//		for (int t : n->primitiveSet)
-	//			std::cout << t << " ";
-	//		std::cout << std::endl;
-	//	}
-	//}
+	for (Node* n : rst.nodes) {
+		if (n->leaf) {
+			std::cout << n->index-rst.noLeaves+1 << ": ";
+			for (int t : n->primitiveSet)
+				std::cout << t << " ";
+			std::cout << std::endl;
+		}
+	}
 	
-	//makeAdaptiveRST(&rst, sampler, rstProgram, resolution, cam, rsttex, constructOption);
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	std::cout << "Completed RST1 in " << diff << " ms" << std::endl;
-	//fillMoreSamples(&rst, sampler, rsttex, rstProgram, resolution, cam, storeRays);
-	model.enlargeModel();
 
 	////////////////// Statistics and checks
 	getRstStatistics(&rst, model.primsize);

@@ -198,6 +198,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\libraries\embree3;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\include;$(ProjectDir)..\libraries\CImg-2.9.4;C:\Program Files\Intel\Embree3\include;$(ProjectDir)..\libraries\libconfig-1.7.2\lib;$(ProjectDir)..\libraries\eigen-3.3.9</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

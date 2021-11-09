@@ -67,7 +67,7 @@ namespace LineThroughFour {
 		return delta == 0.0 ? 1 : 2;
 	}
 
-	static void findNullSpace(Eigen::MatrixXd m, Ray &F, Ray &G, Ray &H, int rank) {
+	static void findNullSpace(Eigen::MatrixXd& m, Ray &F, Ray &G, Ray &H, int rank = 4) {
 		Eigen::FullPivLU<Eigen::MatrixXd> lu(m);
 		Eigen::MatrixXd A_null_space = lu.kernel();
 
@@ -76,7 +76,7 @@ namespace LineThroughFour {
 		if (rank == 3) H = Ray(A_null_space.col(2), true);
 	}
 
-	static void findNullSpace2(Eigen::MatrixXd m, Ray& F, Ray& G, Ray &H, int rank) {
+	static void findNullSpace2(Eigen::MatrixXd& m, Ray& F, Ray& G, Ray &H) {
 		Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod;
 		cod.compute(m);
 		// Find URV^T
@@ -90,16 +90,16 @@ namespace LineThroughFour {
 
 	static std::vector<Ray> find(std::vector<Ray>& lines, Model* model) {
 		std::vector<Ray> intersectLines;
-		int dim;
+		//int dim;
 		Ray F, G, H;
 		Eigen::MatrixXd m = makePluckerMat(lines);
 
-		int rank = singularValueDecomp(m, F,G, dim);
-		findNullSpace(m, F, G, H, rank);
-		int num;
-		if (rank == 4) num = intersectLinesQuadric(F, G, intersectLines);
+		//int rank = 4;// singularValueDecomp(m, F, G, dim);
+		findNullSpace(m, F, G, H);
+		//int num;
+		//if (rank == 4) 
+		intersectLinesQuadric(F, G, intersectLines);
 		//else if (rank == 5) num = intersectLinesQuadric3(F, G, H, intersectLines);
-		
 		//for (Ray i : intersectLines) {
 		//	float sideval = i.sideVal(i);
 		//	if (fabs(sideval) > 1E-6) std::cout << "Not on plucker surface " << sideval << std::endl;
