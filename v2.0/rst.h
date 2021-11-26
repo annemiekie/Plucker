@@ -191,7 +191,7 @@ public:
 					std::vector<std::vector<int>>& combi2Edges, std::vector<Ray>& edgeVertexRays, 
 					std::vector<std::vector<int>>& edgeVertexCombis);*/
 	bool checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& silhouetteLines,
-					std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdges, std::vector<int>& silhouetteTris, 
+					std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdgesToAdd, std::vector<Edge>& silhouetteEdges, std::vector<int>& silhouetteTris,
 					std::vector<Ray>& edgeRays, std::set<int>& silhEdgeVertices, std::vector<Ray>& edgeVertexRays, 
 					std::vector<std::vector<int>>& edgeVertexCombis);
 	bool checkPointsInHalfSpaces(std::vector<glm::vec3>& n, std::vector<float>& c, std::vector<glm::vec3>& points, float err = 0);

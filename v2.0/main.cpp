@@ -545,6 +545,9 @@ int main() {
 	Model model(filename, true);
 
 	////////////////////// Create bounding box
+	///// FOR TESTING!!! /////
+	//model.boundingCube.setBounds(model.center - glm::vec3(5), model.center + glm::vec3(5));
+	//////////////////////////
 	GLuint bboxVAO = model.boundingCube.vaoGeneration();
 
 	/////////////////////// Create cube and lines for cube
@@ -555,8 +558,8 @@ int main() {
 	/////////////////////// Create show sphere
 	Sphere sphere(model.center, model.radius);
 	sphere.vaoGeneration(10, 20);
-	Sphere sampleSphere(model.center, model.radius*1.5);
-	sampleSphere.vaoGeneration(10, 20);
+	Sphere sampleSphere(model.center, model.radius * 1.5);
+    sampleSphere.vaoGeneration(10, 20);
 
 	///////////////////// Create sample locations
 	SphereSampler sampler(&sampleSphere, noSamples, createRatio);
@@ -594,14 +597,14 @@ int main() {
 		rst.fillExact();
 	}
 
-	for (Node* n : rst.nodes) {
-		if (n->leaf) {
-			std::cout << n->index-rst.noLeaves+1 << ": ";
-			for (int t : n->primitiveSet)
-				std::cout << t << " ";
-			std::cout << std::endl;
-		}
-	}
+	//for (Node* n : rst.nodes) {
+	//	if (n->leaf) {
+	//		std::cout << n->index-rst.noLeaves+1 << ": ";
+	//		for (int t : n->primitiveSet)
+	//			std::cout << t << " ";
+	//		std::cout << std::endl;
+	//	}
+	//}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -652,7 +655,7 @@ int main() {
 	glm::vec3 yellow = { 1, 1, 0 };
 	glm::vec3 white = { 1, 1, 1 };
 	glm::vec3 black = { 0, 0, 0 };
-	glm::vec3 hotpink = { 1, 0.4, 0.7 };
+	glm::vec3 hotpink = { 1, 0, 0.4 };
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
@@ -782,7 +785,8 @@ int main() {
 
 		// Clear the framebuffer to black and depth to maximum value
 		glClearDepth(1.0f);  
-		glClearColor(0.1f, 0.2f, 0.4f, 1.0f); 
+		//glClearColor(0.1f, 0.2f, 0.4f, 1.0f); 
+		glClearColor(0.5f, 0.6f, 0.65f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindVertexArray(model.vao);
@@ -790,6 +794,18 @@ int main() {
 
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_LINES, 0, 24);
+
+
+		if (togglePoints) {
+			glBindVertexArray(sampler.vao);
+			glDrawArrays(GL_POINTS, 0, sampler.samples.size());
+		}
+
+
+		glUseProgram(lineProgram.index);
+		glUniformMatrix4fv(glGetUniformLocation(lineProgram.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+		glUniform1f(glGetUniformLocation(lineProgram.index, "alpha"), 1.f);
+		glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 0);
 
 		if (toggleBbox) {
 			glBindVertexArray(bboxVAO);
@@ -800,15 +816,6 @@ int main() {
 			}
 		}
 
-		if (togglePoints) {
-			glBindVertexArray(sampler.vao);
-			glDrawArrays(GL_POINTS, 0, sampler.samples.size());
-		}
-
-		glUseProgram(lineProgram.index);
-		glUniformMatrix4fv(glGetUniformLocation(lineProgram.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
-		glUniform1f(glGetUniformLocation(lineProgram.index, "alpha"), 1.f);
-		glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 0);
 
 		if (toggleLines) {
 			glBindVertexArray(splitters.vao);
@@ -817,14 +824,9 @@ int main() {
 			glDrawArrays(GL_LINES, 0, splitters.size);
 
 			if (toggle4lines) {
-				//glBindVertexArray(extremalStabbing.vao);
-				//glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
-				//glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
-				//glDrawArrays(GL_LINES, 0, extremalStabbing.size);
-
 				glBindVertexArray(extremalStabbing.vao);
 				glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
-				glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
+				glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(hotpink));
 				glDrawArrays(GL_LINES, 0, extremalStabbing.size);
 
 			}

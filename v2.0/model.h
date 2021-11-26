@@ -187,13 +187,13 @@ public:
 
 	RTCGeometry makeEmbreeGeom(bool indexed = true) {
 		RTCGeometry model_geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-		int vertexsize = indexed ? vertices2.size() : vertices.size();
+		int vertexsize = indexed ? verticesIndexed.size() : vertices.size();
 		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexsize);
 		unsigned* triangles_embr = (unsigned*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), indices.size() / 3);
 		for (int i = 0; i < vertexsize; i++) {
-			vertices_embr[i * 3] = indexed ? vertices2[i][0] : verticesL[i].pos.x;
-			vertices_embr[i * 3 + 1] = indexed ? vertices2[i][1] : verticesL[i].pos.y;
-			vertices_embr[i * 3 + 2] = indexed ? vertices2[i][2] : verticesL[i].pos.z;
+			vertices_embr[i * 3] = indexed ? verticesIndexed[i][0] : verticesL[i].pos.x;
+			vertices_embr[i * 3 + 1] = indexed ? verticesIndexed[i][1] : verticesL[i].pos.y;
+			vertices_embr[i * 3 + 2] = indexed ? verticesIndexed[i][2] : verticesL[i].pos.z;
 		}
 		for (int i = 0; i < indices.size(); i++)
 			triangles_embr[i] = indexed ? indices[i] : i;
@@ -226,7 +226,7 @@ public:
 			else {
 				int count = 0;
 				for (auto &c : cpoints) {
-					glm::vec3 halfway = 0.5f * (vertices2[*e.vertices.begin()] + vertices2[*e.vertices.rbegin()]);
+					glm::vec3 halfway = 0.5f * (verticesIndexed[*e.vertices.begin()] + verticesIndexed[*e.vertices.rbegin()]);
 					bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
 					bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
 					if (dot1 != dot2) {
@@ -325,8 +325,8 @@ public:
 
 		if (e.triangles.size() == 2) {
 
-			glm::vec3 v1 = vertices2[*e.vertices.begin()];
-			glm::vec3 v2 = vertices2[*e.vertices.rbegin()];
+			glm::vec3 v1 = verticesIndexed[*e.vertices.begin()];
+			glm::vec3 v2 = verticesIndexed[*e.vertices.rbegin()];
 			if (!alldir && (glm::dot(v1, maindir) > glm::dot(vpos, maindir) &&
 				glm::dot(v2, maindir) > glm::dot(vpos, maindir))) return false;
 
@@ -374,16 +374,23 @@ public:
 			// Don't use same triangle as silhouette edge.
 			if (e.triangles[0] == prim || e.triangles[1] == prim) continue;
 
+			// check if edge lies on correct side of triangle
+			int v1 = *e.vertices.begin();
+			int v2 = *e.vertices.rbegin();
+			if (glm::dot(normalPerTri[prim], verticesIndexed[v1] - vertices[3 * prim].center) < 0) continue;
+			if (glm::dot(normalPerTri[prim], verticesIndexed[v2] - vertices[3 * prim].center) < 0) continue;
+
+
 			bool sideCheck = false;
 			for (int i = 0; i < 3; i++) {
 				bool side = false;
 				int checkEdge = checkSilhouetteEdge2(vertices[3 * prim + i].pos, e, alldir, maindir, side);
-				if (checkEdge == 0) {
-					if (i > 0 && side != sideCheck) silhouetteEdge.push_back(e);
-					else { sideCheck = side; continue; }
+				if (checkEdge == 0 && (i == 0 || side == sideCheck)) {
+					sideCheck = side;
+					continue;
 				}
-				else if (checkEdge > 0) silhouetteEdge.push_back(e);
-				//break;
+				else if (checkEdge >= 0) silhouetteEdge.push_back(e);
+				break;
 			}
 		}
 	}
@@ -439,7 +446,7 @@ public:
 		GLuint vbo;
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, vertices2.size() * sizeof(glm::vec3), &vertices2[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, verticesIndexed.size() * sizeof(glm::vec3), &verticesIndexed[0], GL_STATIC_DRAW);
 
 		// copy index data to VBO
 		GLuint ibo;

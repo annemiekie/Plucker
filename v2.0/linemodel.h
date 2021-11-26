@@ -42,6 +42,7 @@ public:
 	}
 
 	void updateVaoWithLines(std::vector<Ray> rays, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
+		if (rays.size() == 0) return;
 		size = 2 * rays.size();
 		std::vector<glm::vec3> lines, colors;
 		getLinesInGeo(rays, object, lines, colors, maindir);
