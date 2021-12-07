@@ -37,7 +37,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="buffers.h" />
-    <ClInclude Include="bvh.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
@@ -51,6 +50,7 @@
     <ClInclude Include="nodeSamples.h" />
     <ClInclude Include="orthocamera.h" />
     <ClInclude Include="perscamera.h" />
+    <ClInclude Include="plane.h" />
     <ClInclude Include="previewcamera.h" />
     <ClInclude Include="primitive.h" />
     <ClInclude Include="ray.h" />
@@ -58,10 +58,14 @@
     <ClInclude Include="raytracer_embree.h" />
     <ClInclude Include="rst.h" />
     <ClInclude Include="sample.h" />
+    <ClInclude Include="segment2D.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="sphereSampler.h" />
+    <ClInclude Include="square.h" />
+    <ClInclude Include="tetrahedron.h" />
     <ClInclude Include="textureRenderer.h" />
+    <ClInclude Include="triWedge.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

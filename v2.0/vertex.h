@@ -8,6 +8,6 @@ struct Vertex {
 	glm::vec3 normal;
 	glm::vec3 bary;
 	glm::vec3 center;
-	float selected;
+	glm::vec3 color;
 	float id;
 };

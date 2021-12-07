@@ -43,9 +43,14 @@ public:
 
 	void updateVaoWithLines(std::vector<Ray> rays, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
 		if (rays.size() == 0) return;
-		size = 2 * rays.size();
+		//size = 2 * rays.size();
 		std::vector<glm::vec3> lines, colors;
 		getLinesInGeo(rays, object, lines, colors, maindir);
+		makeVaoVbo(lines, colors);
+	}
+
+	void makeVaoVbo(std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>()) {
+		size = lines.size();
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), &lines[0].x, GL_STATIC_DRAW);
@@ -53,11 +58,9 @@ public:
 		if (color) {
 			glBindBuffer(GL_ARRAY_BUFFER, vboc);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * colors.size(), &colors[0].x, GL_STATIC_DRAW);
-
 		}
-
-		//glDeleteBuffers;
 	}
+
 
 	void getLinesInGeo(std::vector<Ray> rays, GeoObject* object, std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>(), glm::vec3 maindir = glm::vec3(0)) {
 		glm::vec3 line, col;

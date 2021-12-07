@@ -17,10 +17,7 @@
 
 class Sphere : public GeoObject {
 public:
-   // glm::vec3 center = glm::vec3(0);
     float radius = 0.f;
-    //GLuint vao;
-
     int indSize = 0;
 
     Sphere() {};
@@ -89,7 +86,7 @@ public:
                 nx = x * lengthInv;
                 ny = y * lengthInv;
                 nz = z * lengthInv;
-                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), glm::vec3(0), glm::vec3(0), 0 });
+                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), glm::vec3(0), glm::vec3(0), glm::vec3(0) });
 
                 //// vertex tex coord (s, t) range between [0, 1]
                 //s = (float)j / sectorCount;

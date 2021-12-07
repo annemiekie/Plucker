@@ -61,7 +61,7 @@ public:
 
 	Model(const char* filename, bool indexed = true) {
 		loadModelFromFile(filename);
-		findPotentialSilhouettes(glm::vec3(1, 0, 0));
+		//findPotentialSilhouettes(glm::vec3(1, 0, 0));
 		setUpEmbreeTracer();
 		addGeometry(indexed);
 		createVAO();
@@ -144,6 +144,8 @@ public:
 					attrib.normals[3 * index.normal_index + 2]
 				};
 
+				vertex.color = { 1,1,1 };
+
 				verticespertri[count % 3] = index.vertex_index;
 				vertex.id = (1.f * ind);
 				triPerVertex[index.vertex_index].push_back(ind - 1);
@@ -218,35 +220,35 @@ public:
 		rtcInitIntersectContext(&context);
 	}
 
-	void findPotentialSilhouettes(glm::vec3 maindir) {
-		std::vector<glm::vec3> cpoints = boundingCube.getCubeCornerPoints(maindir);
-		for (auto &e : edges) {
-			bool check = false;
-			if (e.triangles.size() == 1) check = true;
-			else {
-				int count = 0;
-				for (auto &c : cpoints) {
-					glm::vec3 halfway = 0.5f * (verticesIndexed[*e.vertices.begin()] + verticesIndexed[*e.vertices.rbegin()]);
-					bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
-					bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
-					if (dot1 != dot2) {
-						check = true;
-						break;
-					}
-					else if (!dot1) count++;
-				}
-				if (!check && count > 0 && count < 4) check = true;
-			}
-			if (check) {
-				silhouetteEdges.insert(e);
-				for (auto t : e.triangles) {
-					vertices[3 * t].selected = -1.f;
-					vertices[3 * t + 1].selected = -1.f;
-					vertices[3 * t + 2].selected = -1.f;
-				}
-			}
-		}
-	}
+	//void findPotentialSilhouettes(glm::vec3 maindir) {
+	//	std::vector<glm::vec3> cpoints = boundingCube.getCubeCornerPoints(maindir);
+	//	for (auto &e : edges) {
+	//		bool check = false;
+	//		if (e.triangles.size() == 1) check = true;
+	//		else {
+	//			int count = 0;
+	//			for (auto &c : cpoints) {
+	//				glm::vec3 halfway = 0.5f * (verticesIndexed[*e.vertices.begin()] + verticesIndexed[*e.vertices.rbegin()]);
+	//				bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
+	//				bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
+	//				if (dot1 != dot2) {
+	//					check = true;
+	//					break;
+	//				}
+	//				else if (!dot1) count++;
+	//			}
+	//			if (!check && count > 0 && count < 4) check = true;
+	//		}
+	//		if (check) {
+	//			silhouetteEdges.insert(e);
+	//			for (auto t : e.triangles) {
+	//				vertices[3 * t].selected = -1.f;
+	//				vertices[3 * t + 1].selected = -1.f;
+	//				vertices[3 * t + 2].selected = -1.f;
+	//			}
+	//		}
+	//	}
+	//}
 
 
 	bool getIntersectionEmbree(const Ray& ray, int& primIndex, float& depth) {
@@ -287,6 +289,7 @@ public:
 			int v2 = *e.vertices.rbegin();
 			glm::vec3 v1pos = verticesIndexed[v1];
 			glm::vec3 v2pos = verticesIndexed[v2];
+
 			if (!alldir && (glm::dot(v1pos, maindir) > glm::dot(vpos, maindir) &&
 				glm::dot(v2pos, maindir) > glm::dot(vpos, maindir))) return -1;
 
@@ -367,31 +370,85 @@ public:
 
 		if (checktris.size() != 0) 	for (int tri : checktris) for (Edge& edge : edgesPerTriangle[tri]) edgesToCheck.insert(edge);
 		else edgesToCheck = edges;
+		glm::vec3 invMaindir = glm::vec3(1.f) - maindir;
+		glm::vec3 maindirMin = boundingBox.getBigBounds(0);
+		glm::vec3 maindirMax = boundingBox.getBigBounds(1);
+
 		for (const Edge& e : edgesToCheck) {
 			// If edge is not in potential silhouettes
 			//if (!alldir && silhouetteEdges.find(e) == silhouetteEdges.end()) continue;
 
 			// Don't use same triangle as silhouette edge.
-			if (e.triangles[0] == prim || e.triangles[1] == prim) continue;
+			if (e.triangles[0] == prim) continue;
+			if (e.triangles.size() == 2) if (e.triangles[1] == prim) continue;
 
 			// check if edge lies on correct side of triangle
 			int v1 = *e.vertices.begin();
 			int v2 = *e.vertices.rbegin();
-			if (glm::dot(normalPerTri[prim], verticesIndexed[v1] - vertices[3 * prim].center) < 0) continue;
-			if (glm::dot(normalPerTri[prim], verticesIndexed[v2] - vertices[3 * prim].center) < 0) continue;
+			if (glm::dot(normalPerTri[prim], verticesIndexed[v1] - vertices[3 * prim].center) < 0 &&
+			    glm::dot(normalPerTri[prim], verticesIndexed[v2] - vertices[3 * prim].center) < 0) continue;
 
+			glm::vec3 v1pos = verticesIndexed[v1];
+			glm::vec3 v2pos = verticesIndexed[v2];
 
 			bool sideCheck = false;
+			bool intersect;
+			std::vector<glm::vec3> intersectpts;
+			bool toAdd = false;
 			for (int i = 0; i < 3; i++) {
 				bool side = false;
 				int checkEdge = checkSilhouetteEdge2(vertices[3 * prim + i].pos, e, alldir, maindir, side);
+				if (!alldir) {
+					Ray r1 = Ray(vertices[3 * prim + i].pos, v1pos);
+					Ray r2 = Ray(vertices[3 * prim + i].pos, v2pos);
+
+					intersect = boundingCube.intersectSide(maindir, r1) || boundingCube.intersectSide(maindir, r2);
+					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r1));
+					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r2));
+				}
 				if (checkEdge == 0 && (i == 0 || side == sideCheck)) {
 					sideCheck = side;
 					continue;
 				}
-				else if (checkEdge >= 0) silhouetteEdge.push_back(e);
-				break;
+				else if (checkEdge >= 0) {
+					if (alldir) {
+						silhouetteEdge.push_back(e);
+						break;
+					}
+					else {
+						toAdd = !intersect;
+						if (intersect) {
+							silhouetteEdge.push_back(e);
+							break;
+						}
+					}
+				}
 			}
+			if (toAdd) {
+				Cube bb(intersectpts);
+				for (int i = 0; i < 3; i++) {
+					if (invMaindir[i] == 1) {
+						if (bb.getBounds(1)[i] < maindirMin[i] || bb.getBounds(0)[i] > maindirMax[i]) {
+							toAdd = false;
+							break;
+						}
+					}
+				}
+				if (toAdd) silhouetteEdge.push_back(e);
+				//glm::vec2 bbmin2;
+				//glm::vec2 bbmax2;
+				//int count = 0;
+				//for (int i = 0; i < 3; i++) {
+				//	if (invMaindir[i] == 1) {
+				//		bbmin2[count] = bbmin[i];
+				//		bbmax2[count] = bbmax[i];
+				//		count++;
+				//	}
+				//}
+				//if (bbmin2.x > maindirMin.x && bbmin2.x < maindirMax.x) 
+			}
+
+			// if no swath intersect check bounding box
 		}
 	}
 
@@ -500,7 +557,7 @@ public:
 		glEnableVertexAttribArray(3);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, selected)));
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, color)));
 		glEnableVertexAttribArray(4);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);

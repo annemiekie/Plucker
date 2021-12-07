@@ -50,6 +50,11 @@ namespace LineThroughFour {
 		double a = F.sideVal(F);
 		double b = F.sideVal(G);
 		double c = G.sideVal(G);
+		if (abs(a) < 1E-10 && abs(c) < 1E-10) {
+			intersectLines.push_back(F);
+			intersectLines.push_back(G);
+			return 2;
+		}
 		double delta = b * b - a * c;
 		if (delta < 0) return 0;
 		double sq = sqrt(delta);

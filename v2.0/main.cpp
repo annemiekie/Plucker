@@ -39,6 +39,7 @@
 #include "geoObject.h"
 #include "linemodel.h"
 #include "textureRenderer.h"
+#include "tetrahedron.h"
 
 #include <iostream>
 #include <fstream>
@@ -55,6 +56,7 @@ int height = 800;	 // TESSST
 bool update = false;
 bool update4lines = false;
 //bool trace = false;
+bool changeColoring = false;
 bool togglePoints = false;
 bool toggle4lines = false;
 bool toggleSphere = false;
@@ -570,16 +572,13 @@ int main() {
 	std::cout << "Created " << sampler.samples.size() << " camera locations in all directions" << std::endl;
 
 	/////////////////// Create main camera
-	PreviewCamera mainCamera(model.radius * 4, model.center, model.radius * 5 > 30.f ? model.radius * 5 : 30.f);
+	PreviewCamera mainCamera(model.radius * 4, model.center, model.radius * 5 > 30.f ? model.radius * 10 : 30.f);
 	mainCamera.aspect = width / (float)height;
 
 	////////////////// Create sampling canvas and sampling camera
 	TextureRenderer texrender = TextureRenderer(rstProgram, w, h, &model);
 	Orthocamera ocam(model.radius, model.radius, model.radius * 2 > 30.f ? model.radius * 2 : 30.f);
 	Camera* cam = &ocam;
-
-	//cam->setPositionAndForward(glm::vec3(-2.f, 1.f, 0.f), model.center);
-	//compareIntersectionMethods(cam, &model, texrender);
 
 	#pragma endregion
 
@@ -590,12 +589,18 @@ int main() {
 
 	auto start_time = std::chrono::high_resolution_clock::now();
 	
-	if (!exact) makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	if (!exact) {
+		makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+		
+	}
 	model.enlargeModel();
 	if (exact) {
 		makeEmptyRST(&rst, constructOption);
 		rst.fillExact();
 	}
+
+	
+
 
 	//for (Node* n : rst.nodes) {
 	//	if (n->leaf) {
@@ -638,12 +643,16 @@ int main() {
 	LineModel samples = LineModel(true);
 	LineModel extremalStabbing = LineModel();
 	LineModel clickRay = LineModel();
+	LineModel edgeRays = LineModel();
 	LineModel wrongRays = LineModel();
+	LineModel eslSilhEdges = LineModel();
 	int leafnum = -1;
 	Node* leaf;
 	bool showing = false;
 	bool viewline = false;
+	bool edgelines = false;
 	float alphaLines = 1.f;
+	int selectedPrim = -1;
 
 	GLuint sideQuadVao = 0;
 	if (!alldir) sideQuadVao = model.boundingCube.vaoSideQuad(rst.maindir);
@@ -656,6 +665,8 @@ int main() {
 	glm::vec3 white = { 1, 1, 1 };
 	glm::vec3 black = { 0, 0, 0 };
 	glm::vec3 hotpink = { 1, 0, 0.4 };
+	glm::vec3 bluegreen = { 0.f, 0.5f, 0.5f };
+	glm::vec3 orange = { 1, 0.8, 0 };
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
@@ -683,6 +694,7 @@ int main() {
 		glfwPollEvents();
 		glUseProgram(0);
 		if (nextleaf) {
+			selectedPrim = -1;
 			alphaLines = 1.f;
 			int trinum = 0;
 			while (trinum == 0) {
@@ -694,9 +706,11 @@ int main() {
 			nextleaf = false;
 			update = true;
 			viewline = false;
+			edgelines = false;
 		}
 
 		if (prevleaf) {
+			selectedPrim = -1;
 			alphaLines = 1.f;
 			int trinum = 0;
 			while (trinum == 0) {
@@ -708,23 +722,32 @@ int main() {
 			prevleaf = false;
 			update = true;
 			viewline = false;
+			edgelines = false;
 		}
 
 		if (picking) {
 			Ray r = mainCamera.pixRayDirection(drawRayPos);
 			int primindex = -1;
 			float t = 0;
-			//model.getIntersectionNoAcceleration(r, primindex, t);
+			selectedPrim = -1;
 			model.getIntersectionEmbree(r, primindex, t);
 			if (primindex >= 0) {
 				std::cout << primindex << std::endl;
 				Ray extremalLine;
-				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0))
+				std::vector<glm::vec3> edges;
+				std::vector<Ray> eslEdges;
+				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges)) 
 					extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
+				if (edges.size() > 0) {
+					edgeRays.makeVaoVbo(edges);
+					eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);
+					edgelines = true;
+					selectedPrim = primindex;
+				}
+		
+				changeColoring = true;
 			}
-			//model.vertices[3 * primindex].selected = 1.f;
-			//model.vertices[3 * primindex + 1].selected = 1.f;
-			//model.vertices[3 * primindex + 2].selected = 1.f;
+
 			picking = false;
 		}
 		
@@ -750,15 +773,7 @@ int main() {
 			rst.getSplittingLinesInLeaf(leaf, split);
 			splitters.updateVaoWithLines(split, geoObject, rst.maindir);
 
-			for (int i = 0; i < model.vertices.size(); i++) {
-				model.vertices[i].selected = 0.f;
-			}
-			for (int i : leaf->primitiveSet) {
-				model.vertices[3 * i].selected = 1.f;
-				model.vertices[3 * i + 1].selected = 1.f;
-				model.vertices[3 * i + 2].selected = 1.f;
-			}
-			model.changeSelected();
+			changeColoring = true;
 
 			if (storeRays && toggleLines)
 				samples.updateVaoWithLines(rst.getViewingLinesInLeaf(leaf), geoObject, rst.maindir);
@@ -772,6 +787,24 @@ int main() {
 			update = false;
 		}
 		else update = false;
+
+		if (changeColoring) {
+			for (int i = 0; i < model.vertices.size(); i++) {
+				model.vertices[i].color = white;
+			}
+			for (int i : leaf->primitiveSet) {
+				model.vertices[3 * i].color = bluegreen;
+				model.vertices[3 * i + 1].color = bluegreen;
+				model.vertices[3 * i + 2].color = bluegreen;
+			}
+			if (selectedPrim >= 0) {
+				model.vertices[3 * selectedPrim].color = green;
+				model.vertices[3 * selectedPrim + 1].color = green;
+				model.vertices[3 * selectedPrim + 2].color = green;
+			}
+			model.changeSelected();
+			changeColoring = false;
+		}
 
 		updateCamera(mainCamera, width, height);
 		glm::mat4 mvp = mainCamera.vpMatrix();
@@ -836,6 +869,19 @@ int main() {
 				glUniform1f(glGetUniformLocation(lineProgram.index, "alpha"), (GLfloat)alphaLines);
 				glDrawArrays(GL_LINES, 0, samples.size);
 			}
+
+		}
+
+		if (edgelines) {
+			glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 1);
+			glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(green));
+			glUniform1f(glGetUniformLocation(lineProgram.index, "alpha"), 1.f);
+			glBindVertexArray(edgeRays.vao);
+			glDrawArrays(GL_LINES, 0, edgeRays.size);
+
+			glUniform3fv(glGetUniformLocation(lineProgram.index, "setcolor"), 1, glm::value_ptr(orange));
+			glBindVertexArray(eslSilhEdges.vao);
+			glDrawArrays(GL_LINES, 0, eslSilhEdges.size);
 		}
 
 		if (viewline) {

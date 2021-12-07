@@ -143,28 +143,33 @@ namespace Combinations {
 	static std::vector<std::vector<int>> combiAddSelective(int size, std::vector<std::vector<int>>& combiChecked) {
 		std::vector<std::vector<int>> combinations;
 		std::vector<std::vector<int>> combifind;
+		int nrOfElInCombiM1 = combiChecked[0].size() - 1;
+		int nrOfElInCombi = combiChecked[0].size();
+		std::vector<int> check(nrOfElInCombi);
+		
 		if (combiChecked[0].size() == 2) combifind = combi1(2); 
 		else if (combiChecked[0].size() == 3) combifind = combi2(3); 
 
-		for (std::vector<int>& cc : combiChecked) {
-			for (int i = cc[cc.size() - 1] + 1; i < size; i++) {
+		//for (std::vector<int>& cc : combiChecked) {
+		for (int k = 0; k < combiChecked.size(); k++) {
+			for (int i = combiChecked[k][nrOfElInCombiM1] + 1; i < size; i++) {
 				int found = 0;
 				for (std::vector<int>& cf : combifind) {
-					bool add = false;
-					std::vector<int> check;
-					for (int f : cf) check.push_back(cc[f]); 
-					check.push_back(i);  
-					for (std::vector<int>& cc2 : combiChecked) {
-						if (cc2 == check) {
+					//for (int f : cf) check.push_back(cc[f]); 
+					for (int j = 0; j<combifind[0].size(); j++) check[j] = combiChecked[k][cf[j]];
+					check[nrOfElInCombiM1] = i;// .push_back(i);
+					for (int m = k+1; m<combiChecked.size(); m++) {
+					//for (std::vector<int>& cc2 : combiChecked) {
+						if (combiChecked[m] == check) {
 							found++;
 							break;
 						}
 					}
 				}
 
-				if (found == cc.size()) {
+				if (found == nrOfElInCombi) {
 					std::vector<int> num;
-					for (int c : cc) num.push_back(c);
+					for (int c : combiChecked[k]) num.push_back(c);
 					num.push_back(i);
 					combinations.push_back(num);
 				}
