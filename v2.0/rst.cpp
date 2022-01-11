@@ -367,7 +367,7 @@ void RaySpaceTree::constructAdaptive(int level, Node* node, glm::ivec2 res, std:
 
 uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines) {
 	uint64_t combiIndex = 0;
-
+	// 16 bits not enough for large model
 	for (int i = 0; i < nrOfSplitLines; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size()) << i * 16;
 	for (int i = nrOfSplitLines; i < 4; i++) combiIndex = combiIndex | uint64_t(lines[i].index) << i * 16;
 	return combiIndex;
@@ -1195,11 +1195,13 @@ bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, c
 		uint64_t mapcombi = makeCombiKey(lines, nrOfSplittingLines);
 		if (lineCombiToRays.contains(mapcombi)) {
 			intersectLines = lineCombiToRays.at(mapcombi);
+			//std::cout << "found:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
 			cachehitcombi++;
 		}
 		else {
 			intersectLines = LineThroughFour::find(lines, model);
 			lineCombiToRays[mapcombi] = intersectLines;
+			//std::cout << "new:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
 		}
 	}
 	else intersectLines = LineThroughFour::find(lines, model);
@@ -1225,7 +1227,11 @@ bool RaySpaceTree::check1Prim(const int prim, Ray& ray, Node* leaf, bool print, 
 	getSplittingLinesInLeafWithSide(leaf, splitLines, sideLines);
 	if (!alldir) {
 		std::vector<Ray> boxSides = model->boundingCube.getCubeSideSquare(maindir).quadLines;
-		for (auto r : boxSides) splitLines.push_back(r);
+		for (int i = 0; i < 4; i++) {
+			Ray boxside = boxSides[i];
+			boxside.index = splitLines.size() + i;
+			splitLines.push_back(boxside);
+		}
 	}
 
 	std::vector<Ray> filteredsplitLines;
@@ -1609,7 +1615,11 @@ bool RaySpaceTree::checkLeaf(Node* node, std::vector<Ray>& rays, bool getrays, i
 	getSplittingLinesInLeafWithSide(node, splitLines, sideLines);
 	if (!alldir) {
 		std::vector<Ray> boxSides = model->boundingCube.getCubeSideSquare(maindir).quadLines;
-		for (auto r : boxSides) splitLines.push_back(r);
+		for (int i = 0; i < 4; i++) {
+			Ray boxside = boxSides[i];
+			boxside.index = splitLines.size() + i;
+			splitLines.push_back(boxside);
+		}
 	}
 	std::vector<Ray> filteredsplitLines;
 	std::vector<bool> filterdsideLines;

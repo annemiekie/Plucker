@@ -172,6 +172,7 @@ public:
     
     //// CHECK IF THIS WORKS
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
+        if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
         return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
         //int ind = getIndex(mainDir);
         //for (int i = 0; i < 4; i++) {
