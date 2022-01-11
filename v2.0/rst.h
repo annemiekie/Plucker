@@ -22,20 +22,23 @@
 
 class RaySpaceTree {
 
-
 	std::queue<nodeSamples> toProcess = std::queue<nodeSamples>();
 
 public:
 
 	Node* rootNode;
 	Model* model;
-	//Model model_enlarge;
 	int depth = 0;
 	int noLeaves = 0;
 	glm::vec3 maindir;
 	bool alldir = false;
 	std::vector<Node*> nodes = std::vector<Node*>();
 	std::set<int> visPrims = std::set<int>();
+	robin_hood::unordered_map<uint64_t, std::vector<Ray>> lineCombiToRays;
+	//bool cacheEE = false;
+	//bool cacheEEE = false;
+	bool cacheCombi = false;
+	int cachehitcombi = 0;
 	
 	std::vector<Ray> wronglines = std::vector<Ray>();
 
@@ -44,10 +47,10 @@ public:
 		nodes.push_back(rootNode);
 	};
 
-	RaySpaceTree(Model *model, int depth, bool alldir = false, glm::vec3 maindir = glm::vec3()) : model(model), depth(depth), alldir(alldir), maindir(maindir) {
+	RaySpaceTree(Model *model, int depth, bool alldir = false, glm::vec3 maindir = glm::vec3()) 
+		: model(model), depth(depth), alldir(alldir), maindir(maindir) {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
-		//model_enlarge = model->enlargeModel();
 	};
 	~RaySpaceTree() {};
 
@@ -61,7 +64,7 @@ public:
 	//void descendWithLines(Ray& ray, Node* node, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, GeoObject* object);
 
 	void construct(int option, std::vector<Ray>& rays);
-	void construct(int level, Node* node, int option, std::vector<Ray>& rays, std::vector<Ray> splitters);
+	void construct(int level, Node* node, int option, std::vector<Ray>& rays, std::vector<Ray> splitters, int splitnum);
 
 	void fillExact();
 	void fillExact(Node* node);
@@ -69,9 +72,9 @@ public:
 	void constructAdaptive(glm::ivec2 res, std::vector<Camera*>& cams,
 							std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print);
 	void constructAdaptive(int level, Node* node, glm::ivec2 res, std::vector<Camera*>& cams,
-		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray> splitters);
+							std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray> splitters);
 	void constructAdaptive2(int level, Node* node, glm::ivec2 res, std::vector<Camera*>& cams,
-		std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize);
+							std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize);
 
 	void constructSmartRandom(glm::ivec2 res, std::vector<Camera*>& cams,
 		std::vector<std::pair<int, int>>& samples, std::set<int>& tris);
@@ -106,9 +109,9 @@ public:
 	int numOfLeaf(int ind);
 	int getNumberOfTriInleaf(int leafnum);
 
-	std::vector<Ray> getExtremalStabbingInLeaf(Node* n, bool print=false);
+	std::vector<Ray> getExtremalStabbingInLeaf(Node* n, std::vector<int>& notfoundprim = std::vector<int>(), bool print = false);
 	void checkLeaves();
-	bool checkLeaf(Node* node, std::vector<Ray>& rays, bool getRays, int edgeSelection, bool print = false);
+	bool checkLeaf(Node* node, std::vector<Ray>& rays, bool getRays, int edgeSelection, std::vector<int>& notfoundprim = std::vector<int>(), bool print = false);
 	bool check1Prim(const int prim, Ray& ray, Node* leaf, bool print, int edgeSelection, bool getedges = false, std::vector<glm::vec3>& edges = std::vector<glm::vec3>(),
 					std::vector<Ray>& eslEdges = std::vector<Ray>());
 	bool checkPrim(const int prim, std::vector<std::vector<int>>& combi2, std::vector<std::vector<int>>& combi3, std::vector<std::vector<int>>& combi4,
@@ -117,7 +120,7 @@ public:
 
 	void filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines, std::vector<bool>& sides, 
 											std::vector<Ray>& filteredLines, std::vector<bool>& filteredSides);
-
+	uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines);
 	//bool findExtremalStabbingForPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, 
 	//							Ray &ray, Node *node, std::vector<Ray>& edgeRays, 
 	//							bool print = false, int nrOfsilhEdges = 0, std::vector<int>& visibleTriIgnore = std::vector<int>(),
@@ -130,13 +133,13 @@ public:
 								std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0, bool vischeck = true);
 	bool checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 								bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
-								std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0, bool vischeck = true);
-	bool checkLineInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool &inPlane, bool print);
-	bool checkLineInBox(const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
+								std::vector<Ray>& lines = std::vector<Ray>(), int nrOfSplittingLines = -1, int rayIgnoresize = 0, bool vischeck = true);
+	bool checkRayInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool &inPlane, bool print);
+	bool checkRayInBox(const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
 	bool checkRayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
 	bool checkRayThroughVertices(int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 									bool print, std::vector<int>& triIgnore, std::vector<Ray>& lines, int rayIgnoresize);
-	bool checkPrimVisibleForLine(Ray& ray, const int prim, std::vector<int>& ignore, std::vector<Ray>& lines, bool inplane, bool print);
+	bool checkPrimVisibleForRay(Ray& ray, const int prim, std::vector<int>& ignore, std::vector<Ray>& lines, bool inplane, bool print);
 
 	bool checkEdgeSplittingDuplicates(const int prim, std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays, std::vector<bool>& sideLines);
 
@@ -145,56 +148,10 @@ public:
 
 	bool checkVeVt(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges,
 					std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays);
-	/*bool checkSVeT(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines,
-					std::vector<Edge>& silhouetteEdges, std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, 
-					std::vector<Ray>& edgeRays, std::vector<Ray>& edgeVertexRays, std::vector<std::vector<int>>& edgeVertexCombis);
-	bool checkVeET(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays,
-					std::vector<Ray>& edgeVertexRays, std::vector<std::vector<int>>& edgeVertexCombis);
-	bool checkSVeE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines, 
-					std::vector<Edge>& silhouetteEdges, std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, 
-					std::vector<Ray>& edgeRays, std::vector<Ray>& edgeVertexRays, std::vector<std::vector<int>>& edgeVertexCombis);
-	bool checkSSVt(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<std::vector<int>>& splitCombi,
-					std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays);
-	bool checkSSVe(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<std::vector<int>>& splitCombi, 
-					std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdges, std::vector<Ray>& silhouetteLines, 
-					std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, std::vector<Ray>& edgeVertexRays, 
-					std::vector<std::vector<int>>& edgeVertexCombis);
-	bool checkSSST(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<std::vector<int>>& splitCombi,
-					std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays);
-	bool checkSSSS(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<std::vector<int>>& splitCombi, 
-					std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays);
-	bool checkSEVt(const int prim,  Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines,
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays);*/
+
 	bool checkVeVe(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges,
 					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays);
 
-	/*bool checkSEET(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines,
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& allowedCombi);
-	bool checkSSET(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays);
-	bool checkSEEE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& allowedCombi);
-	bool checkSSEE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines,
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& allowedCombi);
-	bool checkSSSE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& splitLines, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays);
-	bool checkEEET(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& allowedCombi, std::vector<std::vector<int>>& combi3Edges);
-	bool checkEEEE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll,	std::vector<Ray>& silhouetteLines, 
-					std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays,
-					std::vector<std::vector<int>>& allowedCombi);
-	bool checkEEVt(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& combi2Edges);
-	bool checkVeEE(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-					std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays, 
-					std::vector<std::vector<int>>& combi2Edges, std::vector<Ray>& edgeVertexRays, 
-					std::vector<std::vector<int>>& edgeVertexCombis);*/
 	bool checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& silhouetteLines,
 					std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdgesToAdd, std::vector<Edge>& silhouetteEdges, std::vector<int>& silhouetteTris,
 					std::vector<Ray>& edgeRays, std::set<int>& silhEdgeVertices, std::vector<Ray>& edgeVertexRays, 

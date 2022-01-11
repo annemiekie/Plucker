@@ -151,5 +151,8 @@
     <ClInclude Include="segment2D.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="RobinHood.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

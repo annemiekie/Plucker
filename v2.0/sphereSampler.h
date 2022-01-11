@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 #include "Sphere.h"
+#include "Cube.h"
 
 struct SphereSampler {
 	std::vector<glm::vec3> samples = std::vector<glm::vec3>();
@@ -17,7 +18,7 @@ struct SphereSampler {
 	int N = 0;
 	int camLoc = 0;
 	
-	SphereSampler(Sphere* sphere, int N, int ratio) : sphere(sphere), N(N), ratio(ratio) {};
+	SphereSampler(Sphere* sphere,  int N, int ratio) : sphere(sphere),N(N), ratio(ratio) {};
 
 	void createSamplesFull() {
 		float x, y, z;
@@ -51,16 +52,16 @@ struct SphereSampler {
 
 	}
 
-	void createSamples(int sgn, char maindir) {
+	void createSamples(int sgn, glm::vec3 mainDirVec) {
 		sgn *= -1;
 		float phi, theta, sintheta;
 		float x, y, z;
 		float factorPhi = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));
 		float factorTheta = 2.f / (2.f * N + 1.f);
 		glm::vec3 dir;
-		if (maindir == 'X') dir = glm::vec3(1, 2, 0);
-		else if (maindir == 'Y') dir = glm::vec3(2, 0, 1);
-		else if (maindir == 'Z') dir = glm::vec3(0, 1, 2);
+		if (fabsf(mainDirVec.x)) dir = glm::vec3(1, 2, 0);
+		else if (fabsf(mainDirVec.y)) dir = glm::vec3(2, 0, 1);
+		else if (fabsf(mainDirVec.z)) dir = glm::vec3(0, 1, 2);
 		else return;
 
 		for (int i = 0; i <= N; i++) {
@@ -71,13 +72,12 @@ struct SphereSampler {
 			y = sphere->radius * cos(theta) * sin(phi);
 			z = sphere->radius * sintheta;
 
-			if (fabsf(z) < fabsf(x) || fabsf(z) < fabsf(y)) continue;
+			//if (fabsf(z) < fabsf(x) || fabsf(z) < fabsf(y)) continue;
 
 			glm::vec3 sample;
 			sample[dir.x] = x;
 			sample[dir.y] = y;
 			sample[dir.z] = z;
-
 			samples.push_back(sample + sphere->center);
 		}
 	}

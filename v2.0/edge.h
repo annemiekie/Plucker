@@ -2,19 +2,15 @@
 #define EDGE_H
 
 #pragma once
+
 struct Edge {
-	std::set<int> vertices;
-	//int v1;
-	//int v2;
+	std::vector<int> v;
 	mutable std::vector<int> triangles = std::vector<int>();
 	mutable int index;
-};
-
-struct cmp_by_v {
-	bool operator()(const Edge& a, const Edge& b) const {
-		return a.vertices < b.vertices;
-		//return a.v1 < b.v1;
+	bool operator<(const Edge& e) const {
+		return  e.v[0] < this->v[0] || (e.v[0] == this->v[0] && e.v[1] < this->v[1]); 
 	}
 };
+
 
 #endif

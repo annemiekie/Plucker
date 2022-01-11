@@ -81,18 +81,6 @@ void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 
 
-bool checkTriIntersect(int i, Ray& r, RaySpaceTree* rst) {
-
-	Ray edge;
-	edge = Ray(rst->model->vertices[i + 1].pos, rst->model->vertices[i].pos);
-	if (edge.side(r)) return false;
-	edge = Ray(rst->model->vertices[i + 2].pos, rst->model->vertices[i + 1].pos);
-	if (edge.side(r)) return false;
-	edge = Ray(rst->model->vertices[i].pos, rst->model->vertices[i + 2].pos);
-	if (edge.side(r)) return false;
-	return true;
-}
-
 void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst, bool storeRays) {
 
 	for (int y = 0; y < res.y; y++) {
@@ -102,17 +90,12 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 			Ray ray = cam->pixRayDirection(pixpos);
 			float tri = pixels[yind * res.x + x];
 			if (tri > 0) {
+				float t;
 				int tri_id = int(tri - 1);
-				if (checkTriIntersect(tri_id * 3, ray, rst)) {
+				if (rst->model->getIntersectionWithPrim(tri_id, ray, t))
 					rst->putPrimitive(ray, tri_id, storeRays);
-				}
-				//else if (tri_id2 >= 0) {
-				else {
-					//rst->putPrimitive(ray, tri_id2, storeRays);
-					float t;
-					if (rst->model->getIntersectionEmbree(ray, tri_id, t))
+				else if (rst->model->getIntersectionEmbree(ray, tri_id, t))
 						rst->putPrimitive(ray, tri_id, storeRays);
-				}
 
 			}
 		}
@@ -130,12 +113,11 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 			float tri = pixels[yind * res.x + x];
 			int tri_id = int(tri - 1);
 			if (tri_id >= 0) {
-				if (checkTriIntersect(tri_id * 3, ray, rst)) tris.insert(tri_id);
-				else {
-					float t;
-					if (rst->model->getIntersectionEmbree(ray, tri_id, t))
-						if (tri_id >= 0) tris.insert(tri_id);
-				}
+				float t;
+				if (rst->model->getIntersectionWithPrim(tri_id, ray, t))
+					tris.insert(tri_id);
+				else if (rst->model->getIntersectionEmbree(ray, tri_id, t))
+					if (tri_id >= 0) tris.insert(tri_id);
 				samples.push_back({ count, tri_id});
 			}
 			else if (tri_id == -1) samples.push_back({ count, -1 });
@@ -170,7 +152,7 @@ std::vector<Ray> constructRaysRandom(Model* model, int level) {
 		float r2 = (float)rand() / static_cast <float> (RAND_MAX);
 		int redge = int(r2 * 3.f);
 
-		Ray ray(model->vertices[3 * r1 + redge].pos, model->vertices[3 * r1 + (redge+1)%3].pos);
+		Ray ray(model->vertices[3 * r1 + (redge+1)%3].pos, model->vertices[3 * r1 + redge].pos);
 		bool dupli = false;
 		for (auto r : rays) if (r.equal(ray, 1E-6)) { dupli = true; break; }
 		if (dupli) continue;
@@ -223,9 +205,10 @@ void makeRSTembree(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, int p
 			for (int x = 0; x < pixels_W; x++) {
 				const glm::vec2 pixpos{ (x + .5f) / pixels_W * 2.0f - 1.0f, 1.0f - (y + .5f) / pixels_H * 2.0f };
 				Ray ray = cam->pixRayDirection(pixpos);
+				if (!rst->model->boundingCube.intersectSide(rst->maindir, ray)) continue;
 				int tri_id = -1;
 				float t = 0.f;
-				if (rst->model->getIntersectionEmbree(ray, tri_id, t))
+				if (rst->model->getIntersectionEmbree(ray, tri_id, t, true))
 					rst->putPrimitive(ray, tri_id, storeRays);
 				//else rst->putPrimitive(ray, tri_id, storeRays, false);
 			}
@@ -473,7 +456,7 @@ int main() {
 	}
 
 	std::string filestr;// = "dragon.obj";
-	bool alldir, trace, exact;
+	bool alldir, trace, exact, sampling, cacheEE, cacheEEE, cacheCombi;
 	char dir;
 	int sgn, depth, noSamples, createRatio, w, h, constructOption;
 
@@ -493,7 +476,11 @@ int main() {
 		width = config.lookup("width");
 		height = config.lookup("height");
 		trace = config.lookup("trace");
+		sampling = config.lookup("sampling");
 		exact = config.lookup("exact");
+		cacheEE = config.lookup("cacheEE");
+		cacheEEE = config.lookup("cacheEEE");
+		cacheCombi = config.lookup("cacheCombi");
 	}
 	catch (libconfig::SettingNotFoundException& e) {
 		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
@@ -544,18 +531,16 @@ int main() {
 
 	////////////////////////// Load vertices of model
 	const char* filename = filestr.c_str();
-	Model model(filename, true);
+	Model model(filename, true, cacheEE, cacheEEE);
 
 	////////////////////// Create bounding box
-	///// FOR TESTING!!! /////
-	//model.boundingCube.setBounds(model.center - glm::vec3(5), model.center + glm::vec3(5));
-	//////////////////////////
-	GLuint bboxVAO = model.boundingCube.vaoGeneration();
+	model.boundingBox.vaoGeneration();
 
-	/////////////////////// Create cube and lines for cube
-	Cube cube(model.center, model.radius*1.5);
-	GLuint cubeVAO = cube.vaoGeneration();
-	std::cout << "Generated viewing cube." << std::endl;
+	/////////////////////// Create show cube
+	model.boundingCube.vaoGeneration();
+	//Cube cube(model.center, model.radius*1.5);
+	//GLuint cubeVAO = cube.vaoGeneration();
+	//std::cout << "Generated viewing cube." << std::endl;
 
 	/////////////////////// Create show sphere
 	Sphere sphere(model.center, model.radius);
@@ -564,10 +549,10 @@ int main() {
     sampleSphere.vaoGeneration(10, 20);
 
 	///////////////////// Create sample locations
+	glm::vec3 maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
 	SphereSampler sampler(&sampleSphere, noSamples, createRatio);
-	if (alldir) dir = 'All';
 	if (alldir) sampler.createSamplesFull();
-	else sampler.createSamples(sgn, dir); 
+	else sampler.createSamples(sgn, maindir); 
 	sampler.vaoGeneration();
 	std::cout << "Created " << sampler.samples.size() << " camera locations in all directions" << std::endl;
 
@@ -584,23 +569,16 @@ int main() {
 
 	/////////////////// Make rayspacetree
 	std::cout << "Constructing RST for direction " << dir << " with depth = " << depth << " and camera sample size = " << w << "x" << h << "..." << std::endl;
-	RaySpaceTree rst = RaySpaceTree(&model, depth, alldir, sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z'));
+	RaySpaceTree rst = RaySpaceTree(&model, depth, alldir, maindir);
+	rst.cacheCombi = cacheCombi;
 	bool storeRays = true;
 
 	auto start_time = std::chrono::high_resolution_clock::now();
 	
-	if (!exact) {
-		makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
-		
-	}
+	if (sampling) makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
+	else makeEmptyRST(&rst, constructOption);
 	model.enlargeModel();
-	if (exact) {
-		makeEmptyRST(&rst, constructOption);
-		rst.fillExact();
-	}
-
-	
-
+	if (exact) rst.fillExact();
 
 	//for (Node* n : rst.nodes) {
 	//	if (n->leaf) {
@@ -635,7 +613,7 @@ int main() {
 	////////////////// Objects to intersect lines with
 	GeoObject* geoObject;
 	if (sphereOrCube) geoObject = &sphere;
-	else geoObject = &cube;
+	else geoObject = &model.boundingCube;
 
 	///////////////// Line Models & settings
 	LineModel splitters = LineModel();
@@ -653,6 +631,7 @@ int main() {
 	bool edgelines = false;
 	float alphaLines = 1.f;
 	int selectedPrim = -1;
+	std::vector<int> notfoundprim;
 
 	GLuint sideQuadVao = 0;
 	if (!alldir) sideQuadVao = model.boundingCube.vaoSideQuad(rst.maindir);
@@ -666,7 +645,7 @@ int main() {
 	glm::vec3 black = { 0, 0, 0 };
 	glm::vec3 hotpink = { 1, 0, 0.4 };
 	glm::vec3 bluegreen = { 0.f, 0.5f, 0.5f };
-	glm::vec3 orange = { 1, 0.8, 0 };
+	glm::vec3 orange = { 1, 0.5, 0 };
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
@@ -677,11 +656,13 @@ int main() {
 
 	// Lighting
 	float lightdis = 3 * model.radius;
-	glm::vec3 lightPos = glm::vec3(-lightdis, 2*lightdis, -lightdis);
+	glm::vec3 lightPos1 = glm::vec3(-lightdis, 2*lightdis, -lightdis);
 	glm::vec3 lightPos2 = glm::vec3(-lightdis, 2*lightdis, lightdis);
-	glm::vec3 lightPos3 = glm::vec3(lightdis, -2*lightdis, 0);
+	glm::vec3 lightPos3 = glm::vec3(lightdis, -2*lightdis, -lightdis);
+	//glm::vec3 lightPos4 = glm::vec3(lightdis, -lightdis, lightdis);
+
 	glUseProgram(mainProgram.index);
-	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos"), 1, glm::value_ptr(lightPos));
+	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos1"), 1, glm::value_ptr(lightPos1));
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos2"), 1, glm::value_ptr(lightPos2));
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos3"), 1, glm::value_ptr(lightPos3));
 	#pragma endregion
@@ -736,15 +717,17 @@ int main() {
 				Ray extremalLine;
 				std::vector<glm::vec3> edges;
 				std::vector<Ray> eslEdges;
+				//eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);
+				//edgeRays.makeVaoVbo(edges);
+
 				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges)) 
 					extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
-				if (edges.size() > 0) {
-					edgeRays.makeVaoVbo(edges);
-					eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);
-					edgelines = true;
-					selectedPrim = primindex;
-				}
-		
+				//if (edges.size() > 0) {
+				edgeRays.makeVaoVbo(edges);
+				eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);
+				edgelines = true;
+				//}
+				selectedPrim = primindex;
 				changeColoring = true;
 			}
 
@@ -767,18 +750,19 @@ int main() {
 			std::cout << leafnum << std::endl;
 
 			if (sphereOrCube) geoObject = &sampleSphere;
-			else geoObject = &cube;
+			else geoObject = &model.boundingCube;
 
 			std::vector<Ray> split;
 			rst.getSplittingLinesInLeaf(leaf, split);
 			splitters.updateVaoWithLines(split, geoObject, rst.maindir);
 
 			changeColoring = true;
+			notfoundprim = std::vector<int>();
 
 			if (storeRays && toggleLines)
 				samples.updateVaoWithLines(rst.getViewingLinesInLeaf(leaf), geoObject, rst.maindir);
 			if (toggle4lines) {// && update4lines) {
-				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf, true), geoObject, rst.maindir);
+				extremalStabbing.updateVaoWithLines(rst.getExtremalStabbingInLeaf(leaf, notfoundprim), geoObject, rst.maindir);
 				//update4lines = false;
 				//wrongRays.updateVaoWithLines(rst.wronglines, geoObject, rst.maindir);
 			}
@@ -796,6 +780,11 @@ int main() {
 				model.vertices[3 * i].color = bluegreen;
 				model.vertices[3 * i + 1].color = bluegreen;
 				model.vertices[3 * i + 2].color = bluegreen;
+			}
+			for (int i : notfoundprim) {
+				model.vertices[3 * i].color = red;
+				model.vertices[3 * i + 1].color = red;
+				model.vertices[3 * i + 2].color = red;
 			}
 			if (selectedPrim >= 0) {
 				model.vertices[3 * selectedPrim].color = green;
@@ -818,14 +807,13 @@ int main() {
 
 		// Clear the framebuffer to black and depth to maximum value
 		glClearDepth(1.0f);  
-		//glClearColor(0.1f, 0.2f, 0.4f, 1.0f); 
 		glClearColor(0.5f, 0.6f, 0.65f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindVertexArray(model.vao);
 		glDrawArrays(GL_TRIANGLES, 0, model.vertices.size());
 
-		glBindVertexArray(cubeVAO);
+		glBindVertexArray(model.boundingCube.vao);
 		glDrawArrays(GL_LINES, 0, 24);
 
 
@@ -841,7 +829,7 @@ int main() {
 		glUniform1i(glGetUniformLocation(lineProgram.index, "setcol"), 0);
 
 		if (toggleBbox) {
-			glBindVertexArray(bboxVAO);
+			glBindVertexArray(model.boundingBox.vao);
 			glDrawArrays(GL_LINES, 0, 24);
 			if (!alldir) {
 				glBindVertexArray(sideQuadVao);

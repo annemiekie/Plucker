@@ -45,7 +45,7 @@ struct PreviewCamera : Camera {
 		glm::mat4 inv = glm::inverse(view*world);
 		glm::vec3 worldSpaceRayDirection = glm::normalize(inv * glm::vec4(camRay, 0.0f));
 		glm::vec3 posi = inv[3];
-		return Ray(posi + worldSpaceRayDirection, posi);
+		return Ray(posi, posi + worldSpaceRayDirection);
 	};
 
 	virtual glm::mat4 pMatrix() const override

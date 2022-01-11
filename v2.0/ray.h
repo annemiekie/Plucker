@@ -14,14 +14,15 @@ struct Ray {
     glm::dvec3 invdir;
     glm::dvec3 u;
     glm::dvec3 v;
+    int index = -1;
 
     Ray() {};
 
     ~Ray() {};
 
-    Ray(glm::dvec3 q, glm::dvec3 p) : origin(p) {
-        u = q - p;
-        v = glm::cross(q, p);
+    Ray(glm::dvec3 from, glm::dvec3 to, int index = -1) : origin(from), index(index) {
+        u = to - from;
+        v = glm::cross(to, from);
         direction = glm::normalize(u);
         invdir = 1. / direction;
         normalize();

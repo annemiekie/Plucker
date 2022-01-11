@@ -19,6 +19,8 @@
 #include <set>
 #include <utility>
 #include "primitive.h"
+#include "RobinHood.h"
+#include "tetrahedron.h"
 
 class Model {
 public:
@@ -33,15 +35,25 @@ public:
 	std::vector<glm::vec3> verticesIndexed = std::vector<glm::vec3>();
 
 	std::vector<glm::uint> indices = std::vector<glm::uint>();
-	std::set<Edge, cmp_by_v> edges = std::set<Edge, cmp_by_v>();
+	std::set<Edge> edges = std::set<Edge>();
 
-	std::set<Edge, cmp_by_v> silhouetteEdges = std::set<Edge, cmp_by_v>();
+	std::set<Edge> silhouetteEdges = std::set<Edge>();
 
 	std::vector<std::vector<Edge>> edgesPerTriangle = std::vector<std::vector<Edge>>();
 	std::vector<std::vector<Edge>> edgesPerVertex = std::vector<std::vector<Edge>>();
 
 	std::vector<std::vector<int>> triPerVertex;
 	std::vector<glm::vec3> normalPerTri = std::vector<glm::vec3>();
+
+	// need 6 of these
+	bool cacheEE = false;
+	bool cacheEEE = false;
+	std::vector<robin_hood::unordered_map<uint64_t, bool>> edgeEdgeCombis;// = std::vector<std::unordered_map<long, bool>>();
+	//std::vector<std::vector<uint64_t>> edgeEdgeCombis;
+	int cachehitee = 0;
+	int cachehiteee = 0;
+
+	robin_hood::unordered_map<uint64_t, bool> edgeEdgeEdgeCombis;
 
 	int primsize = 0;
 	Cube boundingBox;
@@ -59,7 +71,8 @@ public:
 		rtcReleaseScene(scene);
 	}
 
-	Model(const char* filename, bool indexed = true) {
+	Model(const char* filename, bool indexed = true, bool cacheEE = false, bool cacheEEE = false) :
+			cacheEE(cacheEE), cacheEEE(cacheEEE) {
 		loadModelFromFile(filename);
 		//findPotentialSilhouettes(glm::vec3(1, 0, 0));
 		setUpEmbreeTracer();
@@ -67,6 +80,14 @@ public:
 		createVAO();
 		createIBO();
 		//enlargeModel();
+		if (cacheEE) makeCacheEE();
+
+	}
+
+	void makeCacheEE() {
+		for (int i = 0; i < 6; i++) {
+			edgeEdgeCombis.push_back(robin_hood::unordered_map<uint64_t, bool>());
+		}
 	}
 
 	void enlargeModel() {
@@ -100,7 +121,7 @@ public:
 
 		verticesIndexed = std::vector<glm::vec3>(attrib.vertices.size() / 3);
 		triPerVertex = std::vector<std::vector<int>>(attrib.vertices.size() / 3);
-		edgesPerVertex = std::vector<std::vector<Edge>>(attrib.vertices.size()/3);
+		edgesPerVertex = std::vector<std::vector<Edge>>(attrib.vertices.size() / 3);
 
 		//for (int i = 0; i < attrib.vertices.size(); i+=3) {
 		//	glm::vec3 vertex = {
@@ -159,7 +180,14 @@ public:
 					edgesPerTriangle.push_back(std::vector<Edge>(3));
 
 					for (int x = 0; x < 3; x++) {
-						Edge e = Edge({ std::set<int>({verticespertri[x], verticespertri[(x + 1) % 3]}), std::vector<int>(), -1 });
+						int v1 = verticespertri[x];
+						int v2 = verticespertri[(x + 1) % 3];
+						if (v1 < v2) {
+							int tmp = v1;
+							v1 = v2;
+							v2 = tmp;
+						}
+						Edge e = Edge({ { v1, v2 }, {}, -1 });
 						std::pair<std::set<Edge>::iterator, bool> insert = edges.insert(e);
 						(insert.first)->triangles.push_back(ind - 1);
 						if (((insert.first)->index) == -1) {
@@ -174,8 +202,8 @@ public:
 			}
 		}
 
-		for (int i = 0; i < vertices.size(); i+=3) {
-			glm::vec3 centroid = (vertices[i].pos + vertices[i+1].pos + vertices[i+2].pos) / 3.f;
+		for (int i = 0; i < vertices.size(); i += 3) {
+			glm::vec3 centroid = (vertices[i].pos + vertices[i + 1].pos + vertices[i + 2].pos) / 3.f;
 			vertices[i].center = centroid;
 			vertices[i + 1].center = centroid;
 			vertices[i + 2].center = centroid;
@@ -184,7 +212,7 @@ public:
 		boundingBox = Cube(glm::vec3(minx, miny, minz), glm::vec3(maxx, maxy, maxz));
 		center = glm::vec3((minx + maxx) / 2.f, (miny + maxy) / 2.f, (minz + maxz) / 2.f);
 		radius = glm::length(glm::vec3(maxx, maxy, maxz) - center);
-		boundingCube = Cube(center, std::max(std::max(maxx-minx, maxy-miny),maxz-minz));
+		boundingCube = Cube(center, std::max(std::max(maxx - minx, maxy - miny), maxz - minz));
 	};
 
 	RTCGeometry makeEmbreeGeom(bool indexed = true) {
@@ -228,7 +256,7 @@ public:
 	//		else {
 	//			int count = 0;
 	//			for (auto &c : cpoints) {
-	//				glm::vec3 halfway = 0.5f * (verticesIndexed[*e.vertices.begin()] + verticesIndexed[*e.vertices.rbegin()]);
+	//				glm::vec3 halfway = 0.5f * (verticesIndexed[e.v[0]] + verticesIndexed[e.v[1]]);
 	//				bool dot1 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[0]]) < 0;
 	//				bool dot2 = glm::dot(glm::normalize(halfway - c), normalPerTri[e.triangles[1]]) < 0;
 	//				if (dot1 != dot2) {
@@ -251,7 +279,7 @@ public:
 	//}
 
 
-	bool getIntersectionEmbree(const Ray& ray, int& primIndex, float& depth) {
+	bool getIntersectionEmbree(const Ray& ray, int& primIndex, float& depth, bool backculling = false) {
 		struct RTCRayHit rayhit;
 		rayhit.ray.org_x = ray.origin.x;
 		rayhit.ray.org_y = ray.origin.y;
@@ -270,8 +298,10 @@ public:
 		if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
 		{
 			// check orientation
-			//glm::vec3 norm = vertices[rayhit.hit.primID * 3].normal;
-			//if (glm::dot(norm, (glm::vec3)ray.direction) > 0) return false;
+			if (backculling) {
+				glm::vec3 norm = vertices[rayhit.hit.primID * 3].normal;
+				if (glm::dot(norm, (glm::vec3)ray.direction) > 0) return false;
+			}
 			primIndex = rayhit.hit.primID;
 			depth = rayhit.ray.tfar;
 			return true;
@@ -281,12 +311,139 @@ public:
 		return false;
 	}
 
+	std::vector<Ray> getEdgeRaysForPrim(int prim) {
+		std::vector<Edge> triEdges = edgesPerTriangle[prim];
+		std::vector<Ray> edgeRays;
+		glm::vec3 normal = normalPerTri[prim];
+		glm::vec3 center = vertices[3 * prim].center;
+		Ray normalInvert = Ray(center + normal, center);
+		for (int i=0; i<3; i++) {
+			Ray triEdge = Ray(verticesIndexed[triEdges[i].v[0]], verticesIndexed[triEdges[i].v[1]], triEdges[i].index);
+			if (triEdge.side(normalInvert)) triEdge.inverseDir();
+			edgeRays.push_back(triEdge);
+		}
+		return edgeRays;
+	}
+
+	bool checkEdgeEdgeEdge(const Edge& e1, const Edge& e2, const Edge& e3) {
+		uint64_t key;
+		if (cacheEEE) {
+			if (e1.index > e2.index) {
+				if (e2.index > e3.index)		key = uint64_t(e1.index) << 42 | uint64_t(e2.index) << 21 | uint64_t(e3.index);
+				else if (e1.index > e3.index)	key = uint64_t(e1.index) << 42 | uint64_t(e3.index) << 21 | uint64_t(e2.index);
+				else							key = uint64_t(e3.index) << 42 | uint64_t(e1.index) << 21 | uint64_t(e2.index);
+			}
+			else {
+				if (e3.index > e2.index)		key = uint64_t(e3.index) << 42 | uint64_t(e2.index) << 21 | uint64_t(e1.index);
+				else if (e1.index > e3.index)	key = uint64_t(e2.index) << 42 | uint64_t(e1.index) << 21 | uint64_t(e3.index);
+				else							key = uint64_t(e2.index) << 42 | uint64_t(e3.index) << 21 | uint64_t(e1.index);
+			}
+			if (edgeEdgeEdgeCombis.contains(key)) {
+				cachehiteee++;
+				return edgeEdgeEdgeCombis[key];
+			}
+		}
+
+		std::vector<glm::vec3> e1v = { verticesIndexed[e1.v[0]], verticesIndexed[e1.v[1]] };
+		std::vector<glm::vec3> e2v = { verticesIndexed[e2.v[0]], verticesIndexed[e2.v[1]] };
+		Tetrahedron unboundTetra(e1v, e2v);
+
+		//std::vector<float> d;
+		//std::vector<glm::vec3> tri;
+		//if (c0 != c[0] || c1 != c[1]) {
+		//	std::vector<glm::vec3> e1v = { verticesIndexed[*e1.v[0]], verticesIndexed[*silhouetteEdges[c[0]].v[1]] };
+		//	std::vector<glm::vec3> e2v = { model->verticesIndexed[*silhouetteEdges[c[1]].v[0]], model->verticesIndexed[*silhouetteEdges[c[1]].v[1]] };
+		//	unboundTetra = Tetrahedron(e1v, e2v);
+		//	c0 = c[0];
+		//	c1 = c[1];
+		//}
+
+		std::vector<glm::vec3> e3v = { verticesIndexed[e3.v[0]], verticesIndexed[e3.v[1]] };
+		if (unboundTetra.segmInTetra(e3v[0], e3v[1], 1E-7)) {
+			if (cacheEEE) edgeEdgeEdgeCombis[key] = true;
+			return true;
+		}
+		if (cacheEEE) edgeEdgeEdgeCombis[key] = false;
+		return false;
+	}
+
+	bool checkEdgeEdgeCache(const Edge& e1, const Edge& e2, bool alldir, glm::vec3 maindir) {
+		uint64_t key;
+		int cacheIndex = 0;
+		if (cacheEE) {
+			if (!alldir) {
+				int cacheIndex = maindir.x * 3 + maindir.y * 2 + maindir.z;
+				cacheIndex < 0 ? cacheIndex += 6 : cacheIndex -= 3;
+			}
+			if (e1.index < e2.index) key = uint64_t(e1.index) << 32 | uint64_t(e2.index);
+			else key = uint64_t(e2.index) << 32 | uint64_t(e1.index);
+			if (edgeEdgeCombis[cacheIndex].contains(key)) {
+				cachehitee++;
+				return edgeEdgeCombis[cacheIndex].at(key);
+			}
+		}
+
+		if (checkEdgeEdge(e1, e2, alldir, maindir)) {
+			if (cacheEE) edgeEdgeCombis[cacheIndex][key] = true;
+			return true;
+		}
+		if (cacheEE) edgeEdgeCombis[cacheIndex][key] = false;
+		return false;
+		//int8_t hit;
+		//if (e1.index > e2.index) hit = edgeEdgeCombis[e1.index][e2.index];
+		//else hit = edgeEdgeCombis[e2.index][e1.index];
+		//if (hit >= 0) {
+		//	cachehit++;
+		//	return hit;
+		//}
+		//hit = checkEdgeEdge(e1, e2, alldir, maindir) ? 1 : 0;
+		//if (e1.index > e2.index) edgeEdgeCombis[e1.index][e2.index] = hit;
+		//else edgeEdgeCombis[e2.index][e1.index] = hit;
+		//return hit == 1;
+	}
+	
+	bool checkEdgeEdge(const Edge& e1, const Edge& e2, bool alldir, glm::vec3 maindir) {
+		if (e1.v[0] == e2.v[0] || e1.v[1] == e2.v[1] ||
+			e1.v[0] == e2.v[1] || e1.v[1] == e2.v[0])  return false;
+
+		glm::vec3 e1v1 = verticesIndexed[e1.v[0]];
+		glm::vec3 e1v2 = verticesIndexed[e1.v[1]];
+		glm::vec3 e2v1 = verticesIndexed[e2.v[0]];
+		glm::vec3 e2v2 = verticesIndexed[e2.v[1]];
+		if (!alldir) {
+			if (!boundingCube.intersectSideBB(std::vector<Ray> {Ray(e1v1, e2v1), Ray(e1v1, e2v2), Ray(e1v2, e2v1), Ray(e1v2, e2v2)}, maindir)) return false;
+		}
+
+		// edge 1 to 2
+		bool side1;
+		bool check12 = false;
+		int silhEdgeCheck = checkSilhouetteEdge2(e1v1, e2, true, maindir, side1);
+		if (silhEdgeCheck <= 0) {
+			bool side2;
+			silhEdgeCheck = checkSilhouetteEdge2(e1v2, e2, true, maindir, side2);
+			if (silhEdgeCheck == 1);
+			else if (silhEdgeCheck == -1) return false;
+			else if (side1 == side2) return false;
+		}
+
+		// edge 2 to 1
+		silhEdgeCheck = checkSilhouetteEdge2(e2v1, e1, true, maindir, side1);
+		if (silhEdgeCheck <= 0) {
+			bool side2;
+			silhEdgeCheck = checkSilhouetteEdge2(e2v2, e1, true, maindir, side2);
+			if (silhEdgeCheck == 1);
+			else if (silhEdgeCheck == -1) return false;
+			else if (side1 == side2) return false;
+		}
+		return true;
+	}
+
 	int checkSilhouetteEdge2(glm::vec3& vpos, const Edge& e, bool alldir, glm::vec3& maindir, bool& side) {
 
 		if (e.triangles.size() == 2) {
 
-			int v1 = *e.vertices.begin();
-			int v2 = *e.vertices.rbegin();
+			int v1 = e.v[0];
+			int v2 = e.v[1];
 			glm::vec3 v1pos = verticesIndexed[v1];
 			glm::vec3 v2pos = verticesIndexed[v2];
 
@@ -328,8 +485,8 @@ public:
 
 		if (e.triangles.size() == 2) {
 
-			glm::vec3 v1 = verticesIndexed[*e.vertices.begin()];
-			glm::vec3 v2 = verticesIndexed[*e.vertices.rbegin()];
+			glm::vec3 v1 = verticesIndexed[e.v[0]];
+			glm::vec3 v2 = verticesIndexed[e.v[1]];
 			if (!alldir && (glm::dot(v1, maindir) > glm::dot(vpos, maindir) &&
 				glm::dot(v2, maindir) > glm::dot(vpos, maindir))) return false;
 
@@ -366,13 +523,14 @@ public:
 									std::vector<Edge>& silhouetteEdge,
 									std::set<int>& checktris = std::set<int>()) {
 
-		std::set<Edge, cmp_by_v> edgesToCheck = std::set<Edge, cmp_by_v>();
+		std::set<Edge> edgesToCheck = std::set<Edge>();
 
 		if (checktris.size() != 0) 	for (int tri : checktris) for (Edge& edge : edgesPerTriangle[tri]) edgesToCheck.insert(edge);
 		else edgesToCheck = edges;
+
 		glm::vec3 invMaindir = glm::vec3(1.f) - maindir;
-		glm::vec3 maindirMin = boundingBox.getBigBounds(0);
-		glm::vec3 maindirMax = boundingBox.getBigBounds(1);
+		glm::vec3 maindirMin = boundingBox.getBounds(0);
+		glm::vec3 maindirMax = boundingBox.getBounds(1);
 
 		for (const Edge& e : edgesToCheck) {
 			// If edge is not in potential silhouettes
@@ -383,13 +541,11 @@ public:
 			if (e.triangles.size() == 2) if (e.triangles[1] == prim) continue;
 
 			// check if edge lies on correct side of triangle
-			int v1 = *e.vertices.begin();
-			int v2 = *e.vertices.rbegin();
-			if (glm::dot(normalPerTri[prim], verticesIndexed[v1] - vertices[3 * prim].center) < 0 &&
-			    glm::dot(normalPerTri[prim], verticesIndexed[v2] - vertices[3 * prim].center) < 0) continue;
+			if (glm::dot(normalPerTri[prim], verticesIndexed[e.v[0]] - vertices[3 * prim].center) < 0 &&
+			    glm::dot(normalPerTri[prim], verticesIndexed[e.v[1]] - vertices[3 * prim].center) < 0) continue;
 
-			glm::vec3 v1pos = verticesIndexed[v1];
-			glm::vec3 v2pos = verticesIndexed[v2];
+			glm::vec3 v1pos = verticesIndexed[e.v[0]];
+			glm::vec3 v2pos = verticesIndexed[e.v[1]];
 
 			bool sideCheck = false;
 			bool intersect;
@@ -399,8 +555,8 @@ public:
 				bool side = false;
 				int checkEdge = checkSilhouetteEdge2(vertices[3 * prim + i].pos, e, alldir, maindir, side);
 				if (!alldir) {
-					Ray r1 = Ray(vertices[3 * prim + i].pos, v1pos);
-					Ray r2 = Ray(vertices[3 * prim + i].pos, v2pos);
+					Ray r1 = Ray(v1pos, vertices[3 * prim + i].pos);
+					Ray r2 = Ray(v2pos, vertices[3 * prim + i].pos);
 
 					intersect = boundingCube.intersectSide(maindir, r1) || boundingCube.intersectSide(maindir, r2);
 					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r1));
@@ -468,11 +624,11 @@ public:
 	bool getIntersectionWithPrim(int i, const Ray& r, float &depth) {
 		Ray edge;
 		// clockwise triangle edges
-		edge = Ray(vertices[i + 1].pos, vertices[i].pos);
+		edge = Ray(vertices[i].pos, vertices[i+1].pos);
 		if (edge.side(r)) return false;
-		edge = Ray(vertices[i + 2].pos, vertices[i + 1].pos);
+		edge = Ray(vertices[i + 1].pos, vertices[i + 2].pos);
 		if (edge.side(r)) return false;
-		edge = Ray(vertices[i].pos, vertices[i + 2].pos);
+		edge = Ray(vertices[i+2].pos, vertices[i].pos);
 		if (edge.side(r)) return false;
 		depth = getIntersectionDepthForPrim(i, r);
 		return true;

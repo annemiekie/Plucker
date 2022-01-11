@@ -23,7 +23,7 @@ struct PersCamera : public Camera {
 	{
 		glm::vec3 camRay = glm::normalize(glm::vec3(pos.x * halfscreen, pos.y * halfscreen * aspect, -1));
 		glm::vec3 worldSpaceRayDirection = glm::normalize(invview * glm::vec4(camRay, 0.0f));
-		return Ray(position + worldSpaceRayDirection, position);
+		return Ray(position, position + worldSpaceRayDirection);
 	};
 
 	virtual glm::mat4 pMatrix() const override

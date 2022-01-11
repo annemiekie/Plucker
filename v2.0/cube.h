@@ -1,6 +1,5 @@
 #ifndef CUBE_H
 #define CUBE_H
-
 #include <GL/glew.h>
 
 #include "ray.h"
@@ -13,7 +12,7 @@
 class Cube : public GeoObject {
 private:
     glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
-    glm::vec3 bigbounds[2] = { glm::vec3(0), glm::vec3(0) };
+   // glm::vec3 bigbounds[2] = { glm::vec3(0), glm::vec3(0) };
     //std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
     //std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
     std::vector<Square> sideSquares;
@@ -50,15 +49,16 @@ public:
         return bounds[minmax];
     };
 
-    glm::vec3 getBigBounds(int minmax) {
-        return bigbounds[minmax];
-    }
+    //glm::vec3 getBigBounds(int minmax) {
+    //    return bigbounds[minmax];
+    //}
 
     void setBounds(glm::vec3 minvec, glm::vec3 maxvec, bool makesquares = true) {
         bounds[0] = minvec;
         bounds[1] = maxvec;
         center = (bounds[0] + bounds[1]) / 2.f;
         size = glm::abs(bounds[0] - bounds[1]);
+        //vaoGeneration();
         if (makesquares) makeCubeSquares();
     }
 
@@ -89,8 +89,8 @@ public:
     //}
 
     void makeCubeSquares() {
-        bigbounds[0] = center - 1.5f * size;
-        bigbounds[1] = center + 1.5f * size;
+        //bigbounds[0] = center - 1.5f * size;
+        //bigbounds[1] = center + 1.5f * size;
 
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < 3; i++) {
@@ -99,26 +99,46 @@ public:
         }
     }
 
-    // xyz = x, y or z direction, pm = plus or minus
     Square makeCubeSquare(int xyz, int pm) {
         glm::vec3 vmin, vside1, vside2, vopp;
         vmin[xyz] = bounds[pm][xyz];
-        vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-        vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+        vmin[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
+        vmin[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
 
         vside1[xyz] = vmin[xyz];
-        vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
-        vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+        vside1[(xyz + 1) % 3] = bounds[1][(xyz + 1) % 3];
+        vside1[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
 
         vside2[xyz] = vmin[xyz];
-        vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-        vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
+        vside2[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
+        vside2[(xyz + 2) % 3] = bounds[1][(xyz + 2) % 3];
 
         vopp = vmin;
         vopp[xyz] = bounds[1 - pm][xyz];
 
         return Square(vmin, vside1, vside2, vopp);
     }
+
+    //// xyz = x, y or z direction, pm = plus or minus
+    //Square makeCubeSquareBig(int xyz, int pm) {
+    //    glm::vec3 vmin, vside1, vside2, vopp;
+    //    vmin[xyz] = bounds[pm][xyz];
+    //    vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+    //    vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+
+    //    vside1[xyz] = vmin[xyz];
+    //    vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
+    //    vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+
+    //    vside2[xyz] = vmin[xyz];
+    //    vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+    //    vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
+
+    //    vopp = vmin;
+    //    vopp[xyz] = bounds[1 - pm][xyz];
+
+    //    return Square(vmin, vside1, vside2, vopp);
+    //}
 
 
     // bounds need to be the right way 'around'
@@ -152,7 +172,7 @@ public:
     
     //// CHECK IF THIS WORKS
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
-        return getCubeSideSquare(mainDir).inBounds(r, 1E-5);
+        return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
         //int ind = getIndex(mainDir);
         //for (int i = 0; i < 4; i++) {
         //    bool ign = false;
@@ -208,13 +228,14 @@ public:
     //    return false;
     //}
 
+    // should do this with square
     bool intersectSideBB(std::vector<Ray>& rays, glm::vec3& mainDir) {
         std::vector<glm::vec3> points;
         for (Ray& r : rays) points.push_back(intersectSidePoint(mainDir, r));
         Cube bb(points);
         for (int j = 0; j < 3; j++) {
             if (!mainDir[j]) {
-                if (bb.bounds[1][j] < bigbounds[0][j] || bb.bounds[0][j] > bigbounds[1][j]) return false;
+                if (bb.bounds[1][j] < bounds[0][j] || bb.bounds[0][j] > bounds[1][j]) return false;
             }
         }
         return true;
@@ -226,8 +247,8 @@ public:
         glm::vec3 intr2 = intersectSidePoint(mainDir,Ray(vpos, v1pos));
         intersects = { intr1, intr2 };
         glm::vec3 invMain = 1.f - glm::abs(mainDir);
-        glm::vec3 sidemin = invMain * bigbounds[0];
-        glm::vec3 sidemax = invMain * bigbounds[1];
+        glm::vec3 sidemin = invMain * bounds[0];
+        glm::vec3 sidemax = invMain * bounds[1];
         intr1 = intr1 * invMain;
         if (glm::all(glm::lessThanEqual(intr1, sidemax)) && glm::all(glm::greaterThanEqual(intr1, sidemin))) return true;
         intr1 = intr1 * invMain;
@@ -332,7 +353,7 @@ public:
         return true;
     };
 
-    GLuint vaoGeneration() {
+    void vaoGeneration() {
         std::vector<GLfloat> lineSegments = {
             bounds[0].x, bounds[0].y, bounds[0].z,
             bounds[1].x, bounds[0].y, bounds[0].z,
@@ -362,15 +383,15 @@ public:
             bounds[1].x, bounds[1].y, bounds[0].z,
         };
 
-        GLuint lineVAO, lineVBO;
-        glGenVertexArrays(1, &lineVAO);
+        GLuint lineVBO;
+        glGenVertexArrays(1, &vao);
         glGenBuffers(1, &lineVBO);
-        glBindVertexArray(lineVAO);
+        glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * lineSegments.size(), &lineSegments[0], GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
-        return lineVAO;
+        //return lineVAO;
     };
 
     GLuint vaoSideQuad(glm::vec3 mainDir) {
