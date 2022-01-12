@@ -55,7 +55,6 @@
     <ClInclude Include="primitive.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="raytracer.h" />
-    <ClInclude Include="raytracer_embree.h" />
     <ClInclude Include="RobinHood.h" />
     <ClInclude Include="rst.h" />
     <ClInclude Include="sample.h" />

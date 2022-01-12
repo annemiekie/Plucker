@@ -15,6 +15,7 @@ struct Ray {
     glm::dvec3 u;
     glm::dvec3 v;
     int index = -1;
+    bool checkboth = true;
 
     Ray() {};
 

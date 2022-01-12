@@ -573,10 +573,11 @@ int main() {
 	rst.cacheCombi = cacheCombi;
 	bool storeRays = true;
 
-	auto start_time = std::chrono::high_resolution_clock::now();
 	
 	if (sampling) makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
 	else makeEmptyRST(&rst, constructOption);
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	model.enlargeModel();
 	if (exact) rst.fillExact();
 

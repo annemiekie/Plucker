@@ -20,6 +20,8 @@
 #include "tetrahedron.h"
 //#include "raytracer.h"
 
+static bool f = false;
+
 class RaySpaceTree {
 
 	std::queue<nodeSamples> toProcess = std::queue<nodeSamples>();
@@ -39,6 +41,7 @@ public:
 	//bool cacheEEE = false;
 	bool cacheCombi = false;
 	int cachehitcombi = 0;
+	std::set<size_t> hashes = std::set<size_t>();
 	
 	std::vector<Ray> wronglines = std::vector<Ray>();
 
@@ -121,19 +124,18 @@ public:
 	void filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines, std::vector<bool>& sides, 
 											std::vector<Ray>& filteredLines, std::vector<bool>& filteredSides);
 	uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines);
-	//bool findExtremalStabbingForPrim(int i, std::vector<std::vector<int>>& splitCombi, std::vector<Ray>& splitLines, 
-	//							Ray &ray, Node *node, std::vector<Ray>& edgeRays, 
-	//							bool print = false, int nrOfsilhEdges = 0, std::vector<int>& visibleTriIgnore = std::vector<int>(),
-	//							std::vector<Ray>& silhLines = std::vector<Ray>(), std::vector<Edge>& silhouetteEdges = std::vector<Edge>());
-	bool checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, 
+	uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines, int nrOfSilhVertices);
+
+	bool checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, bool& inBox,
 									bool print = false,std::vector<int>& visibleTriIgnore = std::vector<int>(), 
 									std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0, bool vischeck = true);
-	bool checkRayAndReverse(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
-								bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
-								std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0, bool vischeck = true);
+	bool checkRayAndReverse(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, 
+								bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(), bool& inBox = f,
+								std::vector<Ray>& lines = std::vector<Ray>(), int64_t cachekey = 0, int rayIgnoresize = 0, bool vischeck = true);
 	bool checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 								bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
-								std::vector<Ray>& lines = std::vector<Ray>(), int nrOfSplittingLines = -1, int rayIgnoresize = 0, bool vischeck = true);
+								std::vector<Ray>& lines = std::vector<Ray>(), int nrOfSplittingLines = -1, int nrOfSilhVertices = -1,
+								int rayIgnoresize = 0, bool vischeck = true);
 	bool checkRayInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool &inPlane, bool print);
 	bool checkRayInBox(const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);
 	bool checkRayInLeaf(Node *node, const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);

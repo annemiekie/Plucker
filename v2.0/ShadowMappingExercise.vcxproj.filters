@@ -13,6 +13,15 @@
     <Filter Include="Headers\Geometry">
       <UniqueIdentifier>{d07f65da-82bd-48a4-be5e-b0e04649d577}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Cameras">
+      <UniqueIdentifier>{058ed883-6404-47bd-a18f-4eedd1eb184c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Tree Components">
+      <UniqueIdentifier>{8d46e1c0-80f2-4179-a4f0-0dc0a463dcda}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Rasterization">
+      <UniqueIdentifier>{9871364d-cef1-4af5-9a98-741e5fc03b4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -58,22 +67,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="buffers.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="camera.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="combinations.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="cube.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="edge.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="lineThroughFour.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="model.h">
@@ -82,28 +79,10 @@
     <ClInclude Include="models.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="node.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="nodeSamples.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="orthocamera.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="perscamera.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="previewcamera.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="ray.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="raytracer.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="rst.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="sample.h">
@@ -112,47 +91,74 @@
     <ClInclude Include="shader.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="sphere.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="sphereSampler.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="vertex.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="geoObject.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="linemodel.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="primitive.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="textureRenderer.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="raytracer_embree.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="plane.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="triWedge.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="tetrahedron.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="square.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="segment2D.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="RobinHood.h">
       <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="plane.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>Headers\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="orthocamera.h">
+      <Filter>Headers\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="previewcamera.h">
+      <Filter>Headers\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="perscamera.h">
+      <Filter>Headers\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="primitive.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="square.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="tetrahedron.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="sphere.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="cube.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="triWedge.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="segment2D.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="vertex.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="geoObject.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="node.h">
+      <Filter>Headers\Tree Components</Filter>
+    </ClInclude>
+    <ClInclude Include="rst.h">
+      <Filter>Headers\Tree Components</Filter>
+    </ClInclude>
+    <ClInclude Include="lineThroughFour.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="nodeSamples.h">
+      <Filter>Headers\Tree Components</Filter>
+    </ClInclude>
+    <ClInclude Include="buffers.h">
+      <Filter>Headers\Rasterization</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
