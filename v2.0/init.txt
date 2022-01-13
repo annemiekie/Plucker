@@ -15,4 +15,4 @@ sampling = true
 exact = true
 cacheEE = false
 cacheEEE = false
-cacheCombi = false
+cacheCombi = true

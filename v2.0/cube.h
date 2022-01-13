@@ -12,7 +12,7 @@
 class Cube : public GeoObject {
 private:
     glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
-   // glm::vec3 bigbounds[2] = { glm::vec3(0), glm::vec3(0) };
+    glm::vec3 bigbounds[2] = { glm::vec3(0), glm::vec3(0) };
     //std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
     //std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
     std::vector<Square> sideSquares;
@@ -49,9 +49,9 @@ public:
         return bounds[minmax];
     };
 
-    //glm::vec3 getBigBounds(int minmax) {
-    //    return bigbounds[minmax];
-    //}
+    glm::vec3 getBigBounds(int minmax) {
+        return bigbounds[minmax];
+    }
 
     void setBounds(glm::vec3 minvec, glm::vec3 maxvec, bool makesquares = true) {
         bounds[0] = minvec;
@@ -79,19 +79,19 @@ public:
     Square getCubeSideSquare(glm::vec3 mainDir) {
         return sideSquares[getIndex(mainDir)];
     }
-    //std::vector<Ray> getCubeSideLines(glm::vec3 mainDir) {
-    //    return quadLines[getIndex(mainDir)];
-    //}
 
-    //std::vector<glm::vec3> getCubeCornerPoints(glm::vec3 mainDir) {
-    //    return cornerPoints[getIndex(mainDir)];
+    void makeCubeSquaresBig() {
+        bigbounds[0] = center - 1.5f * size;
+        bigbounds[1] = center + 1.5f * size;
 
-    //}
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < 3; i++) {
+                sideSquares.push_back(makeCubeSquareBig(i, j));
+            }
+        }
+    }
 
     void makeCubeSquares() {
-        //bigbounds[0] = center - 1.5f * size;
-        //bigbounds[1] = center + 1.5f * size;
-
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < 3; i++) {
                 sideSquares.push_back(makeCubeSquare(i, j));
@@ -120,56 +120,26 @@ public:
     }
 
     //// xyz = x, y or z direction, pm = plus or minus
-    //Square makeCubeSquareBig(int xyz, int pm) {
-    //    glm::vec3 vmin, vside1, vside2, vopp;
-    //    vmin[xyz] = bounds[pm][xyz];
-    //    vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-    //    vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+    Square makeCubeSquareBig(int xyz, int pm) {
+        glm::vec3 vmin, vside1, vside2, vopp;
+        vmin[xyz] = bounds[pm][xyz];
+        vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+        vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
 
-    //    vside1[xyz] = vmin[xyz];
-    //    vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
-    //    vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+        vside1[xyz] = vmin[xyz];
+        vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
+        vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
 
-    //    vside2[xyz] = vmin[xyz];
-    //    vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-    //    vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
+        vside2[xyz] = vmin[xyz];
+        vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+        vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
 
-    //    vopp = vmin;
-    //    vopp[xyz] = bounds[1 - pm][xyz];
+        vopp = vmin;
+        vopp[xyz] = bounds[1 - pm][xyz];
 
-    //    return Square(vmin, vside1, vside2, vopp);
-    //}
+        return Square(vmin, vside1, vside2, vopp);
+    }
 
-
-    // bounds need to be the right way 'around'
-/*    void makeCubeSidelines(glm::vec3 mainDir) {
-        std::vector<glm::vec3> cPoints(4);
-        int max = -1;
-        int b = getSgn(mainDir);
-
- 
-        bool first = true;
-        int diri = -1;
-        for (int i = 0; i < 3; i++) {
-            if (mainDir[i] == 0) {
-                if (first) {
-                    for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j % 3 == 0 ? 0 : 1][i];
-                    first = false;
-                }
-                else for (int j = 0; j < 4; j++) cPoints[j][i] = bigbounds[j < 2 ? 0 : 1][i];
-            }
-            else for (int j = 0; j < 4; j++) {
-                diri = i;
-                cPoints[j][i] = bounds[b][i];
-            }
-        }
-    
-        std::vector<Ray> sidelines;
-        for (int i = 0; i < 4; i++) sidelines.push_back( Ray(cPoints[i], cPoints[(i+1)%4]) );
-        quadLines[b*3 + diri] = sidelines;
-        cornerPoints[b * 3 + diri] = cPoints;
-    }*/
-    
     //// CHECK IF THIS WORKS
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
         if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
@@ -202,19 +172,19 @@ public:
         //glm::vec3 intersectpt = r.origin + r.direction * ttest;
         //return intersectpt;
     }
-    
+
     bool intersectSegmSegm(glm::vec2& s1p1, glm::vec2& s1p2, glm::vec2& s2p1, glm::vec2& s2p2) {
         float d = (s1p2.x - s1p1.x) * (s2p2.y - s2p1.y) - (s1p2.y - s1p1.y) * (s2p2.x - s2p1.x);
         if (d == 0) return false;
         float q = (s1p1.y - s2p1.y) * (s2p2.x - s2p1.x) - (s1p1.x - s2p1.x) * (s2p2.y - s2p1.y);
         float r = q / d;
-        q = (s1p1.y - s2p1.y) * (s1p2.x - s1p1.x) - (s1p1.x- s2p1.x) * (s1p2.y - s1p1.y);
+        q = (s1p1.y - s2p1.y) * (s1p2.x - s1p1.x) - (s1p1.x - s2p1.x) * (s1p2.y - s1p1.y);
         float s = q / d;
         if (r < 0 || r > 1 || s < 0 || s > 1) return false;
         return true;
     }
 
-  
+
     //bool intersectSideSwathSimple(glm::vec3& vpos, glm::vec3& v1pos, glm::vec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
     //    glm::vec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
     //    glm::vec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v2pos));
@@ -244,8 +214,8 @@ public:
 
     bool intersectSideSwath(glm::vec3& vpos, glm::vec3& v1pos, glm::vec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
 
-        glm::vec3 intr1 = intersectSidePoint(mainDir,Ray(vpos, v1pos));
-        glm::vec3 intr2 = intersectSidePoint(mainDir,Ray(vpos, v1pos));
+        glm::vec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
+        glm::vec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
         intersects = { intr1, intr2 };
         glm::vec3 invMain = 1.f - glm::abs(mainDir);
         glm::vec3 sidemin = invMain * bounds[0];
@@ -260,7 +230,7 @@ public:
         for (int i = 0; i < 3; i++) {
             if (invMain[i]) {
                 if (intr1[i] < sidemin[i] && intr2[i] < sidemin[i]) return false;
-                else if (intr1[i] > sidemax [i] && intr2[i] > sidemax[i]) return false;
+                else if (intr1[i] > sidemax[i] && intr2[i] > sidemax[i]) return false;
                 int2r1[count] = intr1[i];
                 int2r2[count] = intr2[i];
                 smin[count] = sidemin[i];

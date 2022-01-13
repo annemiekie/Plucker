@@ -61,7 +61,7 @@ void RaySpaceTree::construct(int lvl, Node* node, int option, std::vector<Ray>& 
 		//splitter = Ray(model->vertices[3 * r1 + redge].pos + roffset, model->vertices[3 * r1 + (redge + 1) % 3].pos);
 	//}
 	bool dupli = false;
-	for (Ray r : splitters) if (splitter.equal(r, 1E-6)) {dupli = true; break;}
+	for (Ray r : splitters) if (splitter.equal(r, 1E-6)) { dupli = true; break; }
 	if (dupli) construct(lvl, node, option, rays, splitters, splitnum);
 	else {
 		splitter.index = splitnum;
@@ -86,7 +86,7 @@ void RaySpaceTree::fillExact() {
 	Ray r;
 	//if (alldir) {
 	//#pragma omp parallel
-	for (Node * node : nodes) { //int n = 0; n < nodes.size(); n++) {// 
+	for (Node* node : nodes) { //int n = 0; n < nodes.size(); n++) {// 
 		std::cout << "Computing node nr: " << node->index << " of " << nodes.size() << std::endl;
 		if (node->leaf) {
 			//std::cout << "Computing node nr: " << nodes[n]->index << " of " << nodes.size() << std::endl;
@@ -98,11 +98,11 @@ void RaySpaceTree::fillExact() {
 					if (check1Prim(i, r, node, false, 0))  node->primitiveSet.insert(i);
 				}
 			}
-			
+
 		}
 		std::cout << std::endl;
 		if (cacheCombi)  std::cout << "Combi Cache, Size: " << lineCombiToRays.size() << " Hits: " << cachehitcombi << " Hash Hit Size: " << hashes.size() << std::endl;
-		if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " <<  model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
+		if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " << model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
 		if (model->cacheEE) std::cout << "Edge Edge Cache, Size: " << model->edgeEdgeCombis[0].size() << " Hits: " << model->cachehitee << std::endl;
 	}
 	//}
@@ -126,7 +126,7 @@ void RaySpaceTree::fillExact() {
 
 void RaySpaceTree::fillExact(Node* node) {
 
-	std::cout << "Computing node nr: " << node->index << " of "<< nodes.size() << std::endl;
+	std::cout << "Computing node nr: " << node->index << " of " << nodes.size() << std::endl;
 	std::cout << "Prim size: " << node->parent->primitiveSet.size() << std::endl;
 	Ray r;
 	//#pragma omp parallel
@@ -145,7 +145,7 @@ void RaySpaceTree::fillExact(Node* node) {
 }
 
 void RaySpaceTree::constructSmartRandom(glm::ivec2 res, std::vector<Camera*>& cams,
-										std::vector<std::pair<int, int>>& samples, std::set<int>& tris) {
+	std::vector<std::pair<int, int>>& samples, std::set<int>& tris) {
 	int t = (int)time(NULL);
 	srand(t);
 	std::vector<Ray> splitters;
@@ -154,7 +154,7 @@ void RaySpaceTree::constructSmartRandom(glm::ivec2 res, std::vector<Camera*>& ca
 
 void RaySpaceTree::constructSmartRandom(int level, Node* node, glm::ivec2 res, std::vector<Camera*>& cams,
 	std::vector<std::pair<int, int>>& samples, std::set<int>& tris, std::vector<Ray> splitters) {
-	if (level >= depth || tris.size() <= 1){
+	if (level >= depth || tris.size() <= 1) {
 		node->leaf = true;
 		noLeaves++;
 		if (tris.size() > 0) {
@@ -233,11 +233,11 @@ void RaySpaceTree::constructAdaptive(glm::ivec2 res, std::vector<Camera*>& cams,
 }
 
 void RaySpaceTree::constructAdaptive2(int level, Node* node, glm::ivec2 res, std::vector<Camera*>& cams,
-									  std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize) {
+	std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize) {
 	auto start_time = std::chrono::high_resolution_clock::now();
 	std::cout << "level: " << level << std::endl;
 	if (tris.size() > 1) {
-		std::cout << "Node with " << samples.size() << " samples and " << tris.size() << " triangles." <<std::endl;
+		std::cout << "Node with " << samples.size() << " samples and " << tris.size() << " triangles." << std::endl;
 		std::cout << "Finding best splitter..." << std::endl;
 
 		auto start_time = std::chrono::high_resolution_clock::now();
@@ -299,7 +299,7 @@ void RaySpaceTree::constructAdaptive2(int level, Node* node, glm::ivec2 res, std
 }
 
 void RaySpaceTree::constructAdaptive(int level, Node* node, glm::ivec2 res, std::vector<Camera*>& cams,
-									std::vector<std::pair<int,int>>& samples, std::set<int>& tris, bool print, std::vector<Ray> splitters) {
+	std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray> splitters) {
 	auto start_time = std::chrono::high_resolution_clock::now();
 	if (print) std::cout << "level: " << level << std::endl;
 	bool checkmore = false;
@@ -377,7 +377,7 @@ uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines)
 }
 
 Ray RaySpaceTree::getRay(std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
-	int camNr= raynr / (res.x*res.y);
+	int camNr = raynr / (res.x * res.y);
 
 	int rayInCam = raynr % (res.x * res.y);
 	int y = rayInCam / res.x;
@@ -386,13 +386,13 @@ Ray RaySpaceTree::getRay(std::vector<Camera*>& cams, int raynr, glm::ivec2 res) 
 	return cams[camNr]->pixRayDirection(pixpos);
 }
 
-bool RaySpaceTree::intoLeftNode(Ray &splitter, std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
+bool RaySpaceTree::intoLeftNode(Ray& splitter, std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
 	Ray ray = getRay(cams, raynr, res);
 	return splitter.side(ray);
 }
 
 Ray RaySpaceTree::getBestSplitter2(glm::ivec2 res, std::vector<Camera*>& cams, int tries,
-									std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize) {
+	std::vector<std::pair<int, int>>& samples, std::set<int>& tris, int totSampSize) {
 	int t = (int)time(NULL);
 	srand(t);
 	float bestTriFrac = 0;
@@ -401,65 +401,65 @@ Ray RaySpaceTree::getBestSplitter2(glm::ivec2 res, std::vector<Camera*>& cams, i
 	//for (int i = 0; i < tris.size(); i++) {
 		//for (int j = 0; j < 3; j++) {
 	for (int i = 0; i < tries; i++) {
-			std::cout << "Checking line no " << i << "... ";
+		std::cout << "Checking line no " << i << "... ";
 
-			// choose the first edge of a random triangle in this node
-			float r = (float)rand() / static_cast <float> (RAND_MAX);
-			int rtri = int(r * (float)tris.size());
-			float r2 = (float)rand() / static_cast <float> (RAND_MAX);
-			int redge = int(r2 * 3.f);
-			std::set<int>::iterator it = tris.begin();
-			std::advance(it, rtri);
-			int tri = *it;
-			Ray testRay = Ray(model->vertices[3 * tri + redge].pos, model->vertices[3 * tri + (redge + 1) % 3].pos);
-			//Ray testRay = Ray(vertices[3 * i + j].pos, vertices[3 * i + (j + 1) % 3].pos);
+		// choose the first edge of a random triangle in this node
+		float r = (float)rand() / static_cast <float> (RAND_MAX);
+		int rtri = int(r * (float)tris.size());
+		float r2 = (float)rand() / static_cast <float> (RAND_MAX);
+		int redge = int(r2 * 3.f);
+		std::set<int>::iterator it = tris.begin();
+		std::advance(it, rtri);
+		int tri = *it;
+		Ray testRay = Ray(model->vertices[3 * tri + redge].pos, model->vertices[3 * tri + (redge + 1) % 3].pos);
+		//Ray testRay = Ray(vertices[3 * i + j].pos, vertices[3 * i + (j + 1) % 3].pos);
 
 
-			std::set<int> trisLeft = std::set<int>();
-			std::set<int> trisRight = std::set<int>();
-			int zeroL = 0; int zeroR = 0;
+		std::set<int> trisLeft = std::set<int>();
+		std::set<int> trisRight = std::set<int>();
+		int zeroL = 0; int zeroR = 0;
 
-			for (auto sample : samples) {
-				bool left = intoLeftNode(testRay, cams, sample.first, res);
-				int tri = sample.second;
-				if (left) {
-					if (tri >= 0) {
-						trisLeft.insert(tri);
+		for (auto sample : samples) {
+			bool left = intoLeftNode(testRay, cams, sample.first, res);
+			int tri = sample.second;
+			if (left) {
+				if (tri >= 0) {
+					trisLeft.insert(tri);
 
-					}
-					else zeroL++;
 				}
-				else {
-					if (tri >= 0) {
-						trisRight.insert(tri);
-					}
-					else zeroR++;
-				}
-			}
-
-			float frac = 0;
-			if (trisLeft.size() && trisRight.size()) frac = 1.f*trisLeft.size() / (1.f*trisRight.size());
-			if (frac > 1.f) frac = 1.f / frac;
-			std::cout << " for a tri frac of " << frac;
-
-			if (frac > bestTriFrac) {
-				std::cout << " which is better!" << std::endl;
-				bestTriFrac = frac;
-				splitter = testRay;
+				else zeroL++;
 			}
 			else {
-				std::cout << std::endl;
+				if (tri >= 0) {
+					trisRight.insert(tri);
+				}
+				else zeroR++;
 			}
-	//	}
+		}
+
+		float frac = 0;
+		if (trisLeft.size() && trisRight.size()) frac = 1.f * trisLeft.size() / (1.f * trisRight.size());
+		if (frac > 1.f) frac = 1.f / frac;
+		std::cout << " for a tri frac of " << frac;
+
+		if (frac > bestTriFrac) {
+			std::cout << " which is better!" << std::endl;
+			bestTriFrac = frac;
+			splitter = testRay;
+		}
+		else {
+			std::cout << std::endl;
+		}
+		//	}
 	}
 	std::cout << "New value: " << bestTriFrac << std::endl;
 	//if (bestTriFrac == 0) getBestSplitter(splitter, res, cams, tries, samples, tris, totSampSize);
 	return splitter;
 }
 
-bool RaySpaceTree::getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<std::pair<int, int>>& samplesLx, std::set<int>& trisLx, 
-									std::vector<std::pair<int, int>>& samplesRx, std::set<int>& trisRx, std::vector<Camera*>& cams, int tries,
-									std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray>& splitters) {
+bool RaySpaceTree::getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<std::pair<int, int>>& samplesLx, std::set<int>& trisLx,
+	std::vector<std::pair<int, int>>& samplesRx, std::set<int>& trisRx, std::vector<Camera*>& cams, int tries,
+	std::vector<std::pair<int, int>>& samples, std::set<int>& tris, bool print, std::vector<Ray>& splitters) {
 	int t = (int)time(NULL);
 	srand(t);
 
@@ -470,7 +470,7 @@ bool RaySpaceTree::getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<st
 	std::vector<Ray> testRays = std::vector<Ray>();
 	std::vector<int> triIndices = std::vector<int>();
 	std::vector<int> triIndices2 = std::vector<int>();
-	
+
 	if (tris.size() <= 3) {
 		for (int tri : tris) {
 			for (int j = 0; j < 3; j++) {
@@ -478,7 +478,7 @@ bool RaySpaceTree::getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<st
 				int fromIndex = model->indices[3 * tri + j];
 				int toIndex = model->indices[3 * tri + (j + 1) % 3];
 				Ray testRay = Ray(model->verticesIndexed[fromIndex], model->verticesIndexed[toIndex]);
-	
+
 				//int triIndex2 = -5;
 				//if (model->triPerVertex[fromIndex].size() > 1 && model->triPerVertex[toIndex].size() > 1) {
 				//	for (auto trix : model->triPerVertex[fromIndex]) {
@@ -516,7 +516,7 @@ bool RaySpaceTree::getBestSplitter(Ray& splitter, glm::ivec2 res, std::vector<st
 			if (dupli) continue;
 			i++;
 			testRays.push_back(testRay);
-	
+
 			//int triIndex2 = -5;
 			//if (model->triPerVertex[fromIndex].size() > 1 && model->triPerVertex[toIndex].size() > 1) {
 			//	for (auto trix : model->triPerVertex[fromIndex]) {
@@ -757,10 +757,10 @@ void RaySpaceTree::getSplittingLinesInLeafWithSide(Node* n, std::vector<Ray>& li
 		lines.push_back(n->parent->splitter);
 		return getSplittingLinesInLeafWithSide(n->parent, lines, sides);
 	}
-} 
+}
 
-void RaySpaceTree::filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines, std::vector<bool>& sides, 
-										std::vector<Ray>& filteredLines, std::vector<bool>& filteredSides) {
+void RaySpaceTree::filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines, std::vector<bool>& sides,
+	std::vector<Ray>& filteredLines, std::vector<bool>& filteredSides) {
 	std::vector<int> foundExtremalStabbing;
 	std::vector<std::vector<int>>& splitCombi4 = Combinations::combi4(splitlines.size());
 	//for (std::vector<int>& combi4 : splitCombi4) {
@@ -817,7 +817,7 @@ void RaySpaceTree::filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines
 
 int RaySpaceTree::numOfLeaf(int index) {
 	int count = 0;
-	for (Node* n: nodes) {
+	for (Node* n : nodes) {
 		if (n->leaf) {
 			count++;
 			if (n->index == index) return count;
@@ -845,7 +845,7 @@ std::vector<Ray> RaySpaceTree::getViewingLinesInLeaf(int leafNum)
 	return getViewingLinesInLeaf(node);
 }
 
-std::vector<Ray> RaySpaceTree::getViewingLinesInLeaf(Node *node)
+std::vector<Ray> RaySpaceTree::getViewingLinesInLeaf(Node* node)
 {
 	std::vector<Ray> rays;
 	for (Sample& p : node->primAndRayVector) rays.push_back(p.ray);
@@ -882,7 +882,7 @@ bool RaySpaceTree::checkRayInPrim(std::vector<Ray>& edgeRays, Ray& line, std::ve
 			if (line.throughVertex(vert, 1E-10)) {
 				if (print) std::cout << std::endl;
 				inPlane = true;
-				return true; 
+				return true;
 			}
 		}
 		if (print) std::cout << std::endl;
@@ -916,7 +916,7 @@ bool RaySpaceTree::checkRayInLeaf(Node* node, const Ray& ray, std::vector<Ray>& 
 	return false;
 }
 
-bool RaySpaceTree::checkPrimVisibleForRay(Ray& ray, const int prim, std::vector<int>& ignore, std::vector<Ray>& lines,  bool inplane, bool print) {
+bool RaySpaceTree::checkPrimVisibleForRay(Ray& ray, const int prim, std::vector<int>& ignore, std::vector<Ray>& lines, bool inplane, bool print) {
 
 	int embreePrim = -1;
 	float embreeDepth = 0.f;
@@ -951,17 +951,17 @@ bool RaySpaceTree::checkPrimVisibleForRay(Ray& ray, const int prim, std::vector<
 
 		int i = 0;
 		while (i < uniquePrimDepth.size()) {
-		//for (int i = 0; i < uniquePrimDepth.size(); i++) {
+			//for (int i = 0; i < uniquePrimDepth.size(); i++) {
 			bool found = false;
 			model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
 			for (int j = 0; j < ignore.size() / 2; j++) {
 				// only checking first ignore primitive for now
 				float primdepth = model->getIntersectionDepthForPrim(ignore[j * 2] * 3, ray);
 				// check ray direction vs two triangles to see if it is still silhouette
-				if (ignore[j*2+1] >= 0)
+				if (ignore[j * 2 + 1] >= 0)
 					if ((glm::dot(model->normalPerTri[ignore[j * 2]], (glm::vec3)ray.direction) < 0) ==
-					(glm::dot(model->normalPerTri[ignore[j * 2 + 1]], (glm::vec3)ray.direction) < 0)) continue;
-				
+						(glm::dot(model->normalPerTri[ignore[j * 2 + 1]], (glm::vec3)ray.direction) < 0)) continue;
+
 				// Checking primary primdepth here does not result in 'correct' Extremal Stabbing Line
 				primaryprimdepth = model->getIntersectionDepthForPrim(prim * 3, ray);
 				//if (fabsf(embreeDepth - primaryprimdepth) < 1E-3) return true;
@@ -1030,46 +1030,12 @@ bool RaySpaceTree::checkRayInBox(const Ray& ray, std::vector<Ray>& lines, int ra
 	return true;
 }
 
-//bool RaySpaceTree::findExtremalStabbingForPrim(const int prim, std::vector<std::vector<int>>& combi, std::vector<Ray>& splitLines,
-//												Ray& ray, Node* leaf, std::vector<Ray>& edgeRays, bool print, int nrOfsilhEdges,
-//												std::vector<Ray>& silhLines, 
-//												std::vector<int>& visibleTriIgnore, std::vector<Edge>& silhouetteEdges) {
-//
-//	std::vector<std::vector<int>> edges = { {2,0}, {0,1}, {1,2} };
-//	int edgeCombi = 3;
-//	int lineCombiSize = combi.size() > 0 ? combi[0].size() : 0;
-//	if (lineCombiSize == 4) edgeCombi = 1;
-//	int nrOfSplitLines = lineCombiSize - nrOfsilhEdges;
-//
-//	for (int e = 0; e < edgeCombi; e++) {
-//		for (int c = 0; c < combi.size(); c++) {
-//
-//			std::vector<Ray> lines;
-//			for (int i = 0; i < nrOfSplitLines; i++) lines.push_back(splitLines[combi[c][i]]);
-//			for (int i = 0; i < nrOfsilhEdges; i++) lines.push_back(silhLines[combi[c][i]]);
-//			for (int i = 0; i < 4 - lineCombiSize; i++) lines.push_back(edgeRays[edges[e][i]]);
-//			
-//			if (nrOfsilhEdges >= 2 && nrOfsilhEdges < 4) {
-//
-//			}
-//
-//			std::vector<int> triIgnore;
-//			for (int i = 0; i < nrOfsilhEdges; i++) {
-//				triIgnore.push_back(visibleTriIgnore[(combi[c][i]) * 2]);
-//				triIgnore.push_back(visibleTriIgnore[(combi[c][i]) * 2 + 1]);
-//			}
-//			if (checkRaysThroughLines(prim, ray, leaf, nrOfSplitLines, edgeRays, print, triIgnore, lines, lineCombiSize)) return true;
-//			
-//		}
-//	}
-//	return false;
-//}
 bool RaySpaceTree::checkCombi(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::string combi_text, int combiNr,
-	int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
-	std::vector<Ray>& splitLines, std::vector<std::vector<int>>& splitLineCombis,
-	std::vector<Ray>& silhouetteLines, std::vector<std::vector<int>>& silhLineCombis, std::vector<Edge>& silhouetteEdges,
-	std::vector<Ray>& silhVertexLines, std::vector<std::vector<int>>& silhVertexCombis,
-	std::vector<int>& silhouetteTris, std::vector<Ray>& triEdgeRays, bool vischeck) {
+								int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
+								std::vector<Ray>& splitLines, std::vector<std::vector<int>>& splitLineCombis,
+								std::vector<Ray>& silhouetteLines, std::vector<std::vector<int>>& silhLineCombis, std::vector<Edge>& silhouetteEdges,
+								std::vector<Ray>& silhVertexLines, std::vector<std::vector<int>>& silhVertexCombis,
+								std::vector<int>& silhouetteTris, std::vector<Ray>& triEdgeRays, bool vischeck) {
 
 	if (printAll) std::cout << combi_text << " combi's: " << combiNr << std::endl;
 
@@ -1141,7 +1107,7 @@ bool RaySpaceTree::checkCombi(const int prim, Ray& ray, Node* leaf, bool print, 
 
 
 //bool RaySpaceTree::checkRayThroughVertices(int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
-//												bool print, std::vector<int>& triIgnore, std::vector<Ray>& lines, int rayIgnoresize) {
+//	bool print, std::vector<int>& triIgnore, std::vector<Ray>& lines, int rayIgnoresize) {
 //	for (int i = 0; i < 3; i++) {
 //		if (ray.throughVertex(model->vertices[prim * 3 + i].pos, 1E-7)) {
 //			bool found = false;
@@ -1166,10 +1132,11 @@ bool RaySpaceTree::checkCombi(const int prim, Ray& ray, Node* leaf, bool print, 
 //	}
 //}
 
-bool RaySpaceTree::checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, 
-												bool print, std::vector<int>& triIgnore, bool& inBox, std::vector<Ray>& lines, int rayIgnoresize, bool vischeck) {
+bool RaySpaceTree::checkExtremalStabbingLine(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
+												bool print, std::vector<int>& triIgnore, bool& inBox, std::vector<Ray>& lines, 
+												int rayIgnoresize, bool vischeck) {
 
-	if (!alldir) {
+	if (!alldir && ray.checkboth) {
 		if (!checkRayInBox(ray, lines, rayIgnoresize, print)) {
 			inBox = false;
 			return false;
@@ -1193,89 +1160,62 @@ bool RaySpaceTree::checkExtremalStabbingLine(const int prim, Ray& ray, Node* lea
 }
 
 
-bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays, 
+bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 											bool print, std::vector<int>& visibleTriIgnore, std::vector<Ray>& lines,
-											int nrOfSplittingLines, int nrOfSilhVertices, int rayIgnoresize, bool vischeck) {
+											int nrOfSplittingLines, int nrOfSplittingVertices, int rayIgnoresize, bool vischeck) {
 	std::vector<Ray> intersectLines;
-	//uint64_t mapcombi;
-	//if (cacheCombi && !nrOfSilhVertices) {
-	//	mapcombi = makeCombiKey(lines, nrOfSplittingLines);// , nrOfSilhVertices);
-	//	if (lineCombiToRays.contains(mapcombi)) {
-	//		intersectLines = lineCombiToRays.at(mapcombi);
-	//		//hashes.insert(robin_hood::hash_int(mapcombi));
-	//		//std::cout << "found:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
-	//		cachehitcombi++;
-	//	}
-	//	else {
-	//		intersectLines = LineThroughFour::find(lines, model);
-	//		lineCombiToRays[mapcombi] = intersectLines;
-	//		//std::cout << "cached:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
-	//
-	//	}
-	//}
-	//else 
-	intersectLines = LineThroughFour::find(lines, model);
-
+	uint64_t mapcombi;
+	if (cacheCombi) {
+		mapcombi = makeCombiKey(lines, nrOfSplittingLines);
+		if (lineCombiToRays.contains(mapcombi)) {
+			intersectLines = lineCombiToRays.at(mapcombi);
+			//std::cout << "found:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
+			cachehitcombi++;
+		}
+		else {
+			intersectLines = LineThroughFour::find(lines, model);
+			//lineCombiToRays[mapcombi] = intersectLines;
+			//std::cout << "new:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
+		}
+	}
+	else intersectLines = LineThroughFour::find(lines, model);
 	std::vector<Ray> cacheLines;
 
 	for (int i = 0; i < intersectLines.size(); i++) {
 		ray = intersectLines[i];
-		bool inBox = false;
+		bool inBox = true;
 		bool checkRay = checkRayAndReverse(prim, ray, leaf, 0, edgeRays, print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck);
-		//if (cacheCombi && inBox) {
-		//	ray.checkboth = false;
-		//	cacheLines.push_back(ray);
-		//}
+		if (cacheCombi && inBox) {
+			ray.checkboth = false;
+			cacheLines.push_back(ray);
+		}
 		if (checkRay) {
-		//	if (i == 0) cacheLines.push_back(intersectLines[1]);
-		//	lineCombiToRays[mapcombi] = cacheLines;
+			if (cacheCombi) {
+				if (i == 0) cacheLines.push_back(intersectLines[1]);
+				lineCombiToRays[mapcombi] = cacheLines;
+			}
 			return true;
 		}
 	}
-	//lineCombiToRays[mapcombi] = cacheLines;
+	if (cacheCombi) lineCombiToRays[mapcombi] = cacheLines;
 	return false;
 }
 
 bool RaySpaceTree::checkRayAndReverse(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
-									bool print, std::vector<int>& visibleTriIgnore, bool& inBox, std::vector<Ray>& lines, int64_t cachekey, int rayIgnoresize, bool vischeck) {
-	if (checkExtremalStabbingLine(prim, ray, leaf, 0, edgeRays,print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck)) return true;
-	//if (ray.checkboth) {
-	ray.inverseDir();
+										bool print, std::vector<int>& visibleTriIgnore, bool& inBox, std::vector<Ray>& lines, 
+										int rayIgnoresize, bool vischeck) {
 	if (checkExtremalStabbingLine(prim, ray, leaf, 0, edgeRays, print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck)) return true;
-	//}
-	return false;
-}
-
-bool RaySpaceTree::check1Prim(const int prim, Ray& ray, Node* leaf, bool print, int edgeSelection, bool getedges, std::vector<glm::vec3>& edges, std::vector<Ray>& esledges) {
-	std::vector<Ray> splitLines;
-	std::vector<bool> sideLines;
-
-	getSplittingLinesInLeafWithSide(leaf, splitLines, sideLines);
-	if (!alldir) {
-		std::vector<Ray> boxSides = model->boundingCube.getCubeSideSquare(maindir).quadLines;
-		for (int i = 0; i < 4; i++) {
-			Ray boxside = boxSides[i];
-			boxside.index = splitLines.size() + i;
-			splitLines.push_back(boxside);
-		}
+	if (ray.checkboth && !inBox) {
+		ray.inverseDir();
+		inBox = true;
+		if (checkExtremalStabbingLine(prim, ray, leaf, 0, edgeRays, print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck)) return true;
 	}
-
-	std::vector<Ray> filteredsplitLines;
-	std::vector<bool> filterdsideLines;
-	filterSplittingLines(leaf, splitLines, sideLines, filteredsplitLines, filterdsideLines);
-	int size = filteredsplitLines.size();// +boxSides.size();
-	if (size == 0) return false;
-	std::vector<std::vector<int>> combi2 = Combinations::combi2(size);
-	std::vector<std::vector<int>> combi3 = Combinations::combi3(size);
-	std::vector<std::vector<int>> combi4 = Combinations::combi4(size);
-
-	if (checkPrim(prim, combi2, combi3, combi4, filteredsplitLines, filterdsideLines, ray, leaf, print, edgeSelection, getedges, edges, esledges)) return true;
-	else if (print) std::cout << "Not Found" << std::endl;
 	return false;
 }
 
-bool RaySpaceTree::checkVeVt(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-							std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays) {
+
+bool RaySpaceTree::checkVeVt(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges,
+								std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays) {
 	if (printAll) std::cout << "V(e)V(t) combi's: " << silhouetteEdges.size() * 2 * 3 << std::endl;
 	// there are doubles in here! filter out to get unique vertices? a set perhaps??
 	for (int i = 0; i < silhouetteEdges.size(); i++) {
@@ -1292,6 +1232,37 @@ bool RaySpaceTree::checkVeVt(const int prim, Ray& ray, Node* leaf, bool print, b
 	}
 	return false;
 }
+
+bool RaySpaceTree::checkVeVe(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges,
+	std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays) {
+	//std::vector<std::vector<int>> combi = Combinations::combi2(silhouettesize);
+
+	if (printAll) std::cout << "V(e)V(e) combi's: " << silhouetteLines.size() * 2 * silhouetteLines.size() * 2 << std::endl;
+	std::vector<int> tris(4);
+	for (int i = 0; i < silhouetteEdges.size(); i++) {
+		Edge e1 = silhouetteEdges[i];
+		tris[0] = silhouetteTris[i * 2];
+		tris[1] = silhouetteTris[i * 2 + 1];
+		for (int v1 : e1.v) {
+			for (int j = i + 1; j < silhouetteEdges.size(); j++) {
+				Edge e2 = silhouetteEdges[j];
+				tris[2] = silhouetteTris[j * 2];
+				tris[3] = silhouetteTris[j * 2 + 1];
+
+				for (int v2 : e2.v) {
+					ray = Ray(model->verticesIndexed[v1], model->verticesIndexed[v2]);
+					if (checkRayAndReverse(prim, ray, leaf, 0, edgeRays, printAll, tris)) {
+						if (print) std::cout << "V(e)V(e)" << std::endl;
+						//return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+
 
 bool RaySpaceTree::checkEdgeInLeafCombis(Edge& e, Node* leaf, std::vector<Ray>& splitLines, std::string combi_text, int nrOfsplitLines, std::vector<std::vector<int>>& combi, Ray& ray)
 {
@@ -1315,8 +1286,8 @@ bool RaySpaceTree::checkEdgeInLeafCombis(Edge& e, Node* leaf, std::vector<Ray>& 
 			for (Ray& r : rays) lines.push_back(r);
 
 			std::vector<Ray> intersectLines = LineThroughFour::find(lines, model);
-			for (int i = 0; i < intersectLines.size()*2; i++) {
-				ray = intersectLines[i/2];
+			for (int i = 0; i < intersectLines.size() * 2; i++) {
+				ray = intersectLines[i / 2];
 				if (i % 2 == 1) ray.inverseDir();
 				if (!alldir && !checkRayInBox(ray, lines, nrOfsplitLines, false)) continue;
 				if (!checkRayInLeaf(leaf, ray, lines, nrOfsplitLines, false)) continue;
@@ -1335,34 +1306,6 @@ bool RaySpaceTree::checkEdgeInLeafCombis(Edge& e, Node* leaf, std::vector<Ray>& 
 	return false;
 }
 
-bool RaySpaceTree::checkVeVe(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Edge>& silhouetteEdges, 
-							std::vector<Ray>& silhouetteLines, std::vector<int>& silhouetteTris, std::vector<Ray>& edgeRays) {
-	//std::vector<std::vector<int>> combi = Combinations::combi2(silhouettesize);
-
-	if (printAll) std::cout << "V(e)V(e) combi's: " << silhouetteLines.size() * 2 * silhouetteLines.size() * 2 << std::endl;
-	std::vector<int> tris(4);
-	for (int i = 0; i < silhouetteEdges.size(); i++) {
-		Edge e1 = silhouetteEdges[i];
-		tris[0] = silhouetteTris[i * 2];
-		tris[1] = silhouetteTris[i * 2 + 1];
-		for (int v1 : e1.v) {
-			for (int j = i+1; j < silhouetteEdges.size(); j++) {
-				Edge e2 = silhouetteEdges[j];
-				tris[2] = silhouetteTris[j * 2];
-				tris[3] = silhouetteTris[j * 2 + 1];
-
-				for (int v2 : e2.v) {
-					ray = Ray(model->verticesIndexed[v1], model->verticesIndexed[v2]);
-					if (checkRayAndReverse(prim, ray, leaf, 0, edgeRays, printAll, tris)) {
-						if (print) std::cout << "V(e)V(e)" << std::endl;
-						//return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
 
 void RaySpaceTree::getEEECombis(std::vector<Edge>& silhouetteEdges, std::vector<Ray>& silhouetteLines,
 	std::vector<std::vector<int>>& combi2Edges, std::vector<std::vector<int>>& combi3Edges) {
@@ -1377,31 +1320,6 @@ void RaySpaceTree::getEEECombis(std::vector<Edge>& silhouetteEdges, std::vector<
 			Edge e3 = silhouetteEdges[c[2]];
 
 			if (model->checkEdgeEdgeEdge(e1, e2, e3)) combi3Edges.push_back(c);
-			
-			//std::vector<TriWedge> triWedges = spaceSpannedByEdges(e1, e2);
-			//if (checkPointsInHalfSpaces(n, d, e3[0]) || checkPointsInHalfSpaces(n, d, e3[1])) {
-			//	combi3Edges.push_back(c);
-			//	continue;
-			//}
-			//
-			//// find the intersection point of edge 3 with the planes spanned by edge 1 and 2
-			//for (int i = 0; i < 4; i++) {
-			//	float t = (-glm::dot(e3[0], n[i]) + d[i]) / glm::dot(e3[1] - e3[0], n[i]);
-			//	// if point does not lie between e3v0 and e3v1 discard
-			//	if (t < 0 || t > 1) continue;
-			//
-			//	// if point does not lie on triangle wedge (between edges) discard
-			//	glm::vec3 is = e3[0] + (e3[1] - e3[0]) * t;
-			//	bool dot1 = glm::dot(tri[i * 3] - tri[i * 3 + 2], is - tri[i * 3 + 2]) > 0;
-			//	bool dot2 = glm::dot(tri[i * 3 + 1] - tri[i * 3 + 2], is - tri[i * 3 + 2]) > 0;
-			//	if (dot1 != dot2) continue;
-			//
-			//	// for now just check if it is in one of 3 parts
-			//	if (checkPointsInHalfSpaces(n, d, is, 1E-7)) {
-			//		combi3Edges.push_back(c);
-			//		break;
-			//	}
-			//}
 		}
 	}
 }
@@ -1413,12 +1331,15 @@ void RaySpaceTree::getEECombis(std::vector<Edge>& silhouetteEdges, std::vector<R
 		for (std::vector<int>& c : combi) {
 			Edge e1 = silhouetteEdges[c[0]];
 			Edge e2 = silhouetteEdges[c[1]];
-			if (model->checkEdgeEdgeCache(e1,e2, alldir, maindir)) combi2Edges.push_back(c);
+			if (model->checkEdgeEdgeCache(e1, e2, alldir, maindir)) combi2Edges.push_back(c);
 		}
 	}
 }
 
-bool RaySpaceTree::checkEdgeSplittingDuplicates(const int prim,	std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays, std::vector<bool>& sideLines) {
+
+
+
+bool RaySpaceTree::checkEdgeSplittingDuplicates(const int prim, std::vector<Ray>& splitLines, std::vector<Ray>& edgeRays, std::vector<bool>& sideLines) {
 	for (int i = 0; i < sideLines.size(); i++) {
 		for (int j = 0; j < edgeRays.size(); j++) {
 			if (splitLines[i].equal(edgeRays[j], 1E-5)) { // not very precise?!
@@ -1436,10 +1357,11 @@ bool RaySpaceTree::checkEdgeSplittingDuplicates(const int prim,	std::vector<Ray>
 }
 
 
+
 bool RaySpaceTree::checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, bool print, bool printAll, std::vector<Ray>& silhouetteLines,
-										std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdgesToAdd, std::vector<Edge>& silhouetteEdges, 
-										std::vector<int>& silhouetteTris, std::vector<Ray>& triEdgeRays,
-										std::set<int>& silhVertices, std::vector<Ray>& silhVertexRays, std::vector<std::vector<int>>& combiV) {
+											std::vector<Ray>& splitLines, std::vector<Edge>& silhouetteEdgesToAdd, std::vector<Edge>& silhouetteEdges,
+											std::vector<int>& silhouetteTris, std::vector<Ray>& triEdgeRays,
+											std::set<int>& silhVertices, std::vector<Ray>& silhVertexRays, std::vector<std::vector<int>>& combiV) {
 
 
 	for (int i = 0; i < silhouetteEdgesToAdd.size(); i++) {
@@ -1451,7 +1373,7 @@ bool RaySpaceTree::checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, b
 		for (int v : toAdd.v) {
 			if (silhVertices.find(v) == silhVertices.end()) {
 				silhVertexRays.push_back(Ray(model->verticesIndexed[v], model->verticesIndexed[v] + model->normalPerTri[toAdd.triangles[0]], v));
-				combiV.push_back(std::vector<int>{ i, (int) silhVertices.size(), v });
+				combiV.push_back(std::vector<int>{ i, (int)silhVertices.size(), v });
 				silhVertices.insert(v);
 			}
 		}
@@ -1463,28 +1385,28 @@ bool RaySpaceTree::checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, b
 	std::vector<int> e4;
 
 	if (checkVeVt(prim, ray, leaf, print, printAll, silhouetteEdges, silhouetteTris, triEdgeRays)) return true;
-	
+
 	std::vector<std::vector<int>> combi1S = Combinations::combi1(splitLines.size());
 
 	if (checkCombi(prim, ray, leaf, print, printAll, "SV(E)T", combi1S.size() * combiV.size() * 3, 1, 2, 0, 1,
-					splitLines, combi1S, silhouetteLines, e2, e3, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi1S, silhouetteLines, e2, e3, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
 
 	if (checkVeVe(prim, ray, leaf, print, printAll, silhouetteEdges, silhouetteLines, silhouetteTris, triEdgeRays)) return true;
-	
+
 	std::vector<std::vector<int>> combi1E = Combinations::combi1(silhouetteLines.size());
 
 	if (checkCombi(prim, ray, leaf, print, printAll, "SV(E)E", combi1S.size() * combi1E.size() * combiV.size(), 1, 2, 1, 0,
-					splitLines, combi1S, silhouetteLines, combi1E, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi1S, silhouetteLines, combi1E, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
 
 	if (checkCombi(prim, ray, leaf, print, printAll, "SEV(T)", combi1S.size() * combi1E.size() * 3, 1, 0, 1, 2,
-					splitLines, combi1S, silhouetteLines, combi1E, silhouetteEdges, e1, e2, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi1S, silhouetteLines, combi1E, silhouetteEdges, e1, e2, silhouetteTris, triEdgeRays)) return true;
 
 	std::vector<std::vector<int>> combi2S = Combinations::combi2(splitLines.size());
 	if (checkCombi(prim, ray, leaf, print, printAll, "SSV(E)", combi2S.size() * combiV.size(), 2, 2, 0, 0,
-					splitLines, combi2S, silhouetteLines, e2, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi2S, silhouetteLines, e2, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
 
 	if (checkCombi(prim, ray, leaf, print, printAll, "V(E)ET", combi1E.size() * combiV.size() * 3, 0, 2, 1, 1,
-					e1, e2, silhouetteLines, combi1E, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
+		e1, e2, silhouetteLines, combi1E, silhouetteEdges, silhVertexRays, combiV, silhouetteTris, triEdgeRays)) return true;
 
 	std::vector<std::vector<int>> combi2E;
 	getEECombis(silhouetteEdges, silhouetteLines, combi2E);
@@ -1520,25 +1442,49 @@ bool RaySpaceTree::checkSilhouetteCombis(const int prim, Ray& ray, Node* leaf, b
 	}
 
 	if (checkCombi(prim, ray, leaf, print, printAll, "SSET", combi2S.size() * combi1E.size() * 3, 2, 0, 1, 1,
-					splitLines, combi2S, silhouetteLines, combi1E, silhouetteEdges, e1, e2, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi2S, silhouetteLines, combi1E, silhouetteEdges, e1, e2, silhouetteTris, triEdgeRays)) return true;
 
 	std::vector<std::vector<int>> combi3S = Combinations::combi3(splitLines.size());
 	if (checkCombi(prim, ray, leaf, print, printAll, "SSSE", combi3S.size() * combi1E.size(), 3, 0, 1, 0,
-					splitLines, combi3S, silhouetteLines, combi1E, e3, e1, e2, silhouetteTris, triEdgeRays)) return true;
+		splitLines, combi3S, silhouetteLines, combi1E, e3, e1, e2, silhouetteTris, triEdgeRays)) return true;
 
 	return false;
 }
 
+bool RaySpaceTree::check1Prim(const int prim, Ray& ray, Node* leaf, bool print, int edgeSelection,
+								bool getedges, std::vector<glm::vec3>& edges, std::vector<Ray>& esledges) {
+	std::vector<Ray> splitLines;
+	std::vector<bool> sideLines;
+
+	getSplittingLinesInLeafWithSide(leaf, splitLines, sideLines);
+	if (!alldir) {
+		std::vector<Ray> boxSides = model->boundingCube.getCubeSideSquare(maindir).quadLines;
+		for (int i = 0; i < 4; i++) {
+			Ray boxside = boxSides[i];
+			boxside.index = splitLines.size() + i;
+			splitLines.push_back(boxside);
+		}
+	}
+
+	std::vector<Ray> filteredsplitLines;
+	std::vector<bool> filterdsideLines;
+	filterSplittingLines(leaf, splitLines, sideLines, filteredsplitLines, filterdsideLines);
+	int size = filteredsplitLines.size();// +boxSides.size();
+	if (size == 0) return false;
+	std::vector<std::vector<int>> combi2 = Combinations::combi2(size);
+	std::vector<std::vector<int>> combi3 = Combinations::combi3(size);
+	std::vector<std::vector<int>> combi4 = Combinations::combi4(size);
+
+	if (checkPrim(prim, combi2, combi3, combi4, filteredsplitLines, filterdsideLines, ray, leaf, print, edgeSelection, getedges, edges, esledges)) return true;
+	else if (print) std::cout << "Not Found" << std::endl;
+	return false;
+}
 
 bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& combi2, std::vector<std::vector<int>>& combi3, std::vector<std::vector<int>>& combi4,
-	std::vector<Ray> splitLines, std::vector<bool>& sideLines, Ray& ray, Node* leaf, bool print, int edgeSelection, bool getedges, std::vector<glm::vec3>& edges,
-	std::vector<Ray>& eslEdges) {
+								std::vector<Ray> splitLines, std::vector<bool>& sideLines, Ray& ray, Node* leaf, bool print, int edgeSelection, bool getedges, 
+								std::vector<glm::vec3>& edges, std::vector<Ray>& eslEdges) {
 
-	//glm::vec3 v1 = model->vertices[3 * prim].pos;
-	//glm::vec3 v2 = model->vertices[3 * prim + 1].pos;
-	//glm::vec3 v3 = model->vertices[3 * prim + 2].pos;
 	std::vector<Ray> edgeRays = model->getEdgeRaysForPrim(prim);
-	//= { Ray(v3, v2), Ray(v1, v3), Ray(v2, v1) };
 
 	bool printAll = false;
 	int splitLinesSize = splitLines.size();
@@ -1604,7 +1550,7 @@ bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& comb
 			for (int v : e.v) edges.push_back(model->verticesIndexed[v]);
 		}
 	}
-	
+
 	// Check all combis involving silhouette edges of some sort
 	int silhouettesize = 0;
 	std::vector<int> silhouetteTris;
@@ -1625,7 +1571,7 @@ bool RaySpaceTree::checkPrim(const int prim, std::vector<std::vector<int>>& comb
 	// Check combis involving second tier silhouette edges
 	if (silhouetteEdgesSecond.size() > 0) {
 		if (checkSilhouetteCombis(prim, ray, leaf, print, printAll, silhouetteLines, splitLines, silhouetteEdgesSecond, silhouetteEdges,
-									silhouetteTris, edgeRays, silhEdgeVertices, silhVertexRays, edgeVertexCombis)) return true;
+			silhouetteTris, edgeRays, silhEdgeVertices, silhVertexRays, edgeVertexCombis)) return true;
 	}
 
 	return false;

@@ -72,7 +72,7 @@ public:
 	}
 
 	Model(const char* filename, bool indexed = true, bool cacheEE = false, bool cacheEEE = false) :
-			cacheEE(cacheEE), cacheEEE(cacheEEE) {
+		cacheEE(cacheEE), cacheEEE(cacheEEE) {
 		loadModelFromFile(filename);
 		//findPotentialSilhouettes(glm::vec3(1, 0, 0));
 		setUpEmbreeTracer();
@@ -176,7 +176,7 @@ public:
 				if (count % 3 == 0) ind++;
 				else if (count % 3 == 2) {
 					normalPerTri.push_back(glm::normalize(glm::cross(vertices[vertices.size() - 3].pos - vertices[vertices.size() - 1].pos,
-																	 vertices[vertices.size() - 2].pos - vertices[vertices.size() - 1].pos)));
+						vertices[vertices.size() - 2].pos - vertices[vertices.size() - 1].pos)));
 					edgesPerTriangle.push_back(std::vector<Edge>(3));
 
 					for (int x = 0; x < 3; x++) {
@@ -317,7 +317,7 @@ public:
 		glm::vec3 normal = normalPerTri[prim];
 		glm::vec3 center = vertices[3 * prim].center;
 		Ray normalInvert = Ray(center + normal, center);
-		for (int i=0; i<3; i++) {
+		for (int i = 0; i < 3; i++) {
 			Ray triEdge = Ray(verticesIndexed[triEdges[i].v[0]], verticesIndexed[triEdges[i].v[1]], triEdges[i].index);
 			if (triEdge.side(normalInvert)) triEdge.inverseDir();
 			edgeRays.push_back(triEdge);
@@ -401,7 +401,7 @@ public:
 		//else edgeEdgeCombis[e2.index][e1.index] = hit;
 		//return hit == 1;
 	}
-	
+
 	bool checkEdgeEdge(const Edge& e1, const Edge& e2, bool alldir, glm::vec3 maindir) {
 		if (e1.v[0] == e2.v[0] || e1.v[1] == e2.v[1] ||
 			e1.v[0] == e2.v[1] || e1.v[1] == e2.v[0])  return false;
@@ -500,7 +500,7 @@ public:
 			bool dot2 = tri2normallinedot < 0;
 
 			if (dot1 == dot2) return false;
-			glm::vec3 jitter = glm::normalize(halfway - vpos- vertices[e.triangles[0] * 3].center);
+			glm::vec3 jitter = glm::normalize(halfway - vpos - vertices[e.triangles[0] * 3].center);
 			float dotjittertri1 = glm::dot(jitter, normalPerTri[e.triangles[0]]);
 			float dotjittertri2 = glm::dot(jitter, normalPerTri[e.triangles[1]]);
 			if (dotjittertri1 > 0 || dotjittertri2 > 0) {
@@ -519,9 +519,9 @@ public:
 	//	}
 	//}
 
-	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir, 
-									std::vector<Edge>& silhouetteEdge,
-									std::set<int>& checktris = std::set<int>()) {
+	void findSilhouetteEdgesForTri(int prim, bool alldir, glm::vec3 maindir,
+		std::vector<Edge>& silhouetteEdge,
+		std::set<int>& checktris = std::set<int>()) {
 
 		std::set<Edge> edgesToCheck = std::set<Edge>();
 
@@ -542,7 +542,7 @@ public:
 
 			// check if edge lies on correct side of triangle
 			if (glm::dot(normalPerTri[prim], verticesIndexed[e.v[0]] - vertices[3 * prim].center) < 0 &&
-			    glm::dot(normalPerTri[prim], verticesIndexed[e.v[1]] - vertices[3 * prim].center) < 0) continue;
+				glm::dot(normalPerTri[prim], verticesIndexed[e.v[1]] - vertices[3 * prim].center) < 0) continue;
 
 			glm::vec3 v1pos = verticesIndexed[e.v[0]];
 			glm::vec3 v2pos = verticesIndexed[e.v[1]];
@@ -608,7 +608,7 @@ public:
 		}
 	}
 
-	double getIntersectionDepthForPrim(const int i, const Ray& r) { 
+	double getIntersectionDepthForPrim(const int i, const Ray& r) {
 		glm::dvec3 v0 = verticesL[i].pos;
 		glm::dvec3 v1 = verticesL[i + 1].pos;
 		glm::dvec3 v2 = verticesL[i + 2].pos;
@@ -621,14 +621,14 @@ public:
 		return t;
 	}
 
-	bool getIntersectionWithPrim(int i, const Ray& r, float &depth) {
+	bool getIntersectionWithPrim(int i, const Ray& r, float& depth) {
 		Ray edge;
 		// clockwise triangle edges
-		edge = Ray(vertices[i].pos, vertices[i+1].pos);
+		edge = Ray(vertices[i].pos, vertices[i + 1].pos);
 		if (edge.side(r)) return false;
 		edge = Ray(vertices[i + 1].pos, vertices[i + 2].pos);
 		if (edge.side(r)) return false;
-		edge = Ray(vertices[i+2].pos, vertices[i].pos);
+		edge = Ray(vertices[i + 2].pos, vertices[i].pos);
 		if (edge.side(r)) return false;
 		depth = getIntersectionDepthForPrim(i, r);
 		return true;

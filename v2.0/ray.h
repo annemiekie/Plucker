@@ -111,10 +111,10 @@ struct Ray {
         o.inverseDir();
         if ((glm::distance(u, o.u) < eps && glm::distance(v, o.v) < eps)) return true;
         return false;
-       // glm::dvec3 diffv = glm::abs(v - o.v);
-       // glm::dvec3 diffu = glm::abs(u - o.u);
-       // if (!glm::all(glm::lessThan(diffu, glm::dvec3(eps)))) return false;
-       // if (!glm::all(glm::lessThan(diffv, glm::dvec3(eps)))) return false;
-       // return true;
+        // glm::dvec3 diffv = glm::abs(v - o.v);
+        // glm::dvec3 diffu = glm::abs(u - o.u);
+        // if (!glm::all(glm::lessThan(diffu, glm::dvec3(eps)))) return false;
+        // if (!glm::all(glm::lessThan(diffv, glm::dvec3(eps)))) return false;
+        // return true;
     }
 };

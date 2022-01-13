@@ -86,7 +86,7 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 	for (int y = 0; y < res.y; y++) {
 		int yind = (res.y - 1 - y);
 		for (int x = 0; x < res.x; x++) {
-			const glm::vec2 pixpos { (x + .5f) / res.x * 2.0f - 1.0f, 1.0f - (y + .5f) / res.y * 2.0f };
+			const glm::vec2 pixpos{ (x + .5f) / res.x * 2.0f - 1.0f, 1.0f - (y + .5f) / res.y * 2.0f };
 			Ray ray = cam->pixRayDirection(pixpos);
 			float tri = pixels[yind * res.x + x];
 			if (tri > 0) {
@@ -95,7 +95,7 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 				if (rst->model->getIntersectionWithPrim(tri_id, ray, t))
 					rst->putPrimitive(ray, tri_id, storeRays);
 				else if (rst->model->getIntersectionEmbree(ray, tri_id, t))
-						rst->putPrimitive(ray, tri_id, storeRays);
+					rst->putPrimitive(ray, tri_id, storeRays);
 
 			}
 		}
@@ -103,7 +103,7 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 }
 
 void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst, std::vector<std::pair<int, int>>& samples,
-				std::set<int>& tris, int& count) {
+	std::set<int>& tris, int& count) {
 
 	for (int y = 0; y < res.y; y++) {
 		int yind = (res.y - 1 - y);
@@ -118,7 +118,7 @@ void makeSample(glm::ivec2 res, Camera* cam, GLfloat* pixels, RaySpaceTree* rst,
 					tris.insert(tri_id);
 				else if (rst->model->getIntersectionEmbree(ray, tri_id, t))
 					if (tri_id >= 0) tris.insert(tri_id);
-				samples.push_back({ count, tri_id});
+				samples.push_back({ count, tri_id });
 			}
 			else if (tri_id == -1) samples.push_back({ count, -1 });
 			count++;
@@ -138,7 +138,7 @@ void fillMoreSamples(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, Tex
 	}
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-	int noSamples = (sampler.samples.size() - (sampler.samples.size() / sampler.ratio + 1)) * texrender.height* texrender.width;
+	int noSamples = (sampler.samples.size() - (sampler.samples.size() / sampler.ratio + 1)) * texrender.height * texrender.width;
 	std::cout << "Put " << noSamples << " samples in RST in " << diff << " ms." << std::endl;
 
 }
@@ -152,7 +152,7 @@ std::vector<Ray> constructRaysRandom(Model* model, int level) {
 		float r2 = (float)rand() / static_cast <float> (RAND_MAX);
 		int redge = int(r2 * 3.f);
 
-		Ray ray(model->vertices[3 * r1 + (redge+1)%3].pos, model->vertices[3 * r1 + redge].pos);
+		Ray ray(model->vertices[3 * r1 + (redge + 1) % 3].pos, model->vertices[3 * r1 + redge].pos);
 		bool dupli = false;
 		for (auto r : rays) if (r.equal(ray, 1E-6)) { dupli = true; break; }
 		if (dupli) continue;
@@ -218,7 +218,7 @@ void makeRSTembree(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, int p
 
 void makeAdaptiveRST(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, TextureRenderer& texrender, int option) {
 	int imgsize = texrender.width * texrender.height;
-	std::vector<std::pair<int, int>> samples = std::vector<std::pair<int,int>>();
+	std::vector<std::pair<int, int>> samples = std::vector<std::pair<int, int>>();
 	std::set<int> tris = std::set<int>();
 	std::vector<Camera*> cams = std::vector<Camera*>();
 	int count = 0;
@@ -228,10 +228,10 @@ void makeAdaptiveRST(RaySpaceTree* rst, SphereSampler& sampler, Camera* cam, Tex
 	auto start_time = std::chrono::high_resolution_clock::now();
 	std::vector<Ray> raytraceRays;
 	// prepare samples
-	for (int i = 0; i < sampler.samples.size(); i+=sampler.ratio) {
+	for (int i = 0; i < sampler.samples.size(); i += sampler.ratio) {
 		Camera* cam1 = cam->makeCopy();
 		cam1->setPositionAndForward(sampler.samples[i], rst->model->center);
-		
+
 		GLfloat* pixels = texrender.render(cam1);
 		makeSample(texrender.res, cam1, pixels, rst, samples, tris, count);
 		cams.push_back(cam);
@@ -270,7 +270,7 @@ void compareIntersectionMethods(Camera* cam, Model* model, TextureRenderer& texr
 				//std::cout << "Rasterization: " << triRast << 
 				std::cout << "Trace Plucker: " << triTracePlucker << " Trace Embree: " << triTraceEmbree << std::endl;
 			}
-			if (triTraceEmbree >= 0 && std::fabs(t1-t2) > 1E-8 ) {
+			if (triTraceEmbree >= 0 && std::fabs(t1 - t2) > 1E-8) {
 				std::cout << "Trace Plucker depth: " << t1 << "Trace Embree depth: " << t2 << std::endl;
 			}
 
@@ -433,7 +433,7 @@ void scrollHandler(GLFWwindow* window, double xoffset, double yoffset) {
 
 int main() {
 
-	#pragma region Setup
+#pragma region Setup
 	/*create an instance of config*/
 	libconfig::Config config;
 
@@ -546,13 +546,13 @@ int main() {
 	Sphere sphere(model.center, model.radius);
 	sphere.vaoGeneration(10, 20);
 	Sphere sampleSphere(model.center, model.radius * 1.5);
-    sampleSphere.vaoGeneration(10, 20);
+	sampleSphere.vaoGeneration(10, 20);
 
 	///////////////////// Create sample locations
 	glm::vec3 maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
 	SphereSampler sampler(&sampleSphere, noSamples, createRatio);
 	if (alldir) sampler.createSamplesFull();
-	else sampler.createSamples(sgn, maindir); 
+	else sampler.createSamples(sgn, maindir);
 	sampler.vaoGeneration();
 	std::cout << "Created " << sampler.samples.size() << " camera locations in all directions" << std::endl;
 
@@ -565,7 +565,7 @@ int main() {
 	Orthocamera ocam(model.radius, model.radius, model.radius * 2 > 30.f ? model.radius * 2 : 30.f);
 	Camera* cam = &ocam;
 
-	#pragma endregion
+#pragma endregion
 
 	/////////////////// Make rayspacetree
 	std::cout << "Constructing RST for direction " << dir << " with depth = " << depth << " and camera sample size = " << w << "x" << h << "..." << std::endl;
@@ -573,7 +573,7 @@ int main() {
 	rst.cacheCombi = cacheCombi;
 	bool storeRays = true;
 
-	
+
 	if (sampling) makeRSTembree(&rst, sampler, cam, w, h, constructOption, storeRays);
 	else makeEmptyRST(&rst, constructOption);
 	auto start_time = std::chrono::high_resolution_clock::now();
@@ -589,7 +589,7 @@ int main() {
 	//		std::cout << std::endl;
 	//	}
 	//}
-	
+
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	std::cout << "Completed RST1 in " << diff << " ms" << std::endl;
@@ -606,7 +606,7 @@ int main() {
 		checkTreeByTracing(cam, &rst, texrender);
 	}
 
-	#pragma region rendersetup
+#pragma region rendersetup
 
 	////////////////// Cleanup
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -657,16 +657,16 @@ int main() {
 
 	// Lighting
 	float lightdis = 3 * model.radius;
-	glm::vec3 lightPos1 = glm::vec3(-lightdis, 2*lightdis, -lightdis);
-	glm::vec3 lightPos2 = glm::vec3(-lightdis, 2*lightdis, lightdis);
-	glm::vec3 lightPos3 = glm::vec3(lightdis, -2*lightdis, -lightdis);
+	glm::vec3 lightPos1 = glm::vec3(-lightdis, 2 * lightdis, -lightdis);
+	glm::vec3 lightPos2 = glm::vec3(-lightdis, 2 * lightdis, lightdis);
+	glm::vec3 lightPos3 = glm::vec3(lightdis, -2 * lightdis, -lightdis);
 	//glm::vec3 lightPos4 = glm::vec3(lightdis, -lightdis, lightdis);
 
 	glUseProgram(mainProgram.index);
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos1"), 1, glm::value_ptr(lightPos1));
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos2"), 1, glm::value_ptr(lightPos2));
 	glUniform3fv(glGetUniformLocation(mainProgram.index, "lightPos3"), 1, glm::value_ptr(lightPos3));
-	#pragma endregion
+#pragma endregion
 
 
 	//rst.checkLeaves();
@@ -721,7 +721,7 @@ int main() {
 				//eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);
 				//edgeRays.makeVaoVbo(edges);
 
-				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges)) 
+				if (rst.check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges))
 					extremalStabbing.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst.maindir);
 				//if (edges.size() > 0) {
 				edgeRays.makeVaoVbo(edges);
@@ -734,7 +734,7 @@ int main() {
 
 			picking = false;
 		}
-		
+
 		if (drawRay) {
 			alphaLines = 0.5f;
 			Ray r = mainCamera.pixRayDirection(drawRayPos);
@@ -807,7 +807,7 @@ int main() {
 		glViewport(0, 0, width, height);
 
 		// Clear the framebuffer to black and depth to maximum value
-		glClearDepth(1.0f);  
+		glClearDepth(1.0f);
 		glClearColor(0.5f, 0.6f, 0.65f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -895,10 +895,10 @@ int main() {
 		// Present result to the screen
 		glfwSwapBuffers(window);
 	}
-	
+
 	glfwDestroyWindow(window);
-	
+
 	glfwTerminate();
 
-    return 0;
+	return 0;
 }
