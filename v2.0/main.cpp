@@ -13,7 +13,6 @@
 // Library for loading an image
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
 #include <cstring>
 
 
@@ -31,7 +30,6 @@
 #include "cube.h"
 #include "models.h"
 #include "shader.h"
-#include "buffers.h"
 #include "raytracer.h"
 #include "model.h"
 #include "sphere.h"

@@ -101,7 +101,7 @@ void RaySpaceTree::fillExact() {
 
 		}
 		std::cout << std::endl;
-		if (cacheCombi)  std::cout << "Combi Cache, Size: " << lineCombiToRays.size() << " Hits: " << cachehitcombi << " Hash Hit Size: " << hashes.size() << std::endl;
+		if (cacheCombi)  std::cout << "Combi Cache, Size: " << combiCache.cache.size() << " Hits: " << combiCache.hitcount << " Hash Hit Size: " << combiCache.hashes.size() << std::endl;
 		if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " << model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
 		if (model->cacheEE) std::cout << "Edge Edge Cache, Size: " << model->edgeEdgeCombis[0].size() << " Hits: " << model->cachehitee << std::endl;
 	}
@@ -359,22 +359,22 @@ void RaySpaceTree::constructAdaptive(int level, Node* node, glm::ivec2 res, std:
 	}
 }
 
-uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines, int nrOfSilhVertices) {
-	uint64_t combiIndex = 0;
-	// 16 bits not enough for large model
-	for (int i = 0; i < nrOfSplitLines; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size() + model->verticesIndexed.size()) << i * 16;
-	for (int i = nrOfSplitLines + 1; i < nrOfSilhVertices; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size()) << i * 16;
-	for (int i = nrOfSplitLines + nrOfSilhVertices; i < 4; i++) combiIndex = combiIndex | uint64_t(lines[i].index) << i * 16;
-	return combiIndex;
-}
-
-uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines) {
-	uint64_t combiIndex = 0;
-	// 16 bits not enough for large model
-	for (int i = 0; i < nrOfSplitLines; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size()) << i * 16;
-	for (int i = nrOfSplitLines; i < 4; i++) combiIndex = combiIndex | uint64_t(lines[i].index) << i * 16;
-	return combiIndex;
-}
+//uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines, int nrOfSilhVertices) {
+//	uint64_t combiIndex = 0;
+//	// 16 bits not enough for large model
+//	for (int i = 0; i < nrOfSplitLines; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size() + model->verticesIndexed.size()) << i * 16;
+//	for (int i = nrOfSplitLines + 1; i < nrOfSilhVertices; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size()) << i * 16;
+//	for (int i = nrOfSplitLines + nrOfSilhVertices; i < 4; i++) combiIndex = combiIndex | uint64_t(lines[i].index) << i * 16;
+//	return combiIndex;
+//}
+//
+//uint64_t RaySpaceTree::makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines) {
+//	uint64_t combiIndex = 0;
+//	// 16 bits not enough for large model
+//	for (int i = 0; i < nrOfSplitLines; i++) combiIndex = combiIndex | uint64_t(lines[i].index + model->edges.size()) << i * 16;
+//	for (int i = nrOfSplitLines; i < 4; i++) combiIndex = combiIndex | uint64_t(lines[i].index) << i * 16;
+//	return combiIndex;
+//}
 
 Ray RaySpaceTree::getRay(std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
 	int camNr = raynr / (res.x * res.y);
@@ -921,17 +921,6 @@ bool RaySpaceTree::checkPrimVisibleForRay(Ray& ray, const int prim, std::vector<
 	int embreePrim = -1;
 	float embreeDepth = 0.f;
 	float primaryprimdepth = model->getIntersectionDepthForPrim(prim * 3, ray);
-	//model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
-	//if (embreePrim == prim || fabsf(embreeDepth - primaryprimdepth) < 1E-3) return true;
-	//if (inplane) {
-	//	glm::vec3 v1 = model->vertices[3 * embreePrim].pos;
-	//	glm::vec3 v2 = model->vertices[3 * embreePrim + 1].pos;
-	//	glm::vec3 v3 = model->vertices[3 * embreePrim + 2].pos;
-	//	std::vector<Ray> edgeRays = { Ray(v2, v1), Ray(v3, v2), Ray(v1, v3) };
-	//	glm::dvec3 cross = glm::cross(glm::normalize(edgeRays[0].direction), glm::normalize(edgeRays[1].direction));
-	//	double v = fabsf(glm::dot(ray.direction, cross));
-	//	if (v < 1E-10) return true;
-	//}
 
 	if (ignore.size() > 0) {
 		std::vector<float> uniquePrimDepth;
@@ -1078,22 +1067,38 @@ bool RaySpaceTree::checkCombi(const int prim, Ray& ray, Node* leaf, bool print, 
 
 					std::vector<Ray> lines;
 					std::vector<int> tris;
-
-					for (int k = 0; k < nrOfsplitLines; k++) lines.push_back(splitLines[splitLineCombis[j][k]]);
+					std::vector<uint64_t> indices;
+					int linecount = 0;
+					for (int k = 0; k < nrOfsplitLines; k++) {
+						lines.push_back(splitLines[splitLineCombis[j][k]]);
+						if (cacheCombi) indices.push_back(lines[linecount].index + model->edges.size() + model->vertices.size());
+						linecount++;
+					}
 					if (nrOfVertices) {
 						lines.push_back(silhouetteLines[silhVertexCombis[h][0]]);
 						lines.push_back(silhVertexLines[silhVertexCombis[h][1]]);
+						if (cacheCombi) {
+							indices.push_back(lines[linecount].index + model->edges.size());
+							indices.push_back(lines[linecount + 1].index + model->edges.size());
+						}
 						tris.push_back(silhouetteTris[2 * silhVertexCombis[h][0]]);
 						tris.push_back(silhouetteTris[2 * silhVertexCombis[h][0] + 1]);
+						linecount += 2;
 					}
 					for (int k = 0; k < nrOfsilhEdges; k++) {
 						lines.push_back(silhouetteLines[silhLineCombis[i][k]]);
 						tris.push_back(silhouetteTris[2 * silhLineCombis[i][k]]);
 						tris.push_back(silhouetteTris[2 * silhLineCombis[i][k] + 1]);
+						if (cacheCombi) indices.push_back(lines[linecount].index);
+						linecount++;
 					}
-					for (int k = 0; k < nrOfTriEdges; k++) lines.push_back(triEdgeRays[edges[g][k]]);
+					for (int k = 0; k < nrOfTriEdges; k++) {
+						lines.push_back(triEdgeRays[edges[g][k]]);
+						if (cacheCombi) indices.push_back(lines[linecount].index);
+						linecount++;
+					}
 
-					if (checkRaysThroughLines(prim, ray, leaf, 0, triEdgeRays, printAll, tris, lines, nrOfsplitLines, nrOfVertices, 4, vischeck)) { // change this!!
+					if (checkRaysThroughLines(prim, ray, leaf, 0, triEdgeRays, printAll, tris, lines, indices, 4, vischeck)) { // change this!!
 						if (print) std::cout << combi_text << std::endl;
 						return true;
 					}
@@ -1162,23 +1167,10 @@ bool RaySpaceTree::checkExtremalStabbingLine(const int prim, Ray& ray, Node* lea
 
 bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 											bool print, std::vector<int>& visibleTriIgnore, std::vector<Ray>& lines,
-											int nrOfSplittingLines, int nrOfSplittingVertices, int rayIgnoresize, bool vischeck) {
+											std::vector<uint64_t>& indices, int rayIgnoresize, bool vischeck) {
 	std::vector<Ray> intersectLines;
 	uint64_t mapcombi;
-	if (cacheCombi) {
-		mapcombi = makeCombiKey(lines, nrOfSplittingLines);
-		if (lineCombiToRays.contains(mapcombi)) {
-			intersectLines = lineCombiToRays.at(mapcombi);
-			//std::cout << "found:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
-			cachehitcombi++;
-		}
-		else {
-			intersectLines = LineThroughFour::find(lines, model);
-			//lineCombiToRays[mapcombi] = intersectLines;
-			//std::cout << "new:" << lines[0].index << " " << lines[1].index << " " << lines[2].index << " " << lines[3].index << std::endl;
-		}
-	}
-	else intersectLines = LineThroughFour::find(lines, model);
+	if (!cacheCombi || !combiCache.getValue(indices, intersectLines)) intersectLines = LineThroughFour::find(lines, model);
 	std::vector<Ray> cacheLines;
 
 	for (int i = 0; i < intersectLines.size(); i++) {
@@ -1192,12 +1184,12 @@ bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, c
 		if (checkRay) {
 			if (cacheCombi) {
 				if (i == 0) cacheLines.push_back(intersectLines[1]);
-				lineCombiToRays[mapcombi] = cacheLines;
+				combiCache.storeValueAtLastKey(cacheLines);
 			}
 			return true;
 		}
 	}
-	if (cacheCombi) lineCombiToRays[mapcombi] = cacheLines;
+	if (cacheCombi) combiCache.storeValueAtLastKey(cacheLines);
 	return false;
 }
 

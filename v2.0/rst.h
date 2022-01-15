@@ -9,41 +9,34 @@
 #include <set>
 #include "vertex.h"
 #include <vector>
-#include "orthocamera.h"
 #include "model.h"
 #include <queue>
 #include "nodeSamples.h"
+#include "orthocamera.h"
+#include "model.h"
 #include "lineThroughFour.h"
 #include "combinations.h"
 #include "textureRenderer.h"
 #include <embree3/rtcore.h>
-#include "tetrahedron.h"
-//#include "raytracer.h"
+#include "cache.h"
 
 static bool false_bool = false;
 
 class RaySpaceTree {
-
 	std::queue<nodeSamples> toProcess = std::queue<nodeSamples>();
 
 public:
-
+	Cache<std::vector<Ray>> combiCache;
+	bool cacheCombi = false;
 	Node* rootNode;
-	Model* model;
 	int depth = 0;
 	int noLeaves = 0;
 	glm::vec3 maindir;
 	bool alldir = false;
 	std::vector<Node*> nodes = std::vector<Node*>();
 	std::set<int> visPrims = std::set<int>();
-	robin_hood::unordered_map<uint64_t, std::vector<Ray>> lineCombiToRays;
-	//bool cacheEE = false;
-	//bool cacheEEE = false;
-	bool cacheCombi = false;
-	int cachehitcombi = 0;
-	std::set<size_t> hashes = std::set<size_t>();
-
 	std::vector<Ray> wronglines = std::vector<Ray>();
+	Model* model;
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
@@ -109,8 +102,8 @@ public:
 
 	int numOfLeaf(int ind);
 	int getNumberOfTriInleaf(int leafnum);
-	uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines);
-	uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines, int nrOfSilhVertices);
+	//uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines);
+	//uint64_t makeCombiKey(std::vector<Ray>& lines, int nrOfSplitLines, int nrOfSilhVertices);
 
 	std::vector<Ray> getExtremalStabbingInLeaf(Node* n, std::vector<int>& notfoundprim = std::vector<int>(), bool print = false);
 	void checkLeaves();
@@ -132,7 +125,7 @@ public:
 							std::vector<Ray>& lines = std::vector<Ray>(), int rayIgnoresize = 0, bool vischeck = true);
 	bool checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 								bool print = false, std::vector<int>& visibleTriIgnore = std::vector<int>(),
-								std::vector<Ray>& lines = std::vector<Ray>(), int nrOfSplittingLines = 0, int nrOfSilhVertices = 0,
+								std::vector<Ray>& lines = std::vector<Ray>(), std::vector<uint64_t>& indices = std::vector<uint64_t>(),
 								int rayIgnoresize = 0, bool vischeck = true);
 	bool checkRayInPrim(std::vector<Ray>& edgeRays, Ray& line, std::vector<Ray>& lines4, int prim, bool& inPlane, bool print);
 	bool checkRayInBox(const Ray& ray, std::vector<Ray>& lines, int rayIgnoresize, bool print);

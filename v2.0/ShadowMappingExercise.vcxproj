@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="models.cpp" />
     <ClCompile Include="rst.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -36,7 +35,7 @@
     <None Include="texproj.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="buffers.h" />
+    <ClInclude Include="cache.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
@@ -45,7 +44,6 @@
     <ClInclude Include="linemodel.h" />
     <ClInclude Include="lineThroughFour.h" />
     <ClInclude Include="model.h" />
-    <ClInclude Include="models.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="nodeSamples.h" />
     <ClInclude Include="orthocamera.h" />
@@ -57,6 +55,9 @@
     <ClInclude Include="raytracer.h" />
     <ClInclude Include="RobinHood.h" />
     <ClInclude Include="rst.h" />
+    <ClInclude Include="rstBuilder.h" />
+    <ClInclude Include="rstBuilderExact.h" />
+    <ClInclude Include="rstBuilderSamples.h" />
     <ClInclude Include="sample.h" />
     <ClInclude Include="segment2D.h" />
     <ClInclude Include="shader.h" />
