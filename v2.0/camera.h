@@ -8,10 +8,11 @@
 
 // Library for window creation and event handling
 #include <GLFW/glfw3.h>
-#include "Ray.h"
+#include "ray.h"
 
 struct Camera
 {
+
 	glm::vec3 position;
 	glm::mat4 invview;
 	glm::vec3 forward;
@@ -21,11 +22,11 @@ struct Camera
 	float far;
 
 	Camera(float near = 0.1f, float far = 30.f)
-	: position(glm::vec3(0, 0, 0))
-	, forward (glm::vec3(0, 0,-1))
-	, up      (glm::vec3(0, 1, 0)) 
-	, near    (near)
-	, far     (far)
+		: position(glm::vec3(0, 0, 0))
+		, forward(glm::vec3(0, 0, -1))
+		, up(glm::vec3(0, 1, 0))
+		, near(near)
+		, far(far)
 	{
 		invview = invVMatrix();
 	}
@@ -41,7 +42,7 @@ struct Camera
 
 	void setPositionAndForward(glm::vec3 pos, glm::vec3 lookat) {
 		position = pos;
-		forward = lookat-pos;
+		forward = lookat - pos;
 		invview = invVMatrix();
 	}
 
@@ -62,7 +63,7 @@ struct Camera
 
 	virtual glm::mat4 vMatrix() const
 	{
-		return glm::lookAt(position, position+forward, up);
+		return glm::lookAt(position, position + forward, up);
 	}
 
 	virtual glm::mat4 pMatrix() const

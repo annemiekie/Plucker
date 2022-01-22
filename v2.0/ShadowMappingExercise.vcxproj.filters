@@ -48,6 +48,9 @@
     <ClCompile Include="rst.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="rstBuilderExact.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="line.frag">
@@ -124,7 +127,7 @@
     <ClInclude Include="rst.h">
       <Filter>Headers\Tree Components</Filter>
     </ClInclude>
-    <ClInclude Include="lineThroughFour.h">
+    <ClInclude Include="findLineThroughFour.h">
       <Filter>Headers\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="linemodel.h">
@@ -180,6 +183,33 @@
     </ClInclude>
     <ClInclude Include="cache.h">
       <Filter>Headers\Caching</Filter>
+    </ClInclude>
+    <ClInclude Include="raytracerEmbree.h">
+      <Filter>Headers\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="extremalStabbingLine.h">
+      <Filter>Headers\Tree Building</Filter>
+    </ClInclude>
+    <ClInclude Include="ESLfinder.h">
+      <Filter>Headers\Tree Building</Filter>
+    </ClInclude>
+    <ClInclude Include="lineThroughFourLines.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="buildOptions.h">
+      <Filter>Headers\Tree Building</Filter>
+    </ClInclude>
+    <ClInclude Include="visualizer.h">
+      <Filter>Headers\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="visComponents.h">
+      <Filter>Headers\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="colors.h">
+      <Filter>Headers\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="lights.h">
+      <Filter>Headers\Visualization</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -25,8 +25,9 @@ struct PreviewCamera : Camera {
 
 	glm::vec3 lookat;
 
+	PreviewCamera() : Camera() {};
 
-	PreviewCamera::PreviewCamera(float radius, glm::vec3 lookat = glm::vec3(0, 0, 0), float far = 30.f, float near = 0.1f)
+	PreviewCamera(float radius, glm::vec3 lookat = glm::vec3(0, 0, 0), float far = 30.f, float near = 0.1f)
 		: Camera (near, far)
 		, up(glm::vec3(0, 1, 0))
 		, lookat(lookat)

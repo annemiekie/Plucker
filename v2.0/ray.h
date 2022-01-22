@@ -8,7 +8,8 @@
 #include <Eigen/dense>
 #include <iostream>
 
-struct Ray {
+class Ray {
+public:
     glm::dvec3 origin{ 0.0f };
     glm::dvec3 direction{ 0.0f, 0.0f, -1.0f };
     glm::dvec3 invdir;

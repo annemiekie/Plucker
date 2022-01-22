@@ -387,6 +387,11 @@ public:
         return lineVAO;
     };
 
+    virtual void draw() override {
+        glBindVertexArray(vao);
+        glDrawArrays(GL_LINES, 0, 24);
+    };
+
 };
 
 #endif

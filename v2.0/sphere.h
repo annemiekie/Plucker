@@ -155,6 +155,11 @@ public:
 
     }
 
+    virtual void draw() override {
+        glBindVertexArray(vao);
+        glDrawElements(GL_LINES, indSize, GL_UNSIGNED_INT, (void*)0);
+    }
+
 };
 
 #endif

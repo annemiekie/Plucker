@@ -5,7 +5,6 @@
 #include "edge.h"
 #include "vertex.h"
 
-#pragma once
 struct Primitive {
 	int index;
 	glm::vec3 normal;

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="rst.cpp" />
+    <ClCompile Include="rstBuilderExact.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="line.frag" />
@@ -35,14 +36,20 @@
     <None Include="texproj.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="buildOptions.h" />
     <ClInclude Include="cache.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="colors.h" />
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
     <ClInclude Include="edge.h" />
+    <ClInclude Include="ESLfinder.h" />
+    <ClInclude Include="extremalStabbingLine.h" />
     <ClInclude Include="geoObject.h" />
+    <ClInclude Include="lights.h" />
     <ClInclude Include="linemodel.h" />
-    <ClInclude Include="lineThroughFour.h" />
+    <ClInclude Include="findLineThroughFour.h" />
+    <ClInclude Include="lineThroughFourLines.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="nodeSamples.h" />
@@ -53,6 +60,7 @@
     <ClInclude Include="primitive.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="raytracer.h" />
+    <ClInclude Include="raytracerEmbree.h" />
     <ClInclude Include="RobinHood.h" />
     <ClInclude Include="rst.h" />
     <ClInclude Include="rstBuilder.h" />
@@ -68,6 +76,8 @@
     <ClInclude Include="textureRenderer.h" />
     <ClInclude Include="triWedge.h" />
     <ClInclude Include="vertex.h" />
+    <ClInclude Include="visComponents.h" />
+    <ClInclude Include="visualizer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F108EF87-748D-44F4-8D03-92EF4625363D}</ProjectGuid>
@@ -204,6 +214,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\libraries\embree3;$(ProjectDir)..\libraries;$(ProjectDir)..\libraries\glm;$(ProjectDir)..\libraries\tinyobjloader;$(ProjectDir)..\libraries\glew-2.0.0\include;$(ProjectDir)..\libraries\glfw-3.3.4.bin.WIN64\include;$(ProjectDir)..\libraries\CImg-2.9.4;C:\Program Files\Intel\Embree3\include;$(ProjectDir)..\libraries\libconfig-1.7.2\lib;$(ProjectDir)..\libraries\eigen-3.3.9</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <DisableSpecificWarnings>4244;4305;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

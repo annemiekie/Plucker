@@ -14,7 +14,7 @@
 #include "nodeSamples.h"
 #include "orthocamera.h"
 #include "model.h"
-#include "lineThroughFour.h"
+#include "findLineThroughFour.h"
 #include "combinations.h"
 #include "textureRenderer.h"
 #include <embree3/rtcore.h>
@@ -26,7 +26,7 @@ class RaySpaceTree {
 	std::queue<nodeSamples> toProcess = std::queue<nodeSamples>();
 
 public:
-	Cache<std::vector<Ray>> combiCache;
+	Cache<std::vector<Line4>> combiCache;
 	bool cacheCombi = false;
 	Node* rootNode;
 	int depth = 0;
@@ -37,6 +37,7 @@ public:
 	std::set<int> visPrims = std::set<int>();
 	std::vector<Ray> wronglines = std::vector<Ray>();
 	Model* model;
+	std::vector<Ray> splitters;
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
@@ -55,6 +56,8 @@ public:
 
 	Node* descend(Ray& ray);
 	Node* descend(Ray& ray, Node* node);
+
+	void getStatistics();
 
 	//void descendWithLines(Ray& ray, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, GeoObject* object);
 	//void descendWithLines(Ray& ray, Node* node, std::vector<glm::vec3>& splitters, std::vector<glm::vec3>& rays, std::vector<glm::vec3>& colors, GeoObject* object);

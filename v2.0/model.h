@@ -16,6 +16,7 @@
 #include "vertex.h"
 #include "edge.h"
 #include "cube.h"
+#include "sphere.h"
 #include <set>
 #include <utility>
 #include "primitive.h"
@@ -58,6 +59,7 @@ public:
 	int primsize = 0;
 	Cube boundingBox;
 	Cube boundingCube;
+	Sphere boundingSphere;
 	glm::vec3 center = glm::vec3(0, 0, 0);
 	float radius = 0.f;
 
@@ -212,7 +214,9 @@ public:
 		boundingBox = Cube(glm::vec3(minx, miny, minz), glm::vec3(maxx, maxy, maxz));
 		center = glm::vec3((minx + maxx) / 2.f, (miny + maxy) / 2.f, (minz + maxz) / 2.f);
 		radius = glm::length(glm::vec3(maxx, maxy, maxz) - center);
-		boundingCube = Cube(center, std::max(std::max(maxx - minx, maxy - miny), maxz - minz));
+		float maxside = std::max(std::max(maxx - minx, maxy - miny), maxz - minz);
+		boundingCube = Cube(center, maxside);
+		boundingSphere = Sphere(center, glm::length(boundingCube.getBounds(1) - center));
 	};
 
 	RTCGeometry makeEmbreeGeom(bool indexed = true) {
@@ -675,6 +679,26 @@ public:
 
 	}
 
+	void draw() {
+		glBindVertexArray(vao);
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	}
+
+	void clearColors(glm::vec3& color) {
+		//for (Vertex& v : vertices) v.color = color;
+		for (int i = 0; i < vertices.size(); i++) vertices[i].color = color;
+	}
+
+	template <class T>
+	void changePrimColors(T& setOfprims, glm::vec3& color) {
+		for (auto i : setOfprims) changePrimColor(i, color);
+	}
+
+	void changePrimColor(int prim, glm::vec3& color) {
+		for (int j = 0; j < 3; j++) {
+			vertices[3 * prim + j].color = color;
+		}
+	}
 	void changeSelected() {
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);

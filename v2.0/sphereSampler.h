@@ -6,26 +6,28 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vector>
-#include "Sphere.h"
-#include "Cube.h"
+//#include <vector>
+#include "sphere.h"
+#include "cube.h"
 
 struct SphereSampler {
-	std::vector<glm::vec3> samples = std::vector<glm::vec3>();
+	std::vector<glm::vec3> samples;
 	Sphere* sphere;
 	GLuint vao = 0;
 	int ratio = 1;
 	int N = 0;
 	int camLoc = 0;
-	
-	SphereSampler(Sphere* sphere,  int N, int ratio) : sphere(sphere),N(N), ratio(ratio) {};
+
+	SphereSampler(Sphere* sphere, int N, int ratio = 1) : sphere(sphere), N(N), ratio(ratio) {
+
+	};
 
 	void createSamplesFull() {
 		float x, y, z;
 		float factorTheta = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));
 
 		for (int i = 0; i <= N; i++) {
-			float cosphi = 1.f - 2.f*i/N;//sgn*
+			float cosphi = 1.f - 2.f * i / N;//sgn*
 			float theta = i * factorTheta;//sgn*
 			float phi = acos(cosphi);
 			x = sphere->radius * cos(theta) * sin(phi);
@@ -38,7 +40,7 @@ struct SphereSampler {
 		}
 	}
 
-	void findMinMax(glm::vec3 &min, glm::vec3 &max) {
+	void findMinMax(glm::vec3& min, glm::vec3& max) {
 		min = { 1000, 1000, 1000 };
 		max = { -1000, -1000, -1000 };
 		for (glm::vec3& s : samples) {
@@ -52,8 +54,8 @@ struct SphereSampler {
 
 	}
 
-	void createSamples(int sgn, glm::vec3 mainDirVec) {
-		sgn *= -1;
+	void createSamples(glm::vec3 mainDirVec) {
+		int sgn = glm::dot(glm::vec3(-1), mainDirVec);
 		float phi, theta, sintheta;
 		float x, y, z;
 		float factorPhi = 2.f * glm::pi<float>() * 2.f / (1.f + sqrtf(5));
@@ -82,7 +84,7 @@ struct SphereSampler {
 		}
 	}
 
-	void vaoGeneration() {
+	int vaoGeneration() {
 		GLuint pointVBO;
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -93,6 +95,7 @@ struct SphereSampler {
 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, (void*)0);
+		return vao;
 	}
 
 

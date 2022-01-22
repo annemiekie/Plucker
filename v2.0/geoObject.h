@@ -23,6 +23,8 @@ public:
 		return false;
 	};
 
+	virtual void draw() {};
+
 };
 
 #endif

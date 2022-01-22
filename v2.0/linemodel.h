@@ -25,8 +25,11 @@ public:
 	GLuint vboc;
 	bool color = false;
 	int size = 0;
+	std::vector<Ray> rays;
 
-	LineModel(bool color = false) : color(color) {
+	LineModel(bool color = false) : color(color) {};
+
+	void setupVao() {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 		glGenBuffers(1, &vbo);
@@ -41,12 +44,16 @@ public:
 		}
 	}
 
-	void updateVaoWithLines(std::vector<Ray> rays, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
-		if (rays.size() == 0) return;
-		//size = 2 * rays.size();
+	void updateVaoWithLines(std::vector<Ray> rays_new, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
+		if (rays_new.size() == 0) return;
+		rays = rays_new;
+		updateVaoWithLines(object, maindir);
+	}
+
+	void updateVaoWithLines(GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
 		std::vector<glm::vec3> lines, colors;
-		getLinesInGeo(rays, object, lines, colors, maindir);
-		makeVaoVbo(lines, colors);
+		getLinesInGeo(object, lines, colors, maindir);
+		if (lines.size()) makeVaoVbo(lines, colors);
 	}
 
 	void makeVaoVbo(std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>()) {
@@ -62,7 +69,7 @@ public:
 	}
 
 
-	void getLinesInGeo(std::vector<Ray> rays, GeoObject* object, std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>(), glm::vec3 maindir = glm::vec3(0)) {
+	void getLinesInGeo(GeoObject* object, std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>(), glm::vec3 maindir = glm::vec3(0)) {
 		glm::vec3 line, col;
 		for (Ray& r : rays) {
 			if (r.direction.x == 0 && r.direction.y == 0 && r.direction.z == 0) r.get3DfromPlucker();
@@ -76,6 +83,11 @@ public:
 				}
 			}
 		}
+	}
+
+	void draw() {
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINES, 0, size);
 	}
 
 };

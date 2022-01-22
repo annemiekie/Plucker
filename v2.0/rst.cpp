@@ -767,7 +767,7 @@ void RaySpaceTree::filterSplittingLines(Node* leaf, std::vector<Ray>& splitlines
 	for (int i = 0; i < splitCombi4.size(); i++) {
 		std::vector<Ray> lines4;
 		for (int c : splitCombi4[i]) lines4.push_back(splitlines[c]);
-		std::vector<Ray> intersectLines = LineThroughFour::find(lines4, model);
+		std::vector<Line4> intersectLines = Lines4Finder::find(lines4, model);
 		for (Ray& r : intersectLines) {
 			if (checkRayInLeaf(leaf, r, lines4, 4, false)) {
 				foundExtremalStabbing.push_back(i);
@@ -1168,24 +1168,25 @@ bool RaySpaceTree::checkExtremalStabbingLine(const int prim, Ray& ray, Node* lea
 bool RaySpaceTree::checkRaysThroughLines(const int prim, Ray& ray, Node* leaf, const int splitsize, std::vector<Ray>& edgeRays,
 											bool print, std::vector<int>& visibleTriIgnore, std::vector<Ray>& lines,
 											std::vector<uint64_t>& indices, int rayIgnoresize, bool vischeck) {
-	std::vector<Ray> intersectLines;
+	std::vector<Line4> intersectLines;
 	uint64_t mapcombi;
-	if (!cacheCombi || !combiCache.getValue(indices, intersectLines)) intersectLines = LineThroughFour::find(lines, model);
-	std::vector<Ray> cacheLines;
+	if (!cacheCombi || !combiCache.getValue(indices, intersectLines)) intersectLines = Lines4Finder::find(lines, model);
+	std::vector<Line4> cacheLines;
 
 	for (int i = 0; i < intersectLines.size(); i++) {
-		ray = intersectLines[i];
+		Line4 r = intersectLines[i];
 		bool inBox = true;
-		bool checkRay = checkRayAndReverse(prim, ray, leaf, 0, edgeRays, print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck);
+		bool checkRay = checkRayAndReverse(prim, r, leaf, 0, edgeRays, print, visibleTriIgnore, inBox, lines, rayIgnoresize, vischeck);
 		if (cacheCombi && inBox) {
-			ray.checkboth = false;
-			cacheLines.push_back(ray);
+			r.checkboth = false;
+			cacheLines.push_back(r);
 		}
 		if (checkRay) {
 			if (cacheCombi) {
 				if (i == 0) cacheLines.push_back(intersectLines[1]);
 				combiCache.storeValueAtLastKey(cacheLines);
 			}
+			ray = r;
 			return true;
 		}
 	}
@@ -1277,7 +1278,7 @@ bool RaySpaceTree::checkEdgeInLeafCombis(Edge& e, Node* leaf, std::vector<Ray>& 
 			for (int i = 0; i < nrOfsplitLines; i++) lines.push_back(splitLines[combi[c][i]]);
 			for (Ray& r : rays) lines.push_back(r);
 
-			std::vector<Ray> intersectLines = LineThroughFour::find(lines, model);
+			std::vector<Line4> intersectLines = Lines4Finder::find(lines, model);
 			for (int i = 0; i < intersectLines.size() * 2; i++) {
 				ray = intersectLines[i / 2];
 				if (i % 2 == 1) ray.inverseDir();
@@ -1622,4 +1623,43 @@ std::vector<Ray> RaySpaceTree::getExtremalStabbingInLeaf(Node* n, std::vector<in
 	checkLeaf(n, rays, true, 0, notfoundprim, print);
 	for (auto& r : rays) r.get3DfromPlucker();
 	return rays;
+}
+
+void RaySpaceTree::getStatistics() {
+	// Some statistics
+	std::vector<int> nodenr = std::vector<int>(nodes.size());
+	//std::vector<int> duplicates = rst->countDuplicates(no_triangles, nodenr);
+	//std::cout << "DUPLICATES:" << std::endl;
+	//for (int i = 0; i < duplicates.size(); i++) {
+	//	if (duplicates[i] > 1)
+	//		std::cout << i << "'s duplicates: " << duplicates[i] << std::endl;
+	//}
+	//std::cout << std::endl;
+	//for (int i = 0; i < nodenr.size(); i++) {
+	//	if (nodenr[i] > 0)
+	//		std::cout << i << " " << nodenr[i] << std::endl;
+	//}
+	int filledleaves = 0;
+	int leavesWith0 = 0;
+	int leavesWith1 = 0;
+	int leavesWithMore = 0;
+	int maxdepth = 0;
+	int mindepth = 1000;
+	for (auto node : nodes) {
+		if (node->leaf) {
+			filledleaves++;
+			if (node->depth > maxdepth) maxdepth = node->depth;
+			else if (node->depth < mindepth) mindepth = node->depth;
+			if (node->primitiveSet.size() == 0) leavesWith0++;
+			else if (node->primitiveSet.size() == 1) leavesWith1++;
+			else leavesWithMore++;
+		}
+	}
+	std::cout << "Filled Leaves: " << filledleaves << std::endl;
+
+	std::cout << "Tree Depth Max " << maxdepth << " and Min " << mindepth << std::endl;
+
+	std::cout << "Leaves with 0: " << leavesWith0 << " 1: " << leavesWith1 << " more: " << leavesWithMore << std::endl;
+
+
 }
