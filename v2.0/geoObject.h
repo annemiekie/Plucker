@@ -19,7 +19,7 @@ public:
 
 	GeoObject(glm::vec3 center) : center(center) {};
 	
-	virtual bool intersect(const Ray& ray, glm::vec3& start, glm::vec3& end, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) {
+	virtual bool intersect(const Ray& ray, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) {
 		return false;
 	};
 

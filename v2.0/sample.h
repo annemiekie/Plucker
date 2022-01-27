@@ -5,3 +5,8 @@ struct Sample {
 	Ray ray;
 	int prim = -1;
 };
+
+struct SampleInd {
+	int prim = -1;
+	int raynr = -1;
+};

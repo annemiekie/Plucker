@@ -73,7 +73,7 @@ int main() {
 	bool alldir, trace, exact, sampling, cacheEE, cacheEEE, cacheCombi, rasterization, storeRays;
 	char dir;
 	int sgn, depth, noSamples, createRatio, w, h, width, height;
-	constructOption construct;
+	Options::constructOption construct;
 
 	try {
 		alldir = config.lookup("alldir");
@@ -86,7 +86,7 @@ int main() {
 		w = config.lookup("w");
 		h = config.lookup("h");
 		std::string constructStr = config.lookup("constructOption");
-		construct = findconstruct(constructStr);
+		construct = Options::ADAPTIVE;// findconstruct(constructStr);
 		std::string str = config.lookup("filename");
 		filestr = str;
 		width = config.lookup("width");
@@ -104,7 +104,7 @@ int main() {
 		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
 	}
 
-	BuildOptions options = { construct, h, w, noSamples, rasterization, storeRays, cacheCombi };
+	Options::BuildOptions options = { construct, h, w, noSamples, rasterization, storeRays, cacheCombi };
 
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW!" << std::endl;

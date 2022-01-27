@@ -62,9 +62,6 @@
     <None Include="standard.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="texproj.frag">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="line.vert">
       <Filter>Shaders</Filter>
     </None>
@@ -72,15 +69,6 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="standard.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="texproj.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="pick.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="pick.frag">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

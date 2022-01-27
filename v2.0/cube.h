@@ -246,13 +246,13 @@ public:
         return false;
     }
 
-    virtual bool intersect(const Ray& r, glm::vec3& start, glm::vec3& end, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
+    virtual bool intersect(const Ray& r, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
     {
         bool sign[3];
         sign[0] = (r.invdir.x < 0);
         sign[1] = (r.invdir.y < 0);
         sign[2] = (r.invdir.z < 0);
-        float tmin, tmax, txmin, txmax, tymin, tymax, tzmin, tzmax;
+        float txmin, txmax, tymin, tymax, tzmin, tzmax;
 
         txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
         txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
@@ -278,11 +278,11 @@ public:
         if (tzmax < tmax)
             tmax = tzmax;
 
-        glm::vec3 tmin_xyz = glm::vec3(txmin, tymin, tzmin);
-        glm::vec3 tmax_xyz = glm::vec3(txmax, tymax, tzmax);
-        start = r.origin + (double)tmin * r.direction;
-        end = r.origin + (double)tmax * r.direction;
+        //start = r.origin + (double)tmin * r.direction;
+       // end = r.origin + (double)tmax * r.direction;
         if (getcolor) {
+            glm::vec3 tmin_xyz = glm::vec3(txmin, tymin, tzmin);
+            glm::vec3 tmax_xyz = glm::vec3(txmax, tymax, tzmax);
             double x = glm::dot(maindir * maindir, tmin_xyz);
             glm::vec3 inter = r.origin + x * r.direction;
             glm::vec3 min = bounds[0] - size;

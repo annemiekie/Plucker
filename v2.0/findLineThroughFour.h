@@ -82,7 +82,7 @@ namespace Lines4Finder {
 		G = Line4(A_null_space.col(1), true);
 	}
 
-	static std::vector<Line4> find(std::vector<Ray>& lines, Model* model) {
+	static std::vector<Line4> find(std::vector<Ray>& lines) {
 		std::vector<Line4> intersectLines;
 		Line4 F, G, H;
 		Eigen::MatrixXd m = makePluckerMat(lines);

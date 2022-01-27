@@ -26,7 +26,7 @@ public:
 			if (centerInvNormal.side(quadLines[i])) quadLines[i].inverseDir();
 			//float x = centerInvNormal.sideVal(quadLines[i]);
 		}
-	};
+	}
 
 	bool inBounds(const Ray& r, float thres = 0) {
 		for (Ray& ql : quadLines) {

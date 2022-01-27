@@ -122,8 +122,8 @@ namespace Visualizer {
 		notfoundprim = std::vector<int>();
 		if (toggleSampleLines)
 			samples.updateVaoWithLines(rst->getViewingLinesInLeaf(leaf), geoObject, rst->maindir);
-		if (toggle4lines)
-			eslLines.updateVaoWithLines(rst->getExtremalStabbingInLeaf(leaf, notfoundprim), geoObject);
+		//if (toggle4lines)
+			//eslLines.updateVaoWithLines(rst->getExtremalStabbingInLeaf(leaf, notfoundprim), geoObject);
 	}
 
 	void leafChange(int num) {
@@ -174,8 +174,8 @@ namespace Visualizer {
 			std::vector<glm::vec3> edges;
 			std::vector<Ray> eslEdges;
 
-			if (rst->check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges))
-				eslLines.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst->maindir);
+			//if (rst->check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges))
+			//	eslLines.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst->maindir);
 
 			edgeRays.makeVaoVbo(edges);
 			eslSilhEdges.updateVaoWithLines(eslEdges, geoObject);

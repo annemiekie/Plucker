@@ -26,14 +26,10 @@
   <ItemGroup>
     <None Include="line.frag" />
     <None Include="line.vert" />
-    <None Include="pick.frag" />
-    <None Include="pick.vert" />
     <None Include="rst.frag" />
     <None Include="rst.vert" />
     <None Include="standard.frag" />
     <None Include="standard.vert" />
-    <None Include="texproj.frag" />
-    <None Include="texproj.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="buildOptions.h" />

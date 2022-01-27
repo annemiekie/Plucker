@@ -82,6 +82,17 @@ public:
         return glm::dot(u, oRay.v) + glm::dot(v, oRay.u);
     };
 
+    bool intersectsWithRayAtDepth(Ray& oRay, double depth) {
+        glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
+        if (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10) return true;
+    }
+
+    glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {
+        glm::dvec3 N(0, 0, 1);
+        return (glm::dot(v, N) * oRay.u - glm::dot(oRay.v, N) * u - glm::dot(v, oRay.u) * N) /
+                   glm::dot(glm::cross(u, oRay.u), N);
+    }
+
     void print() {
         std::cout << "U: (" << u.x << "," << u.y << "," << u.z << ") V: (" << v.x << "," << v.y << "," << v.z << ")";
     }
@@ -95,6 +106,25 @@ public:
         if (dir.x * direction.x < 0) dir = -dir;
         double dist = glm::distance(glm::normalize(dir), glm::normalize(direction));
         return (dist < eps);
+    }
+
+    float pointToRayDist(glm::dvec3 pt) {
+        return glm::length(glm::cross(pt - origin, pt - origin + direction)) /
+                        glm::length(direction);
+
+    }
+
+    bool throughPoint(glm::dvec3 pt, double eps) {
+        return (pointToRayDist(pt) < eps);
+    }
+
+    float depthToIntersectionWithRay(Ray& oRay) {
+        glm::dvec3 intersect = pointOfintersectWithRay(oRay);
+        return depthToPointOnRay(intersect);
+    }
+
+    float depthToPointOnRay(glm::dvec3 pt) {
+        return (pt.x - origin.x) / direction.x;
     }
 
     bool inPlane(Ray& ray1, Ray& ray2, double eps) {

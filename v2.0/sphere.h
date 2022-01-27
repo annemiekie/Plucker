@@ -24,7 +24,7 @@ public:
 
     Sphere(glm::vec3 center, float radius) : GeoObject(center), radius(radius) {   };
 
-    virtual bool intersect(const Ray &line, glm::vec3 &start, glm::vec3 &end, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override
+    virtual bool intersect(const Ray &line, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override
     {
         glm::vec3 dir = line.direction;
         glm::vec3 ori = line.origin;
@@ -35,17 +35,21 @@ public:
         // discriminant
         float D = B * B - 4.f * A * C;
         if (D <= 0) return false;
-        float t1 = (-B - sqrtf(D)) / (2.f * A);
-        start = ori + t1 * dir;
+        tmin = (-B - sqrtf(D)) / (2.f * A);
+        //start = ori + t1 * dir;
 
-     //   if (D == 0) return 1;
+        //   if (D == 0) return 1;
 
-        float t2 = (-B + sqrtf(D)) / (2.f * A);
-        end = ori + t2 * dir;
+        tmax = (-B + sqrtf(D)) / (2.f * A);
+        //end = ori + t2 * dir;
+        if (tmax < tmin) {
+            float t = tmin;
+            tmin = tmax;
+            tmax = t;
+        }
 
         if (getcolor) {
-            glm::vec3 entry = start;
-            if (t2 < t1) entry = end;
+            glm::vec3 entry = ori + tmin * dir;
             glm::vec3 vector = glm::normalize(entry - center);
             color.x = 0.2f;
             color.y = acos(vector.z) / M_PI;
@@ -56,7 +60,7 @@ public:
     }
 
     void vaoGeneration(int stackCount, int sectorCount) {
-        std::vector<Vertex> vertices;
+        std::vector<VertexVis> vertices;
 
         GLfloat x, y, z, xy;                              // vertex position
         GLfloat nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
@@ -86,7 +90,7 @@ public:
                 nx = x * lengthInv;
                 ny = y * lengthInv;
                 nz = z * lengthInv;
-                vertices.push_back(Vertex{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz), glm::vec3(0), glm::vec3(0), glm::vec3(0) });
+                vertices.push_back(VertexVis{ glm::vec3(x,y,z), glm::vec3(nx, ny, nz) });
 
                 //// vertex tex coord (s, t) range between [0, 1]
                 //s = (float)j / sectorCount;
@@ -131,7 +135,7 @@ public:
         GLuint vbo;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexVis), vertices.data(), GL_STATIC_DRAW);
 
         // copy index data to VBO
         GLuint ibo;
@@ -142,13 +146,13 @@ public:
         // The position vectors should be retrieved from the specified Vertex Buffer Object with given offset and stride
         // Stride is the distance in bytes between vertices
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, pos)));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, pos)));
         glEnableVertexAttribArray(0);
 
         // The normals should be retrieved from the same Vertex Buffer Object (glBindBuffer is optional)
         // The offset is different and the data should go to input 1 instead of 0
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, normal)));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, normal)));
         glEnableVertexAttribArray(1);
 
         indSize = indices.size();

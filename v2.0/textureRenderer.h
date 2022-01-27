@@ -20,10 +20,9 @@ public:
 	GLuint framebuffer;
 	int width;
 	int height;
-	Model* model;
 	glm::ivec2 res;
 
-	TextureRenderer(Shader rstshader, int rstwidth, int rstheight, Model* model) : shader(rstshader), width(rstwidth), height(rstheight), model(model) {	
+	TextureRenderer(Shader rstshader, int rstwidth, int rstheight) : shader(rstshader), width(rstwidth), height(rstheight) {	
 		setupTexture();
 		res = glm::ivec2(width, height);
 	};
@@ -42,7 +41,6 @@ public:
 		glUseProgram(shader.index);
 
 		// Bind vertex data & buffer
-		glBindVertexArray(model->vao);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 		// Set viewport size
@@ -53,7 +51,7 @@ public:
 		//glCullFace(GL_BACK);
 	}
 
-	GLfloat* render(Camera * cam) {
+	GLfloat* render(Camera * cam, Model* model) {
 		glm::mat4 mvp = cam->vpMatrix();
 		glUniformMatrix4fv(glGetUniformLocation(shader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
 
@@ -66,6 +64,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Execute draw command
+		glBindVertexArray(model->vao);
 		glDrawArrays(GL_TRIANGLES, 0, model->vertices.size());
 
 

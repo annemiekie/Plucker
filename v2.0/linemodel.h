@@ -73,10 +73,11 @@ public:
 		glm::vec3 line, col;
 		for (Ray& r : rays) {
 			if (r.direction.x == 0 && r.direction.y == 0 && r.direction.z == 0) r.get3DfromPlucker();
-			glm::vec3 s, t, c;
+			float s, t;
+			glm::vec3 c;
 			if (object->intersect(r, s, t, color, maindir, c)) {
-				lines.push_back(s);
-				lines.push_back(t);
+				lines.push_back(r.origin + (double)s * r.direction);
+				lines.push_back(r.origin + (double)t * r.direction);
 				if (color) {
 					colors.push_back(c);
 					colors.push_back(c);
