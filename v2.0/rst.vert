@@ -5,7 +5,7 @@ uniform mat4 mvp;
 
 // Per-vertex attributes
 layout(location = 0) in vec3 pos; // World-space position
-layout(location = 3) in float id; // prim id
+layout(location = 3) in float tri_id; // prim id
 
 // Data to pass to fragment shader
 out float fragId;
@@ -13,5 +13,5 @@ out float fragId;
 void main() {
 	// Transform 3D position into on-screen position
     gl_Position = mvp * vec4(pos, 1.0);
-    fragId = id;
+    fragId = tri_id;
 }

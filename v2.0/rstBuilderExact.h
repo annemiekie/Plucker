@@ -20,10 +20,30 @@ public:
 
 		//ESLfinder finder(options.cacheCombi);
 		
+		//void RaySpaceTree::fillExact() {
+		Line4 r;
+		for (Node* node : rst->nodes) { //int n = 0; n < nodes.size(); n++) {// 
+			std::cout << "Computing node nr: " << node->index << " of " << rst->nodes.size() << std::endl;
+			if (node->leaf) {
+				//std::cout << "Computing node nr: " << nodes[n]->index << " of " << nodes.size() << std::endl;
+				for (int i = 0; i < rst->model->primsize; i++) {
+					std::cout << i << ", ";
+					if (node->primitiveSet.find(i) == node->primitiveSet.end()) {
+						//if (glm::dot(model->normalPerTri[i], maindir) >= 0) continue;
+						//std::cout << "Primitive: " << node->index << " of " << model->primsize << ": " << std::endl;
+						if (check1Prim(rst, rst->model->triangles[i], r, node, false, 0))  node->primitiveSet.insert(i);
+					}
+				}
+
+			}
+			std::cout << std::endl;
+		//	if (cacheCombi)  std::cout << "Combi Cache, Size: " << combiCache.cache.size() << " Hits: " << combiCache.hitcount << " Hash Hit Size: " << combiCache.hashes.size() << std::endl;
+		//	if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " << model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
+		//	if (model->cacheEE) std::cout << "Edge Edge Cache, Size: " << model->edgeEdgeCombis[0].size() << " Hits: " << model->cachehitee << std::endl;
+		}
+
 	};
 
-	static void fillExact(RaySpaceTree *rst);
-	static void fillExact(Node* node);
 
 	static std::vector<Line4> getExtremalStabbingInLeaf(RaySpaceTree* rst, Node* n, std::vector<int>& notfoundprim = std::vector<int>(), bool print = false);
 

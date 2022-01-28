@@ -19,11 +19,11 @@
 // Library for loading .OBJ model
 #define TINYOBJLOADER_IMPLEMENTATION
 
-#include "previewcamera.h"
 #include "rst.h"
 #include "model.h"
 #include "rstBuilder.h"
 #include "rstBuilderSamples.h"
+#include "rstBuilderExact.h"
 #include "buildOptions.h"
 #include "visComponents.h"
 #include "visualizer.h"
@@ -70,7 +70,7 @@ int main() {
 	}
 
 	std::string filestr, constructStr;
-	bool alldir, trace, exact, sampling, cacheEE, cacheEEE, cacheCombi, rasterization, storeRays;
+	bool alldir, trace, exact, sampling, cacheEE, cacheEEE, cacheCombi, rasterization, storeSamples, storeAllSamples;
 	char dir;
 	int sgn, depth, noSamples, createRatio, w, h, width, height;
 	Options::constructOption construct;
@@ -86,7 +86,9 @@ int main() {
 		w = config.lookup("w");
 		h = config.lookup("h");
 		std::string constructStr = config.lookup("constructOption");
-		construct = Options::ADAPTIVE;// findconstruct(constructStr);
+		if (Options::table.find(constructStr) != Options::table.end())
+			construct = Options::table.find(constructStr)->second;
+		else construct = Options::RANDOM_EDGE;
 		std::string str = config.lookup("filename");
 		filestr = str;
 		width = config.lookup("width");
@@ -98,13 +100,15 @@ int main() {
 		cacheEEE = config.lookup("cacheEEE");
 		cacheCombi = config.lookup("cacheCombi");
 		rasterization = config.lookup("rasterization");
-		storeRays = config.lookup("storeRays");
+		storeSamples = config.lookup("storeSamples");
+		storeAllSamples = config.lookup("storeAllSamples");
+
 	}
 	catch (libconfig::SettingNotFoundException& e) {
 		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
 	}
 
-	Options::BuildOptions options = { construct, h, w, noSamples, rasterization, storeRays, cacheCombi };
+	Options::BuildOptions options = { construct, h, w, noSamples, rasterization, storeSamples, storeAllSamples, cacheCombi };
 
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW!" << std::endl;
@@ -141,8 +145,10 @@ int main() {
 	Model model(filename);// , true, cacheEE, cacheEEE);
 
 	VisComponents visComp;
-	RaySpaceTree rst = RSTBuilder<RSTBuilderSamples>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	model.enlargeModel();
+	RaySpaceTree rst;
+	if (sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, depth, alldir, dir, sgn, options, visComp);
+	else if (exact) rst = RSTBuilder<RSTBuilderExact>::build(&model, depth, alldir, dir, sgn, options, visComp);
+	//model.enlargeModel();
 	Visualizer::visualize(width, height, &model, &rst, visComp, window);
 
 

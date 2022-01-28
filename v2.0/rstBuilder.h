@@ -13,7 +13,7 @@ public:
 	//EmbreeTracer* embree;
 
 	static void construct(RaySpaceTree* rst, Options::constructOption constructOption) {
-		int t = (int)time(NULL);
+		//int t = (int)time(NULL);
 		//srand(t);
 		std::vector<Ray> splitters;
 		construct(rst, 0, rst->rootNode, constructOption, 1);
@@ -60,6 +60,10 @@ public:
 		return Ray();
 	}
 
+	static Ray getEdgeFromLeafNum(RaySpaceTree* rst, int leafNum) {
+		return rst->model->triangles[leafNum / 3]->edges[leafNum % 3]->ray;
+	}
+
 	static void construct(RaySpaceTree* rst, int lvl, Node* node, Options::constructOption option, int splitnum) {
 		if (lvl >= rst->depth) {
 			node->leaf = true;
@@ -67,22 +71,22 @@ public:
 		}
 		Ray splitter;
 		switch(option) {
-		case Options::RANDOM_EDGE:
-			splitter = splitRandomEdge(rst);
-			break;
-		case Options::RANDOM_VERTEX_ORTHO:
-			splitter = splitRandomVertexOrtho(rst);
-			break;
-		case Options::RANDOM_ORTHO:
-			splitter = splitRandomOrtho(rst);
-			break;
-		case Options::RANDOM_EDGE_OFFSET:
-			splitter = splitRandomEdgeOffset(rst);
-			break;
+			case Options::RANDOM_EDGE:
+				splitter = splitRandomEdge(rst);
+				break;
+			case Options::RANDOM_VERTEX_ORTHO:
+				splitter = splitRandomVertexOrtho(rst);
+				break;
+			case Options::RANDOM_ORTHO:
+				splitter = splitRandomOrtho(rst);
+				break;
+			case Options::FIRST_EDGES:
+				splitter = getEdgeFromLeafNum(rst, node->index - rst->noLeaves);
 		}
 
 		bool dupli = false;
-		for (Ray r : rst->splitters) if (splitter.equal(r, 1E-6)) { dupli = true; break; }
+		// only bad if it's in the same subtree
+		//for (Ray r : rst->splitters) if (splitter.equal(r, 1E-6)) { dupli = true; break; }
 		if (dupli) construct(rst, lvl, node, option, splitnum);
 		else {
 			splitter.index = splitnum;

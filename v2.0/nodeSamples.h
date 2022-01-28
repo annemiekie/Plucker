@@ -4,10 +4,11 @@
 #include "node.h"
 #include "sample.h"
 #include "edge.h"
-struct nodeSamples {
-	std::set<int> triangles;
+struct NodeSamples {
+	int level;
 	std::vector<SampleInd> samples;
+	std::set<int> triangles;
 	std::set<Edge*, Edge::cmp_ptr> edges;
 	Node* node;
-	int level;
+
 };

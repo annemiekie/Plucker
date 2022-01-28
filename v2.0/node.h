@@ -33,4 +33,9 @@ class Node {
 		primitiveSet.insert(pri);
 		primAndRayVector.push_back(Sample{ray, pri});
 	};
+
+	void insert(Ray ray) {
+		primAndRayVector.push_back(Sample{ ray, -1 });
+	};
+
 };

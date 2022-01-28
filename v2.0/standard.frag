@@ -8,8 +8,9 @@ uniform vec3 lightPos3;
 layout(location = 0) out vec4 outColor;
 
 // Interpolated output data from vertex shader
-in vec3 fragPos;    // World-space position
-in vec3 fragNormal; // World-space normal
+in vec3 fragPos; 
+in vec3 fragNormal;
+in vec3 fragColor;
 
 void main() {
 
@@ -20,5 +21,5 @@ void main() {
 	vec3 diffuse1 = vec3(max(dot(fragNormal, lightDir1), 0.0));
 	vec3 diffuse2 = vec3(max(dot(fragNormal, lightDir2), 0.0));
 	vec3 diffuse3 = vec3(max(dot(fragNormal, lightDir3), 0.0));
-	outColor = vec4((fragSelect*(0.5f*(diffuse1+diffuse2+diffuse3))),1.0);
+	outColor = vec4((fragColor*(0.5f*(diffuse1+diffuse2+diffuse3))),1.0);
 }

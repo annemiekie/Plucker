@@ -245,9 +245,8 @@ bool RSTBuilderExact::checkCombi(RaySpaceTree* rst, Primitive* prim, Line4& ray,
 						linecount++;
 					}
 					if (nrOfVertices) {
-						lines4.push_back(silhouetteEdges[h / 2]->vertices[h % 2]->edges[0]->ray);
-						lines4.push_back(silhouetteEdges[h / 2]->vertices[h % 2]->edges[1]->ray);
-						silhVertices = { silhouetteEdges[h / 2]->vertices[h % 2] };
+						lines4.push_back(silhouetteVertices[h]->edges[0]->ray);
+						lines4.push_back(silhouetteVertices[h]->edges[1]->ray);
 					//	if (cacheCombi) {
 					//		indices.push_back(lines[linecount].index + model->edges.size());
 					//		indices.push_back(lines[linecount + 1].index + model->edges.size());
@@ -266,7 +265,7 @@ bool RSTBuilderExact::checkCombi(RaySpaceTree* rst, Primitive* prim, Line4& ray,
 						linecount++;
 					}
 
-					if (checkRaysThroughLines(rst, prim, ray, leaf, printAll, lines4, indices, vischeck)) { // change this!!
+					if (checkRaysThroughLines(rst, prim, ray, leaf, printAll, lines4, indices, vischeck, vertexEdgeCheck, silhEdges)) { // change this!!
 						if (print) std::cout << combi_text << std::endl;
 						return true;
 					}
@@ -306,8 +305,9 @@ bool RSTBuilderExact::checkRaysThroughLines(RaySpaceTree* rst, Primitive* prim, 
 
 	std::vector<Line4> intersectLines;
 	//uint64_t mapcombi;
-	//if (!cacheCombi || !combiCache.getValue(indices, intersectLines)) intersectLines = LineThroughFour::find(lines, model);
-	std::vector<Ray> cacheLines;
+	//if (!cacheCombi || !combiCache.getValue(indices, intersectLines)) 
+	intersectLines = Lines4Finder::find(lines);
+	//std::vector<Ray> cacheLines;
 
 	for (int i = 0; i < intersectLines.size(); i++) {
 		ray = intersectLines[i];
@@ -453,91 +453,91 @@ bool RSTBuilderExact::checkSilhouetteCombis(RaySpaceTree *rst, Primitive *prim, 
 										std::set<Vertex*, Vertex::cmp_ptr>& silhVertices) {
 
 
-for (Edge* toAdd : silhouetteEdgesToAdd) {
-	silhouetteEdges.push_back(toAdd);
-	for (Vertex* v : toAdd->vertices) silhVertices.insert(v);
-	//{
-	//	if (silhVertices.find(v) == silhVertices.end()) {
-	//		silhVertexRays.push_back(Ray(model->verticesIndexed[v], model->verticesIndexed[v] + model->normalPerTri[toAdd.triangles[0]], v));
-	//		combiV.push_back(std::vector<int>{ i, (int)silhVertices.size(), v });
-	//		silhVertices.insert(v);
-	//	}
-	//}
-}
-
-std::vector<Vertex*> silhouetteVertices;
-for (Vertex* v : silhVertices) silhouetteVertices.push_back(v);
-
-std::vector<Ray> e1;
-std::vector<std::vector<int>> e2;
-std::vector<Edge*> e3;
-std::vector<int> e4;
-
-if (checkVeVt(rst, prim, ray, leaf, print, printAll, silhouetteVertices)) return true;
-
-std::vector<std::vector<int>> combi1S = Combinations::combi1(splitLines.size());
-
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SV(E)T", combi1S.size() * silhouetteEdges.size() * 2 * 3, 1, 2, 0, 1,
-				splitLines, combi1S, true, e2, e3, silhouetteVertices)) return true;
-
-if (checkVeVe(rst, prim, ray, leaf, print, printAll, silhouetteVertices)) return true;
-
-std::vector<std::vector<int>> combi1E = Combinations::combi1(silhouetteEdges.size());
-
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SV(E)E", combi1S.size() * combi1E.size() * silhouetteEdges.size() * 2, 1, 2, 1, 0,
-				splitLines, combi1S, true, combi1E, silhouetteEdges, silhouetteVertices)) return true;
-
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEV(T)", combi1S.size() * combi1E.size() * 3, 1, 0, 1, 2,
-				splitLines, combi1S, true, combi1E, silhouetteEdges)) return true;
-
-std::vector<std::vector<int>> combi2S = Combinations::combi2(splitLines.size());
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSV(E)", combi2S.size() * silhouetteEdges.size() * 2, 2, 2, 0, 0,
-				splitLines, combi2S, true, e2, e3, silhouetteVertices)) return true;
-
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "V(E)ET", combi1E.size() * silhouetteEdges.size() * 2 * 3, 0, 2, 1, 1,
-				e1, e2, true, combi1E, silhouetteEdges, silhouetteVertices)) return true;
-
-std::vector<std::vector<int>> combi2E;
-getEECombis(rst, silhouetteEdges, combi2E);
-if (combi2E.size() > 0) {
-	if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEV(T)", combi2E.size() * 3, 0, 0, 2, 2,
-					e1, e2, true, combi2E, silhouetteEdges)) return true;
-
-	std::vector<std::vector<int>> combi3E;
-	getEEECombis(rst, silhouetteEdges, combi2E, combi3E);
-
-	if (combi3E.size() > 0) {
-		if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEET", combi3E.size() * 3, 0, 0, 3, 1,
-						e1, e2, true, combi3E, silhouetteEdges)) return true;
-
-		if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEEE", combi1S.size() * combi3E.size(), 1, 0, 3, 0,
-						splitLines, combi1S, true, combi3E, silhouetteEdges)) return true;
-
-		std::vector<std::vector<int>> combi4E = Combinations::combiAddSelective(silhouetteEdges.size(), combi3E);
-		if (combi4E.size() > 0) {
-			if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEEE", combi4E.size() * 3, 0, 0, 4, 0,
-							e1, e2, true, combi4E, silhouetteEdges)) return true;
-		}
+	for (Edge* toAdd : silhouetteEdgesToAdd) {
+		silhouetteEdges.push_back(toAdd);
+		for (Vertex* v : toAdd->vertices) silhVertices.insert(v);
+		//{
+		//	if (silhVertices.find(v) == silhVertices.end()) {
+		//		silhVertexRays.push_back(Ray(model->verticesIndexed[v], model->verticesIndexed[v] + model->normalPerTri[toAdd.triangles[0]], v));
+		//		combiV.push_back(std::vector<int>{ i, (int)silhVertices.size(), v });
+		//		silhVertices.insert(v);
+		//	}
+		//}
 	}
 
-	if (checkCombi(rst, prim, ray, leaf, print, printAll, "V(E)EE", combi2E.size() * silhouetteEdges.size() * 2, 0, 2, 2, 0,
-					e1, e2, true, combi2E, silhouetteEdges, silhouetteVertices)) return true;
+	std::vector<Vertex*> silhouetteVertices;
+	for (Vertex* v : silhVertices) silhouetteVertices.push_back(v);
 
-	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEET", combi1S.size() * combi2E.size() * 3, 1, 0, 2, 1,
-					splitLines, combi1S, true, combi2E, silhouetteEdges)) return true;
+	std::vector<Ray> e1;
+	std::vector<std::vector<int>> e2;
+	std::vector<Edge*> e3;
+	std::vector<int> e4;
 
-	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSEE", combi2S.size() * combi2E.size(), 2, 0, 2, 0,
-					splitLines, combi2S, true, combi2E, silhouetteEdges)) return true;
-}
+	if (checkVeVt(rst, prim, ray, leaf, print, printAll, silhouetteVertices)) return true;
 
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSET", combi2S.size() * combi1E.size() * 3, 2, 0, 1, 1,
-				splitLines, combi2S, true, combi1E, silhouetteEdges)) return true;
+	std::vector<std::vector<int>> combi1S = Combinations::combi1(splitLines.size());
 
-std::vector<std::vector<int>> combi3S = Combinations::combi3(splitLines.size());
-if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSSE", combi3S.size() * combi1E.size(), 3, 0, 1, 0,
-				splitLines, combi3S, true, combi1E, silhouetteEdges)) return true;
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SV(E)T", combi1S.size() * silhouetteEdges.size() * 2 * 3, 1, 2, 0, 1,
+					splitLines, combi1S, true, e2, e3, silhouetteVertices)) return true;
 
-return false;
+	if (checkVeVe(rst, prim, ray, leaf, print, printAll, silhouetteVertices)) return true;
+
+	std::vector<std::vector<int>> combi1E = Combinations::combi1(silhouetteEdges.size());
+
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SV(E)E", combi1S.size() * combi1E.size() * silhouetteEdges.size() * 2, 1, 2, 1, 0,
+					splitLines, combi1S, true, combi1E, silhouetteEdges, silhouetteVertices)) return true;
+
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEV(T)", combi1S.size() * combi1E.size() * 3, 1, 0, 1, 2,
+					splitLines, combi1S, true, combi1E, silhouetteEdges)) return true;
+
+	std::vector<std::vector<int>> combi2S = Combinations::combi2(splitLines.size());
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSV(E)", combi2S.size() * silhouetteEdges.size() * 2, 2, 2, 0, 0,
+					splitLines, combi2S, true, e2, e3, silhouetteVertices)) return true;
+
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "V(E)ET", combi1E.size() * silhouetteEdges.size() * 2 * 3, 0, 2, 1, 1,
+					e1, e2, true, combi1E, silhouetteEdges, silhouetteVertices)) return true;
+
+	std::vector<std::vector<int>> combi2E;
+	getEECombis(rst, silhouetteEdges, combi2E);
+	if (combi2E.size() > 0) {
+		if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEV(T)", combi2E.size() * 3, 0, 0, 2, 2,
+						e1, e2, true, combi2E, silhouetteEdges)) return true;
+
+		std::vector<std::vector<int>> combi3E;
+		getEEECombis(rst, silhouetteEdges, combi2E, combi3E);
+
+		if (combi3E.size() > 0) {
+			if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEET", combi3E.size() * 3, 0, 0, 3, 1,
+							e1, e2, true, combi3E, silhouetteEdges)) return true;
+
+			if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEEE", combi1S.size() * combi3E.size(), 1, 0, 3, 0,
+							splitLines, combi1S, true, combi3E, silhouetteEdges)) return true;
+
+			std::vector<std::vector<int>> combi4E = Combinations::combiAddSelective(silhouetteEdges.size(), combi3E);
+			if (combi4E.size() > 0) {
+				if (checkCombi(rst, prim, ray, leaf, print, printAll, "EEEE", combi4E.size() * 3, 0, 0, 4, 0,
+								e1, e2, true, combi4E, silhouetteEdges)) return true;
+			}
+		}
+
+		if (checkCombi(rst, prim, ray, leaf, print, printAll, "V(E)EE", combi2E.size() * silhouetteEdges.size() * 2, 0, 2, 2, 0,
+						e1, e2, true, combi2E, silhouetteEdges, silhouetteVertices)) return true;
+
+		if (checkCombi(rst, prim, ray, leaf, print, printAll, "SEET", combi1S.size() * combi2E.size() * 3, 1, 0, 2, 1,
+						splitLines, combi1S, true, combi2E, silhouetteEdges)) return true;
+
+		if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSEE", combi2S.size() * combi2E.size(), 2, 0, 2, 0,
+						splitLines, combi2S, true, combi2E, silhouetteEdges)) return true;
+	}
+
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSET", combi2S.size() * combi1E.size() * 3, 2, 0, 1, 1,
+					splitLines, combi2S, true, combi1E, silhouetteEdges)) return true;
+
+	std::vector<std::vector<int>> combi3S = Combinations::combi3(splitLines.size());
+	if (checkCombi(rst, prim, ray, leaf, print, printAll, "SSSE", combi3S.size() * combi1E.size(), 3, 0, 1, 0,
+					splitLines, combi3S, true, combi1E, silhouetteEdges)) return true;
+
+	return false;
 }
 
 bool RSTBuilderExact::check1Prim(RaySpaceTree* rst, Primitive* prim, Line4& ray, Node* leaf, bool print, int edgeSelection,
@@ -651,11 +651,6 @@ bool RSTBuilderExact::checkPrim(RaySpaceTree* rst, Primitive* prim, std::vector<
 	if (!checkEdgeSplittingDuplicates(prim, splitLines, sideLines)) return false;
 
 	// Check basic combis of extremal stabbing lines
-	std::vector<Ray> e1;
-	std::vector<std::vector<int>> e2;
-	std::vector<Edge> e3;
-	std::vector<int> e4;
-
 	//if (!alldir && glm::dot(model->normalPerTri[prim], maindir) > 0) return false;
 
 	// Check without occlusion to see if prim can be excluded

@@ -84,7 +84,7 @@ public:
 
     bool intersectsWithRayAtDepth(Ray& oRay, double depth) {
         glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
-        if (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10) return true;
+        return (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10);
     }
 
     glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {

@@ -144,18 +144,19 @@ public:
 		verticesL = std::vector<VertexVis>(primsize * 3);
 		triangles = std::vector<Primitive*>(primsize);
 
+		int h = 0;
 		for (tinyobj::shape_t& shape : shapes) {
 			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {
-				Primitive* prim = new Primitive({i/3});
+				Primitive* prim = new Primitive({(h + i)/3});
 
 				for (int j = 0; j < 3; j++) {
 					tinyobj::index_t index = shape.mesh.indices[i + j];
-					indices[i + j] = index.vertex_index;
+					indices[h + i + j] = index.vertex_index;
 
-					verticesVis[i + j] = loadVertexVis(index.vertex_index, index.normal_index, prim->id, attrib);
+					verticesVis[h + i + j] = loadVertexVis(index.vertex_index, index.normal_index, prim->id, attrib);
 					
 					if (vertices[index.vertex_index] == NULL) {
-						Vertex* v = new Vertex({ verticesVis[i + j].pos, index.vertex_index });
+						Vertex* v = new Vertex({ verticesVis[h + i + j].pos, index.vertex_index });
 						vertices[index.vertex_index] = v;
 					}
 					vertices[index.vertex_index]->triangles.push_back(prim->id);
@@ -164,15 +165,16 @@ public:
 				}
 
 				prim->normal = glm::normalize(glm::cross(prim->vertices[0]->pos - prim->vertices[1]->pos, prim->vertices[2]->pos - prim->vertices[1]->pos));
+				if (glm::dot(prim->normal, verticesVis[prim->id*3].normal) < 0) prim->normal = -prim->normal;
 				prim->center = (prim->vertices[0]->pos + prim->vertices[1]->pos + prim->vertices[2]->pos) / 3.f;
 
 				for (int j = 0; j < 3; j++) {
 					// Add the enlarged vertices
-					verticesL[i + j].pos = verticesVis[i + j].pos + glm::normalize(verticesVis[i + j].pos - prim->center) * 0.00001f;
+					verticesL[h + i + j].pos = verticesVis[h + i + j].pos + glm::normalize(verticesVis[h + i + j].pos - prim->center) * 0.00001f;
 					// Add the rays to the primitive
 					prim->rays[j] = Ray(prim->vertices[j]->pos, prim->vertices[(j + 1) % 3]->pos);
 
-					int e_id = edges.size() - 1;
+					int e_id = edges.size();
 					Vertex* v0 = prim->vertices[j];
 					Vertex* v1 = prim->vertices[(j + 1) % 3];
 					Edge* e;
@@ -180,36 +182,35 @@ public:
 					else e = new Edge{ { v1, v0 }, e_id,  Ray(v1->pos, v0->pos) };
 
 					// Try inserting the edge to see if it already exists
-					uint64_t edgeKey = (uint64_t)v0 << 32 | (uint64_t)v1;
+					uint64_t edgeKey = (uint64_t)e->vertices[0]->id << 32 | (uint64_t)e->vertices[1]->id;
 					if (!edges.contains(edgeKey)) {
 						v0->edges.push_back(e);
 						v1->edges.push_back(e);
 						edges[edgeKey] = e;
 					}
 					else delete e;
-					edges[edgeKey]->triangles.push_back(prim);
 
-					prim->edges[j] = e;
+					edges[edgeKey]->triangles.push_back(prim);
+					prim->edges[j] = edges[edgeKey];
 				}
 
-				triangles[i / 3] = prim;
+				triangles[(h + i) / 3] = prim;
 			}
+			h += shape.mesh.indices.size();
 		}
-
 	};
 
-	RTCGeometry makeEmbreeGeom(bool indexed = true) {
+	RTCGeometry makeEmbreeGeom(bool normal = true) {
 		RTCGeometry model_geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-		int vertexsize = indexed ? vertices.size() : verticesL.size();
-		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexsize);
+		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), verticesVis.size());
 		unsigned* triangles_embr = (unsigned*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), indices.size() / 3);
-		for (int i = 0; i < vertexsize; i++) {
-			vertices_embr[i * 3] = indexed ? vertices[i]->pos.x : verticesL[i].pos.x;
-			vertices_embr[i * 3 + 1] = indexed ? vertices[i]->pos.y : verticesL[i].pos.y;
-			vertices_embr[i * 3 + 2] = indexed ? vertices[i]->pos.z : verticesL[i].pos.z;
+		for (int i = 0; i < verticesVis.size(); i++) {
+			vertices_embr[i * 3] = normal ? verticesVis[i].pos.x : verticesL[i].pos.x;
+			vertices_embr[i * 3 + 1] = normal ? verticesVis[i].pos.y : verticesL[i].pos.y;
+			vertices_embr[i * 3 + 2] = normal ? verticesVis[i].pos.z : verticesL[i].pos.z;
 		}
 		for (int i = 0; i < indices.size(); i++)
-			triangles_embr[i] = indexed ? indices[i] : i;
+			triangles_embr[i] = i;
 		return model_geometry;
 	}
 

@@ -110,8 +110,9 @@ void RaySpaceTree::putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim)
 
 void RaySpaceTree::putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim) {
 	if (node->leaf) {
-		if (putRay) node->insert(primId, ray);
+		if (putRay && putPrim) node->insert(primId, ray);
 		else if (putPrim) node->insert(primId);
+		else if (putRay) node->insert(ray);
 		return;
 	}
 	if (node->splitter.side(ray)) putPrimitive(ray, primId, node->leftNode, putRay, putPrim);
