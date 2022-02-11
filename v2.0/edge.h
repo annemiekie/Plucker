@@ -35,6 +35,11 @@ struct Edge {
 		return isSilhouetteForPos((glm::vec3)r.origin);
 	}
 
+	bool isSilhouetteForVertex(Vertex* v, bool &side) const {
+		if (v->id == vertices[0]->id || v->id == vertices[1]->id) return true;
+		return isSilhouetteForPos(v->pos, side);
+	}
+
 	bool isSilhouetteForPrim(std::vector<glm::vec3>& pts) const {
 		if (triangles.size() == 1) return true;
 		Plane p1 = triangles[0]->getPlane();
@@ -61,7 +66,6 @@ struct Edge {
 			}
 			float concaveConvex = glm::dot(vNotOnEdge2pos - vNotOnEdge1pos, triangles[0]->normal);
 			if (fabsf(concaveConvex) < 1E-8 || concaveConvex > 0) return false; // in plane or concave
-			return true;
 		}
 		return true;
 	}

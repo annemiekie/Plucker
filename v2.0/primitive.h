@@ -21,6 +21,12 @@ struct Primitive {
 		return glm::dot(normal, vertices[0]->pos - glm::vec3(r.origin)) / ndotdir;
 	}
 
+	bool intersection(const Ray& or, float& depth) {
+		for (Ray& r : rays) if (r.side(or)) return false;
+		depth = getIntersectionDepth(or);
+		return true;
+	}
+
 	Plane getPlane() {
 		return Plane(vertices[0]->pos, normal);
 	}

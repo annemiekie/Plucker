@@ -22,6 +22,7 @@
 #include "colors.h"
 #include "lights.h"
 #include "visComponents.h"
+#include "rstBuilderExact.h"
 
 namespace Visualizer {
 	int width, height;
@@ -112,19 +113,38 @@ namespace Visualizer {
 		return { (xpos + .5f) / float(width) * 2.0f - 1.0f, 1.0f - (ypos + .5f) / float(height) * 2.0f };
 	}
 
-
-	void updateLines() {
-		if (leafnum < 0) return;
-
+	void updateSplitLines() {
 		std::vector<Ray> split;
-		rst->getSplittingLinesInLeaf(leaf, split);
+		rst->getSplittingLinesInNode(leaf, split);
 		splitters.updateVaoWithLines(split, geoObjects[geoObjectnr]);
+	}
 
-		notfoundprim = std::vector<int>();
+	void updateSampleLines() {
 		if (toggleSampleLines)
 			samples.updateVaoWithLines(rst->getViewingLinesInLeaf(leaf), geoObjects[geoObjectnr], rst->maindir);
-		//if (toggle4lines)
-			//eslLines.updateVaoWithLines(rst->getExtremalStabbingInLeaf(leaf, notfoundprim), geoObjects[geoObjectnr]);
+	}
+
+	void updateESLasSplitCombis() {
+		std::vector<Ray> allSplittingCombis = RSTBuilderExact::splitLineCombis(rst, leaf);
+		eslLines.updateVaoWithLines(allSplittingCombis, geoObjects[geoObjectnr]);
+	}
+
+	void updateESLlines(bool allESLoptions) {
+		if (toggle4lines) {
+			notfoundprim = std::vector<int>();
+			std::vector<Ray> allESL;
+			std::vector<Ray> singleESL = RSTBuilderExact::getExtremalStabbingInLeaf(rst, leaf, notfoundprim, allESLoptions, allESL);
+			if (allESLoptions) eslLines.updateVaoWithLines(allESL, geoObjects[geoObjectnr]);
+			else eslLines.updateVaoWithLines(singleESL, geoObjects[geoObjectnr]);
+			if (notfoundprim.size() > 0) changeColoring = true;
+		}
+	}
+
+	void updateLines(bool allESLoptions) {
+		if (leafnum < 0) return;
+		updateSplitLines();
+		updateSampleLines();
+		updateESLlines(false);
 	}
 
 	void leafChange(int num, bool skipEmpty) {
@@ -135,13 +155,14 @@ namespace Visualizer {
 			int trinum = 0;
 			while (trinum == 0) {
 				leafnum += num;
-				leafnum = leafnum % rst->noLeaves;
+				leafnum = (leafnum + rst->noLeaves) % rst->noLeaves;
 				trinum = rst->getNumberOfTriInleaf(leafnum);
 			}
 		} else leafnum += num;
+		leafnum = (leafnum + rst->noLeaves) % rst->noLeaves;
 		std::cout << "Leaf nr: " << leafnum << std::endl;
 		leaf = rst->getLeafFromNum(leafnum);
-		updateLines();
+		updateLines(false);
 		viewline = false;
 		edgelines = false;
 	}
@@ -160,7 +181,7 @@ namespace Visualizer {
 		leaf = rst->descend(r);
 		clickRay.updateVaoWithLines(rays, geoObjects[geoObjectnr], rst->maindir);
 		viewline = true;
-		updateLines();
+		updateLines(false);
 	}
 
 
@@ -172,12 +193,17 @@ namespace Visualizer {
 		model->getIntersectionEmbree(r, primindex, t);
 		if (primindex >= 0) {
 			std::cout << primindex << std::endl;
-			Ray extremalLine;
-			std::vector<glm::vec3> edges;
-			std::vector<Ray> eslEdges;
+			Line4 extremalLine;
+			std::vector<Ray> alloptionsESVt;
+			//std::vector<glm::vec3> edges;
+			//std::vector<Ray> eslEdges;
 
-			//if (rst->check1Prim(primindex, extremalLine, leaf, true, 0, true, edges, eslEdges))
-			//	eslLines.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObject, rst->maindir);
+			if (RSTBuilderExact::find(rst, extremalLine, rst->model->triangles[primindex], leaf, true, alloptionsESVt)) // , true, 0, true, edges, eslEdges))
+				eslLines.updateVaoWithLines(alloptionsESVt, geoObjects[geoObjectnr], rst->maindir);
+			//	eslLines.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObjects[geoObjectnr], rst->maindir);
+			//else eslLines.updateVaoWithLines(alloptionsESVt, geoObjects[geoObjectnr], rst->maindir);
+
+			samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
 
 			//edgeRays.makeVaoVbo(edges);
 			//eslSilhEdges.updateVaoWithLines(eslEdges, geoObjects[geoObjectnr]);
@@ -260,12 +286,20 @@ namespace Visualizer {
 				break;
 			case GLFW_KEY_5:
 				toggleSampleLines = !toggleSampleLines;
-				updateLines();
+				updateSampleLines();
 				break;
 			case GLFW_KEY_6:
 				toggle4lines = !toggle4lines;
-				updateLines();
-				//update4lines = true;
+				updateESLlines(false);
+				break;
+			case GLFW_KEY_F6:
+				if (!toggle4lines) toggle4lines = true;
+				updateESLlines(true);
+				break;
+			case GLFW_KEY_F7:
+				if (!toggle4lines) toggle4lines = true;
+				updateESLasSplitCombis();
+				//updateLines(true);
 				break;
 			case GLFW_KEY_7:
 				togglePicking = !togglePicking;

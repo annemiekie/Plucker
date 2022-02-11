@@ -7,6 +7,7 @@
 #include <vector>
 #include <Eigen/dense>
 #include <iostream>
+#include "vertex.h"
 
 class Ray {
 public:
@@ -27,7 +28,7 @@ public:
         v = glm::cross(to, from);
         direction = glm::normalize(u);
         invdir = 1. / direction;
-        normalize();
+        normalize();;
     };
 
     Ray(Eigen::VectorXd plucker, bool reverse) {
@@ -64,11 +65,6 @@ public:
         v = v / norm;
     }
 
-    //void normalizeU() {
-    //    double norm = sqrt(glm::dot(u, u));
-    //    u = u / norm;
-    //    v = v / norm;
-    //}
     std::vector<double> plucker() {
         std::vector<double> pluck = { u[0], u[1], u[2], v[0], v[1], v[2] };
         return pluck;
@@ -84,7 +80,7 @@ public:
 
     bool intersectsWithRayAtDepth(Ray& oRay, double depth) {
         glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
-        return (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10);
+        return (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10 && fabsf(intersectionTs.x - intersectionTs.z) < 1E-10);
     }
 
     glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {
@@ -101,11 +97,16 @@ public:
         std::cout << "Origin: (" << origin.x << "," << origin.y << "," << origin.z << ") Direction: (" << direction.x << "," << direction.y << "," << direction.z << ")";
     }
 
-    bool throughVertex(glm::dvec3 vertex, double eps) {
-        glm::dvec3 dir = vertex - origin;
-        if (dir.x * direction.x < 0) dir = -dir;
-        double dist = glm::distance(glm::normalize(dir), glm::normalize(direction));
-        return (dist < eps);
+    bool throughVertex(Vertex* vertex, double eps = 1E-8) {
+        return throughPoint(vertex->pos, eps);
+        //glm::dvec3 dir = vertex - origin;
+        //if (dir.x * direction.x < 0) dir = -dir;
+        //double dist = glm::distance(glm::normalize(dir), glm::normalize(direction));
+        //return (dist < eps);
+    }
+
+    void offsetByDepth(double depth) {
+        origin += (depth * direction);
     }
 
     float pointToRayDist(glm::dvec3 pt) {
@@ -114,7 +115,7 @@ public:
 
     }
 
-    bool throughPoint(glm::dvec3 pt, double eps) {
+    bool throughPoint(glm::dvec3 pt, double eps = 1E-8) {
         return (pointToRayDist(pt) < eps);
     }
 
@@ -127,15 +128,15 @@ public:
         return (pt.x - origin.x) / direction.x;
     }
 
-    bool inPlane(Ray& ray1, Ray& ray2, double eps) {
-        glm::dvec3 cross = glm::cross(glm::normalize(ray1.direction), glm::normalize(ray2.direction));
-        double v = fabsf(glm::dot(direction, cross));
-        return (v < 1E-10);
-    }
+    //bool inPlane(Ray& ray1, Ray& ray2, double eps = 1E-8) {
+    //    glm::dvec3 cross = glm::cross(glm::normalize(ray1.direction), glm::normalize(ray2.direction));
+    //    double v = fabsf(glm::dot(direction, cross));
+    //    return (v < eps);
+    //}
 
     // Checks whether rays are the same
     // Not checking orientation 
-    bool equal(Ray o, double eps) {
+    bool equal(Ray o, double eps = 1E-8) {
         normalize();
         o.normalize();
         if ((glm::distance(u, o.u) < eps && glm::distance(v, o.v) < eps)) return true;

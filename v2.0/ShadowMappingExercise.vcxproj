@@ -67,6 +67,7 @@
     <ClInclude Include="shader.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="sphereSampler.h" />
+    <ClInclude Include="splitSide.h" />
     <ClInclude Include="square.h" />
     <ClInclude Include="tetrahedron.h" />
     <ClInclude Include="textureRenderer.h" />

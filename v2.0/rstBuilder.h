@@ -60,8 +60,16 @@ public:
 		return Ray();
 	}
 
-	static Ray getEdgeFromLeafNum(RaySpaceTree* rst, int leafNum) {
-		return rst->model->triangles[leafNum / 3]->edges[leafNum % 3]->ray;
+	static Ray getEdgeFromLeafNum(RaySpaceTree* rst, int nodeNum) {
+		//int triStep = rst->model->triangles.size() / std::pow(2, rst->depth - 1);
+		//if (triStep == 0) std::cout << "not possible!" << std::endl;
+		return rst->model->triangles[nodeNum / 3]->edges[nodeNum % 3]->ray;
+	}
+
+	static Ray getEdgeFromLevel(RaySpaceTree* rst, int level) {
+		int triStep = rst->model->edges.size() / rst->depth - 1;
+		if (triStep == 0) std::cout << "not possible!" << std::endl;
+		return rst->model->edgeVector[level * triStep]->ray;
 	}
 
 	static void construct(RaySpaceTree* rst, int lvl, Node* node, Options::constructOption option, int splitnum) {
@@ -80,13 +88,15 @@ public:
 			case Options::RANDOM_ORTHO:
 				splitter = splitRandomOrtho(rst);
 				break;
-			case Options::FIRST_EDGES:
-				splitter = getEdgeFromLeafNum(rst, node->index - rst->noLeaves);
+			case Options::SAME_LEVEL:
+				splitter = getEdgeFromLevel(rst, lvl);
 		}
 
 		bool dupli = false;
 		// only bad if it's in the same subtree
-		//for (Ray r : rst->splitters) if (splitter.equal(r, 1E-6)) { dupli = true; break; }
+		std::vector<Ray> parentSplitters;
+		rst->getSplittingLinesInNode(node, parentSplitters);
+		for (Ray r : parentSplitters) if (splitter.equal(r, 1E-6)) { dupli = true; break; }
 		if (dupli) construct(rst, lvl, node, option, splitnum);
 		else {
 			splitter.index = splitnum;

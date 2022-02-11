@@ -2,12 +2,13 @@
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 struct Edge;
+struct Primitive;
 
 // Per-vertex data
 struct Vertex {
 	glm::vec3 pos;
 	int id=-1;
-	std::vector<int> triangles;
+	std::vector<Primitive*> triangles;
 	std::vector<Edge*> edges;
 
 	struct cmp_ptr
@@ -22,6 +23,6 @@ struct Vertex {
 struct VertexVis {
 	glm::vec3 pos;
 	glm::vec3 normal;
-	glm::vec3 color;
+	glm::vec3 color = glm::vec3(1);
 	float tri_id;
 };

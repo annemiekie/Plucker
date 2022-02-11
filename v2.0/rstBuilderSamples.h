@@ -50,7 +50,10 @@ public:
 			for (int x = 0; x < options.s_w; x++) {
 				Ray ray = cam->pixRayDirection(getPixPosFromIndex(options.s_w, options.s_h, x, y));
 				//Ray ray(glm::vec3(-30, 0,-5), glm::vec3(30, 0, 0));
-				if (!rst->alldir && !rst->model->boundingCube.intersectSide(rst->maindir, ray)) continue;
+				if (!rst->alldir && !rst->model->boundingCube.intersectSide(rst->maindir, ray)) {
+					//if (options.storeAllSamples) rst->putPrimitive(ray, -1, true, false);
+					continue;
+				}
 
 				int pixloc = yind * options.s_w + x;
 				int tri = -1;
@@ -77,6 +80,7 @@ public:
 
 		std::cout << "Creating camera samples to fill tree..." << std::endl;
 		int i = 0;
+		int plus = fillmore ? 1 : sampler.ratio;
 		while (i < sampler.samples.size()) {
 			if (fillmore && i % sampler.ratio == 0) {
 				i++;
@@ -86,7 +90,7 @@ public:
 			GLfloat* pixels = 0;
 			if (options.rasterizationSampling) pixels = texrender.render(cam, rst->model);
 			makeSample(rst, options, cam, fillmore, pixels);
-			i += sampler.ratio;
+			i += plus;
 		}
 	}
 

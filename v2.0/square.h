@@ -29,10 +29,13 @@ public:
 	}
 
 	bool inBounds(const Ray& r, float thres = 0) {
+		int count = 0;
 		for (Ray& ql : quadLines) {
 			float x = ql.sideVal(r);
-			if (ql.sideVal(r) < -thres) return false;
+			if (x < -thres) return false;
+			if (fabsf(x) < thres) count++;
 		}
+		if (count == 4) return false;
 		return true;
 	}
 

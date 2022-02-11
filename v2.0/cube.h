@@ -144,25 +144,6 @@ public:
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
         if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
         return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
-        //int ind = getIndex(mainDir);
-        //for (int i = 0; i < 4; i++) {
-        //    bool ign = false;
-        //     for (int j = 0; j < rayIgnoresize; j++) {
-        //   //     if (lines[j].equal(quadLines[ind][i], 1E-8)) {
-        //   // for (auto& igray : lines) {
-        //   //      if (igray.equal(quadLines[ind][i], 1E-8)) {
-        //            ign = true; //-8
-        //            break;
-        //        }
-        //    }
-        //    if (ign) continue;
-        //    double sideVal = quadLines[ind][i].sideVal(r);
-        //    if (sideVal < -1E-5) {
-        //        if (print) std::cout << "Ray not in Box (wrong side of edge, should be >0): " << sideVal << std::endl <<std::endl;
-        //        return false;
-        //    }
-        //}
-        //return true;    
     }
 
     glm::vec3 intersectSidePoint(glm::vec3 mainDir, const Ray& r) {

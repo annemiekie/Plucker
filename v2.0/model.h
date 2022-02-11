@@ -34,7 +34,7 @@ public:
 
 	std::vector<Vertex*> vertices;
 	std::vector<Primitive*> triangles;
-	//std::vector<Edge> edges;
+	std::vector<Edge*> edgeVector;
 	robin_hood::unordered_map <uint64_t, Edge*> edges;
 
 	// need 6 of these
@@ -159,7 +159,7 @@ public:
 						Vertex* v = new Vertex({ verticesVis[h + i + j].pos, index.vertex_index });
 						vertices[index.vertex_index] = v;
 					}
-					vertices[index.vertex_index]->triangles.push_back(prim->id);
+					vertices[index.vertex_index]->triangles.push_back(prim);
 
 					prim->vertices[j] = vertices[index.vertex_index];
 				}
@@ -170,7 +170,8 @@ public:
 
 				for (int j = 0; j < 3; j++) {
 					// Add the enlarged vertices
-					verticesL[h + i + j].pos = verticesVis[h + i + j].pos + glm::normalize(verticesVis[h + i + j].pos - prim->center) * 0.00001f;
+					verticesL[h + i + j] = verticesVis[h + i + j];
+					verticesL[h + i + j].pos = verticesVis[h + i + j].pos + glm::normalize(verticesVis[h + i + j].pos - prim->center) * 0.0001f;
 					// Add the rays to the primitive
 					prim->rays[j] = Ray(prim->vertices[j]->pos, prim->vertices[(j + 1) % 3]->pos);
 
@@ -198,6 +199,7 @@ public:
 			}
 			h += shape.mesh.indices.size();
 		}
+		for (auto& e : edges) edgeVector.push_back(e.second);
 	};
 
 	RTCGeometry makeEmbreeGeom(bool normal = true) {
@@ -377,8 +379,8 @@ public:
 	}
 
 	bool checkEdgeEdge(const Edge* e1, const Edge* e2, bool alldir, glm::vec3 maindir) {
-		if (e1->vertices[0]->id == e2->vertices[0]->id || e1->vertices[1]->id == e2->vertices[1]->id ||
-			e1->vertices[0]->id == e2->vertices[1]->id || e1->vertices[1]->id == e2->vertices[0]->id)  return false;
+		//if (e1->vertices[0]->id == e2->vertices[0]->id || e1->vertices[1]->id == e2->vertices[1]->id ||
+		//	e1->vertices[0]->id == e2->vertices[1]->id || e1->vertices[1]->id == e2->vertices[0]->id)  return false;
 
 		glm::vec3 e1v1 = e1->vertices[0]->pos;
 		glm::vec3 e1v2 = e1->vertices[1]->pos;
@@ -389,37 +391,29 @@ public:
 		}
 
 		// edge 1 to 2
-		bool side1;
+		bool side1, side2;
 		bool check12 = false;
-		int silhEdgeCheck = checkSilhouetteEdge(e1v1, e2, true, maindir, side1);
-		if (silhEdgeCheck <= 0) {
-			bool side2;
-			silhEdgeCheck = checkSilhouetteEdge(e1v2, e2, true, maindir, side2);
-			if (silhEdgeCheck == 1);
-			else if (silhEdgeCheck == -1) return false;
-			else if (side1 == side2) return false;
+		if (!e2->isSilhouetteForVertex(e1->vertices[0], side1)) {
+			if (!e2->isSilhouetteForVertex(e1->vertices[1], side2)) 
+				if (side1 == side2) return false;
 		}
 
 		// edge 2 to 1
-		silhEdgeCheck = checkSilhouetteEdge(e2v1, e1, true, maindir, side1);
-		if (silhEdgeCheck <= 0) {
-			bool side2;
-			silhEdgeCheck = checkSilhouetteEdge(e2v2, e1, true, maindir, side2);
-			if (silhEdgeCheck == 1);
-			else if (silhEdgeCheck == -1) return false;
-			else if (side1 == side2) return false;
+		if (!e1->isSilhouetteForVertex(e2->vertices[0], side1)) {
+			if (!e1->isSilhouetteForVertex(e2->vertices[1], side2)) 
+				if (side1 == side2) return false;
 		}
 		return true;
 	}
 
-	bool checkSilhouetteEdge(glm::vec3& vpos, const Edge* e, bool alldir, glm::vec3& maindir, bool& side) {
+	bool checkSilhouetteEdge(Vertex * v, const Edge* e, bool alldir, glm::vec3& maindir, bool& side) {
 
 		Vertex* v1 = e->vertices[0];
 		Vertex* v2 = e->vertices[1];
-		if (!alldir && (glm::dot(v1->pos, maindir) > glm::dot(vpos, maindir) &&
-			glm::dot(v2->pos, maindir) > glm::dot(vpos, maindir))) return false;
+		if (!alldir && (glm::dot(v1->pos, maindir) > glm::dot(v->pos, maindir) &&
+			glm::dot(v2->pos, maindir) > glm::dot(v->pos, maindir))) return false;
 
-		return e->isSilhouetteForPos(vpos, side);
+		return e->isSilhouetteForVertex(v, side);
 
 		//if (e->triangles.size() == 2) {
 		//
@@ -484,37 +478,32 @@ public:
 			glm::vec3 v2pos = e->vertices[1]->pos;
 
 			bool sideCheck = false;
-			bool intersect;
+			bool intersect = false;
 			std::vector<glm::vec3> intersectpts;
 			bool toAdd = false;
+			bool first = true;
 
 			for (int i = 0; i < 3; i++) {
 				bool side = false;
-				bool checkEdge = checkSilhouetteEdge(tri->vertices[i]->pos, e, alldir, maindir, side);
+				bool checkEdge = checkSilhouetteEdge(tri->vertices[i], e, alldir, maindir, side);
 				if (!alldir) {
 					Ray r1 = Ray(v1pos, tri->vertices[i]->pos);
 					Ray r2 = Ray(v2pos, tri->vertices[i]->pos);
 
-					intersect = boundingCube.intersectSide(maindir, r1) || boundingCube.intersectSide(maindir, r2);
+					intersect = intersect || boundingCube.intersectSide(maindir, r1) || boundingCube.intersectSide(maindir, r2);
 					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r1));
 					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r2));
 				}
-				if (!checkEdge && (i == 0 || side == sideCheck)) {
-					sideCheck = side;
-					continue;
+				if (!checkEdge) {
+					if (first) { first = false;  sideCheck = side; }
+					else if (side != sideCheck) {
+						if (alldir || intersect) { silhouetteEdge.push_back(e); toAdd = false;  break; }
+						else toAdd = true;
+					}
 				}
-				else if (checkEdge == 1) {
-					if (alldir) {
-						silhouetteEdge.push_back(e);
-						break;
-					}
-					else {
-						toAdd = !intersect;
-						if (intersect) {
-							silhouetteEdge.push_back(e);
-							break;
-						}
-					}
+				else {
+					if (alldir || intersect) { silhouetteEdge.push_back(e); toAdd = false;  break; }
+					else toAdd = true;
 				}
 			}
 			if (toAdd) {
@@ -532,28 +521,17 @@ public:
 		}
 	}
 
-	double getIntersectionDepthForPrim(const int prim, const Ray& r) {
-		double ndotdir = glm::dot(triangles[prim]->normal, glm::vec3(r.direction));
-		double t = glm::dot(triangles[prim]->normal, triangles[prim]->vertices[0]->pos - glm::vec3(r.origin)) / ndotdir;
-		return t;
-	}
 
-	bool getIntersectionWithPrim(int prim, const Ray& r, float& depth) {
-		for (int i=0; i<3; i++)
-			if (triangles[prim]->rays[i].side(r)) return false;
-		depth = getIntersectionDepthForPrim(prim, r);
-		return true;
-	};
 
 	bool getIntersectionNoAcceleration(const Ray& r, int& primIndex, float& depth) {
 		primIndex = -1;
 		depth = 10000.f;
-		for (int index = 0; index < primsize; index++) {
+		for (Primitive* prim : triangles) {
 			float newdepth;
-			if (getIntersectionWithPrim(index * 3, r, newdepth)) {
+			if (prim->intersection(r, newdepth)) {
 				if (newdepth < depth) {
 					depth = newdepth;
-					primIndex = index;
+					primIndex = prim->id;
 				}
 			}
 		}

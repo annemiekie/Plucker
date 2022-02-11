@@ -29,6 +29,14 @@ public:
         }
     }
 
+    bool rayInPlane(Ray& r, float eps = 1E-10) {
+        return (pointOnPlane(r.origin) && pointOnPlane(r.origin + r.direction));
+    }
+
+    bool pointOnPlane(glm::vec3 pt, float eps = 1E-10) {
+        return  fabsf(glm::dot(normal, pt) - constant) < eps;
+    }
+
     bool pointOnPositiveSide(glm::vec3 pt) {
         return (glm::dot(normal, pt) - constant) > 0;
     }

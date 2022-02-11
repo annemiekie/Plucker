@@ -142,13 +142,16 @@ int main() {
 
 	////////////////////////// Load vertices of model
 	const char* filename = filestr.c_str();
-	Model model(filename);// , true, cacheEE, cacheEEE);
+	Model model(filename);
 
 	VisComponents visComp;
 	RaySpaceTree rst;
 	if (sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	else if (exact) rst = RSTBuilder<RSTBuilderExact>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	//model.enlargeModel();
+	model.enlargeModel();
+	if (!sampling && exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, depth, alldir, dir, sgn, options, visComp);
+	else if (exact) RSTBuilderExact::fill(&rst);
+
+	rst.printLeafNodes();
 	Visualizer::visualize(width, height, &model, &rst, visComp, window);
 
 
