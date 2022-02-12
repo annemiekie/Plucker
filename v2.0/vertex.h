@@ -6,8 +6,8 @@ struct Primitive;
 
 // Per-vertex data
 struct Vertex {
+	int id = -1;
 	glm::vec3 pos;
-	int id=-1;
 	std::vector<Primitive*> triangles;
 	std::vector<Edge*> edges;
 

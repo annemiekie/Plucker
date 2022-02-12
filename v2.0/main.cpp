@@ -147,7 +147,6 @@ int main() {
 	VisComponents visComp;
 	RaySpaceTree rst;
 	if (sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	model.enlargeModel();
 	if (!sampling && exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, depth, alldir, dir, sgn, options, visComp);
 	else if (exact) RSTBuilderExact::fill(&rst);
 

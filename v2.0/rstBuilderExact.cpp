@@ -66,39 +66,23 @@ bool RSTBuilderExact::checkRayInLeaf(RaySpaceTree *rst, Node* node, const Line4&
 }
 
 bool RSTBuilderExact::checkSilhouettesForRay(Line4& ray, std::vector<Vertex*>& silhVertices, std::vector<Edge*>& silhEdges,
-												std::map<float, float>& intersectionDepthOffset) {
+												std::set<float>& intersectionDepths) {
 	for (Edge* e : silhEdges) {
 		if (!e->isSilhouetteForRay(ray)) return false;
-		float minDepth = INFINITY;
-		float maxDepth = -INFINITY;
-		for (Primitive* p : e->triangles) {
-			float depth = p->getIntersectionDepth(ray);
-			if (depth < minDepth) minDepth = depth;
-			if (depth > maxDepth) maxDepth = depth;
-		}
-		intersectionDepthOffset[minDepth] = maxDepth - minDepth + 0.001f;
-		//intersectionPrims[ray.depthToIntersectionWithRay(e->ray)] = e->triangles;
-		// check whether the edge is not intersected at the vertex
-		//for (Vertex* v : e->vertices)
-		//	if (ray.throughPoint(v->pos, 1E-8)) return false;
+		// check if ray intersects edge between vertices
+		//if (!e->intersectsRay(ray)) return false;
+		// check if ray does not intersect exactly at vertex
+		for (Vertex* v : e->vertices)
+			if (ray.throughPoint(v->pos, 1E-4)) return false;
 		// store intersection depth
-		//intersectionDepths.insert(ray.depthToIntersectionWithRay(e->ray));
+		intersectionDepths.insert(ray.depthToIntersectionWithRay(e->ray));
 	}
 	for (Vertex* v : silhVertices) {
-		// check if line goes through vertex
 		if (!ray.throughPoint(v->pos, 1E-4)) return false;
-		float minDepth = INFINITY;
-		float maxDepth = -INFINITY;
-		for (Primitive* p : v->triangles) {
-			float depth = p->getIntersectionDepth(ray);
-			if (depth < minDepth) minDepth = depth;
-			if (depth > maxDepth) maxDepth = depth;
-		}
-		intersectionDepthOffset[minDepth] = maxDepth - minDepth + 0.001f;
-		//intersectionPrims[ray.depthToPointOnRay(v->pos)] = v->triangles;
 		// check if line does not intersect mesh
+		// 
 		// store intersection depth
-		//intersectionDepths.insert(ray.depthToPointOnRay(v->pos));
+		intersectionDepths.insert(ray.depthToPointOnRay(v->pos));
 	}
 	return true;
 }
@@ -113,71 +97,52 @@ bool RSTBuilderExact::checkPrimVisibleForRay(RaySpaceTree* rst, Line4& ray, Prim
 		rst->model->boundingCube.intersect(ray, t, tend);
 	}
 	else t = rst->model->boundingCube.getCubeSideSquare(rst->maindir).rayIntersectionDepth(ray) - 0.1f;
-	glm::dvec3 neworig = glm::dvec3(ray.origin + (double)t * ray.direction);
-	ray = Line4(neworig, neworig + ray.direction);
+	ray.offsetByDepth(t);
 
-	std::map <float, float> intersectionDepthOffset;
-	//std::set<float> intersectionDepths;
-	if (!checkSilhouettesForRay(ray, silhVertices, silhEdges, intersectionDepthOffset)) return false;
+	std::set<float> intersectionDepths;
+	if (!checkSilhouettesForRay(ray, silhVertices, silhEdges, intersectionDepths)) return false;
 
 	int embreePrim = -1;
 	float embreeDepth = 0.f;
-	float depthOffset = 0.f;
-	auto intDepth = intersectionDepthOffset.begin();
-	//int nrOfIntersections = 0;
-	while (intDepth != intersectionDepthOffset.end()) {
-		rst->model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
-		bool found = false;
-		float offset = 0.001f;
-		if (fabsf(embreeDepth - (*intDepth).first + depthOffset) < 1E-3) {
-			found = true;
-			offset = (*intDepth).second;
-			intDepth++; 
-		}
-		//else if (depthToIntersection < 1E-1) {
-		//	for (Primitive* p : (*intDepth).second)
-		//		if (embreePrim == p->id) { 
-		//			found = true; 
-		//			intDepth++;  
-		//			offset = 0.01;
-		//			break; 
-		//		}
-		//}
-		if (!found) {
-			for (Ray& r : lines4)
-				if (ray.intersectsWithRayAtDepth(r, embreeDepth)) { found = true; break; }
-		}
-		if (found) {
-			ray.offsetByDepth(embreeDepth + offset);
-			depthOffset += (embreeDepth + offset);
-			//glm::dvec3 neworig = glm::dvec3(ray.origin + (embreeDepth + 0.001) * ray.direction);
-			//ray = Line4(neworig, neworig + ray.direction);
-		}
-		else return false;
-	}
-
-	embreePrim = -1;
-	embreeDepth = 0.f;
 	float primaryprimdepth = prim->getIntersectionDepth(ray);
-	rst->model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
 
-	if (embreePrim >= 0) {
-		if (embreePrim == prim->id || fabsf(embreeDepth - primaryprimdepth) < 1E-3) return true;
-		else if (inplane) return true;
-		else if (lines4.size() > 0) {
-			for (Ray& r : lines4) {			
-				if (ray.intersectsWithRayAtDepth(r, embreeDepth)) {
-					ray.offsetByDepth(embreeDepth + 0.001);
-					//glm::dvec3 neworig = glm::dvec3(ray.origin + (embreeDepth + 0.001) * ray.direction);
-					//ray = Line4(neworig, neworig + ray.direction);
-					primaryprimdepth = prim->getIntersectionDepth(ray);
-					rst->model->getIntersectionEmbree(ray, embreePrim, embreeDepth);
-					if (embreePrim == prim->id || fabsf(embreeDepth - primaryprimdepth) < 1E-3) return true;
+	// if not hit anything, return true (we already know it hits the prim)
+	if (!rst->model->getIntersectionEmbree(ray, embreePrim, embreeDepth)) return true;
+	// if hit something, check it is same depth or further than prim
+	if (embreeDepth > primaryprimdepth - 1E-5) return true;
+
+	float depth = embreeDepth;
+	float offset = 0.001;
+
+	while (depth < primaryprimdepth - 1E-5) {		
+		bool found = false;
+		// check if it hits a silhouette vertex or edge
+		for (float idepth : intersectionDepths) {
+			if (fabsf(idepth - depth) < 1E-3) {
+				found = true;
+				intersectionDepths.erase(idepth);
+				break;
+			}
+		}
+		// check if it hits a split line that is also a silhouette
+		// need to check if it is a silhouette at this point!!
+		if (!found) {
+			for (Ray& r : lines4) {
+				if (ray.intersectsWithRayAtDepth(r, embreeDepth, 1E-5)) {
+					found = true;
+					break;
 				}
 			}
 		}
+		if (!found) return false;
+
+		// update the ray origin and shoot new ray
+		ray.offsetByDepth(embreeDepth + offset);
+		if (!rst->model->getIntersectionEmbree(ray, embreePrim, embreeDepth)) return true;
+		// update the depth with offset from previous intersection and new embreedepth
+		depth += (offset + embreeDepth);
 	}
-	return false;
+	return true;
 };
 
 bool RSTBuilderExact::checkRayInBox(RaySpaceTree* rst, const Line4& ray, bool print) {
@@ -366,7 +331,11 @@ bool RSTBuilderExact::checkCombi(RaySpaceTree* rst, Primitive* prim, Line4& ray,
 					}
 					if (checkRaysThroughLines(rst, prim, ray, leaf, false, lines4, indices, vischeck, silhVertices, silhEdges)) { // change this!!
 					//if (checkRaysThroughLines(rst, prim, ray, leaf, printAll, lines4, indices, vischeck, vertexEdgeCheck, silhEdges)) { // change this!!
-						if (print) std::cout << combi_text << std::endl;
+						if (print) {
+							std::cout << combi_text << " ";
+							for (Ray& r : lines4) std::cout << r.index << " ";
+							std::cout << std::endl;
+						}
 						if (allOptions) allESLs.push_back(ray);
 						else return true;
 					}
@@ -487,7 +456,16 @@ bool RSTBuilderExact::checkSilhouetteCombis(RaySpaceTree *rst, Primitive *prim, 
 
 	for (Edge* toAdd : silhouetteEdgesToAdd) {
 		silhouetteEdges.push_back(toAdd);
-		for (Vertex* v : toAdd->vertices) silhVertices.insert(v);
+		for (Vertex* v : toAdd->vertices) {
+			bool skip = false;
+			for (Vertex* vp : prim->vertices) {
+				if (vp == v) {
+					skip = true;
+					break;
+				}
+			}
+			if (!skip) silhVertices.insert(v);
+		}
 	}
 
 	std::vector<Vertex*> silhouetteVertices;

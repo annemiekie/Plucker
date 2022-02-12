@@ -78,9 +78,9 @@ public:
         return glm::dot(u, oRay.v) + glm::dot(v, oRay.u);
     };
 
-    bool intersectsWithRayAtDepth(Ray& oRay, double depth) {
+    bool intersectsWithRayAtDepth(Ray& oRay, double depth, float thres = 1E-8) {
         glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
-        return (fabsf(intersectionTs.x - intersectionTs.y) < 1E-10 && fabsf(intersectionTs.x - intersectionTs.z) < 1E-10);
+        return (fabsf(intersectionTs.x - intersectionTs.y) < thres && fabsf(intersectionTs.x - intersectionTs.z) < thres);
     }
 
     glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {

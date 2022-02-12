@@ -133,6 +133,6 @@ public:
 								std::vector<std::vector<int>>& combi3Edges);
 
 	static bool checkSilhouettesForRay(Line4& ray, std::vector<Vertex*>& silhVertices, std::vector<Edge*>& silhEdges,
-										 std::map<float, float>& intersectionDepthOffset);
+										std::set<float>& intersectionDepths);
 
 };

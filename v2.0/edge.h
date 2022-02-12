@@ -5,12 +5,18 @@
 #include "vertex.h"
 
 struct Edge {
-	Vertex* vertices[2];
 	mutable int id = -1;
+	Vertex* vertices[2];
 	Ray ray;
 	mutable std::vector<Primitive*> triangles;
 	bool silhouette = false;
 
+	bool intersectsRay(Ray& oray) {
+		glm::vec3 ipoint = ray.pointOfintersectWithRay(oray);
+		glm::vec3 tvec = (ipoint - vertices[0]->pos) /
+						 (vertices[1]->pos - vertices[0]->pos);
+		return (tvec.x > 0 && tvec.x < 1);
+	}
 
 	bool isSilhouetteForPos(glm::vec3& pt) const {
 		bool side;

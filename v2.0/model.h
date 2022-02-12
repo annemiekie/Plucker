@@ -29,7 +29,6 @@ public:
 	GLuint vbo = 0;
 	GLuint vao2 = 0;
 	std::vector<VertexVis> verticesVis;
-	std::vector<VertexVis> verticesL;
 	std::vector<glm::uint> indices;
 
 	std::vector<Vertex*> vertices;
@@ -79,14 +78,6 @@ public:
 		for (int i = 0; i < 6; i++) {
 			edgeEdgeCombis.push_back(robin_hood::unordered_map<uint64_t, bool>());
 		}
-	}
-
-	void enlargeModel() {
-		// needs to be done!!!
-		detachGeometry();
-		rtcReleaseScene(scene);
-		setUpEmbreeTracer();
-		addGeometry(false);
 	}
 
 	void constructModelBounds() {
@@ -141,7 +132,6 @@ public:
 		vertices = std::vector<Vertex*>(attrib.vertices.size() / 3);
 		indices = std::vector<glm::uint>(primsize * 3);
 		verticesVis = std::vector<VertexVis>(primsize * 3);
-		verticesL = std::vector<VertexVis>(primsize * 3);
 		triangles = std::vector<Primitive*>(primsize);
 
 		int h = 0;
@@ -156,7 +146,7 @@ public:
 					verticesVis[h + i + j] = loadVertexVis(index.vertex_index, index.normal_index, prim->id, attrib);
 					
 					if (vertices[index.vertex_index] == NULL) {
-						Vertex* v = new Vertex({ verticesVis[h + i + j].pos, index.vertex_index });
+						Vertex* v = new Vertex({ index.vertex_index, verticesVis[h + i + j].pos });
 						vertices[index.vertex_index] = v;
 					}
 					vertices[index.vertex_index]->triangles.push_back(prim);
@@ -169,18 +159,14 @@ public:
 				prim->center = (prim->vertices[0]->pos + prim->vertices[1]->pos + prim->vertices[2]->pos) / 3.f;
 
 				for (int j = 0; j < 3; j++) {
-					// Add the enlarged vertices
-					verticesL[h + i + j] = verticesVis[h + i + j];
-					verticesL[h + i + j].pos = verticesVis[h + i + j].pos + glm::normalize(verticesVis[h + i + j].pos - prim->center) * 0.0001f;
 					// Add the rays to the primitive
-					prim->rays[j] = Ray(prim->vertices[j]->pos, prim->vertices[(j + 1) % 3]->pos);
 
 					int e_id = edges.size();
 					Vertex* v0 = prim->vertices[j];
 					Vertex* v1 = prim->vertices[(j + 1) % 3];
 					Edge* e;
-					if (v0->id < v1->id) e = new Edge{ { v0, v1 }, e_id,  Ray(v0->pos, v1->pos) };
-					else e = new Edge{ { v1, v0 }, e_id,  Ray(v1->pos, v0->pos) };
+					if (v0->id < v1->id) e = new Edge{ e_id, { v0, v1 },  Ray(v0->pos, v1->pos, e_id) };
+					else e = new Edge{ e_id, { v1, v0 },  Ray(v1->pos, v0->pos, e_id) };
 
 					// Try inserting the edge to see if it already exists
 					uint64_t edgeKey = (uint64_t)e->vertices[0]->id << 32 | (uint64_t)e->vertices[1]->id;
@@ -193,6 +179,8 @@ public:
 
 					edges[edgeKey]->triangles.push_back(prim);
 					prim->edges[j] = edges[edgeKey];
+					prim->rays[j] = Ray(prim->vertices[j]->pos, prim->vertices[(j + 1) % 3]->pos, edges[edgeKey]->id);
+
 				}
 
 				triangles[(h + i) / 3] = prim;
@@ -202,14 +190,14 @@ public:
 		for (auto& e : edges) edgeVector.push_back(e.second);
 	};
 
-	RTCGeometry makeEmbreeGeom(bool normal = true) {
+	RTCGeometry makeEmbreeGeom() {
 		RTCGeometry model_geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), verticesVis.size());
 		unsigned* triangles_embr = (unsigned*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), indices.size() / 3);
 		for (int i = 0; i < verticesVis.size(); i++) {
-			vertices_embr[i * 3] = normal ? verticesVis[i].pos.x : verticesL[i].pos.x;
-			vertices_embr[i * 3 + 1] = normal ? verticesVis[i].pos.y : verticesL[i].pos.y;
-			vertices_embr[i * 3 + 2] = normal ? verticesVis[i].pos.z : verticesL[i].pos.z;
+			vertices_embr[i * 3] = verticesVis[i].pos.x;
+			vertices_embr[i * 3 + 1] = verticesVis[i].pos.y;
+			vertices_embr[i * 3 + 2] = verticesVis[i].pos.z;
 		}
 		for (int i = 0; i < indices.size(); i++)
 			triangles_embr[i] = i;
@@ -226,7 +214,7 @@ public:
 	}
 
 	void addGeometry(bool indexed = true) {
-		RTCGeometry model_geometry = makeEmbreeGeom(indexed);
+		RTCGeometry model_geometry = makeEmbreeGeom();
 		rtcCommitGeometry(model_geometry);
 		rtcAttachGeometry(scene, model_geometry);
 		rtcReleaseGeometry(model_geometry);
