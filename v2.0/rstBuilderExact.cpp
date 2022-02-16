@@ -1,10 +1,11 @@
 #include "rstBuilderExact.h"
 
+// add ray through triangle
 bool RSTBuilderExact::checkRayInPlane(Line4& ray, Primitive* prim, bool& inPlane, bool print) {
 
 		if (print) std::cout << "Ray in plane " << " ";
 		for (Vertex* v : prim->vertices) {
-			if (ray.throughVertex(v, 1E-10)) {
+			if (ray.throughVertex(v, 1E-8)) {
 				if (print) std::cout << " and through vertex " << std::endl;
 				inPlane = true;
 				return true;
@@ -70,7 +71,7 @@ bool RSTBuilderExact::checkSilhouettesForRay(Line4& ray, std::vector<Vertex*>& s
 	for (Edge* e : silhEdges) {
 		if (!e->isSilhouetteForRay(ray)) return false;
 		// check if ray intersects edge between vertices
-		//if (!e->intersectsRay(ray)) return false;
+		if (!e->intersectsRay(ray)) return false;
 		// check if ray does not intersect exactly at vertex
 		for (Vertex* v : e->vertices)
 			if (ray.throughPoint(v->pos, 1E-4)) return false;
@@ -157,7 +158,7 @@ bool RSTBuilderExact::checkRayInBox(RaySpaceTree* rst, const Line4& ray, bool pr
 	return true;
 }
 
-static bool checkNoSplitVertexProblem(RaySpaceTree* rst, Node* node, Primitive* prim, Line4& ray, std::vector<Ray>& lines4, bool print = false) {
+bool checkNoSplitVertexProblem(RaySpaceTree* rst, Node* node, Primitive* prim, Line4& ray, std::vector<Ray>& lines4, bool print = false) {
 	// if ray through vertex
 	bool throughvertex = false;
 	for (Vertex* v : prim->vertices) if (ray.throughVertex(v)) throughvertex = true;
@@ -322,13 +323,13 @@ bool RSTBuilderExact::checkCombi(RaySpaceTree* rst, Primitive* prim, Line4& ray,
 						linecount += 2;
 					}
 
-					if (printAll) {
-						std::vector<Line4> intersectLines = Lines4Finder::find(lines4);
-						for (Line4& line : intersectLines) {
-							line.get3DfromPlucker();
-							allESLs.push_back(line);
-						}
-					}
+					//if (printAll) {
+					//	std::vector<Line4> intersectLines = Lines4Finder::find(lines4);
+					//	for (Line4& line : intersectLines) {
+					//		line.get3DfromPlucker();
+					//		allESLs.push_back(line);
+					//	}
+					//}
 					if (checkRaysThroughLines(rst, prim, ray, leaf, false, lines4, indices, vischeck, silhVertices, silhEdges)) { // change this!!
 					//if (checkRaysThroughLines(rst, prim, ray, leaf, printAll, lines4, indices, vischeck, vertexEdgeCheck, silhEdges)) { // change this!!
 						if (print) {
@@ -766,7 +767,7 @@ bool RSTBuilderExact::checkPrim(RaySpaceTree* rst, Primitive* prim, std::vector<
 			for (Primitive* pr : e->triangles) {
 				if (leaf->primitiveSet.find(pr->id) != leaf->primitiveSet.end()) {
 					silhouetteEdgesFirst.push_back(e);
-					if (print) std::cout << "Silh Edge " << e->id << std::endl;
+					//if (print) std::cout << "Silh Edge " << e->id << std::endl;
 					found = true; break;
 				}
 			}
