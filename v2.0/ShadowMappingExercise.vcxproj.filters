@@ -175,12 +175,6 @@
     <ClInclude Include="raytracerEmbree.h">
       <Filter>Headers\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="extremalStabbingLine.h">
-      <Filter>Headers\Tree Building</Filter>
-    </ClInclude>
-    <ClInclude Include="ESLfinder.h">
-      <Filter>Headers\Tree Building</Filter>
-    </ClInclude>
     <ClInclude Include="lineThroughFourLines.h">
       <Filter>Headers\Geometry</Filter>
     </ClInclude>
@@ -201,6 +195,21 @@
     </ClInclude>
     <ClInclude Include="splitSide.h">
       <Filter>Headers\Tree Components</Filter>
+    </ClInclude>
+    <ClInclude Include="combiConfigurations.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
+    <ClInclude Include="eslFinder.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
+    <ClInclude Include="eslCandidate.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
+    <ClInclude Include="eslChecker.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
+    <ClInclude Include="extremalStabbingLine.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

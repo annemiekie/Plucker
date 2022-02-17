@@ -22,6 +22,7 @@ public:
 	};
 
 	bool getValue(std::vector<uint64_t>& keyComponents, T& value) {
+		if (keyComponents.size() == 0) return false;
 		uint64_t combiKey = makeCombiKey(keyComponents);
 		if (!cache.contains(combiKey)) return false;
 		value = cache[combiKey];

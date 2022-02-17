@@ -212,13 +212,12 @@ std::vector<glm::vec3> RaySpaceTree::getSplittingLinesInGeo(GeoObject* object) {
 	return splitters;
 }
 
-void RaySpaceTree::getSplittingLinesInNodeWithSide(Node* n, std::vector<Ray>& lines, std::vector<bool>& sides) {
+void RaySpaceTree::getSplittingLinesInNodeWithSide(Node* n, std::vector<Split>& lines) {
 	if (n == rootNode) return;
 	else {
-		if (n->parent->leftNode == n) sides.push_back(true);
-		else sides.push_back(false);
-		lines.push_back(n->parent->splitter);
-		return getSplittingLinesInNodeWithSide(n->parent, lines, sides);
+		Split split = { n->parent->splitter, (n->parent->leftNode == n) };
+		lines.push_back(split);
+		return getSplittingLinesInNodeWithSide(n->parent, lines);
 	}
 }
 

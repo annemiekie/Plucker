@@ -87,10 +87,11 @@ namespace Combinations {
 		return combinations;
 	}
 
-	static std::vector<std::vector<int>> combi2(int size) {
+	static std::vector<std::vector<int>> combi2(int size, int skip = 0) {
 		std::vector<std::vector<int>> combinations;
 		for (int i = 0; i < size; i++) {
 			for (int j = i + 1; j < size; j++) {
+				if (skip && j < skip) continue;
 				std::vector<int> num = { i,j };
 				combinations.push_back(num);
 			}
@@ -98,9 +99,9 @@ namespace Combinations {
 		return combinations;
 	}
 
-	static std::vector<std::vector<int>> combi1(int size) {
+	static std::vector<std::vector<int>> combi1(int size, int skip = 0) {
 		std::vector<std::vector<int>> combinations;
-		for (int i = 0; i < size; i++) {
+		for (int i = skip; i < size; i++) {
 			std::vector<int> num = { i};
 			combinations.push_back(num);
 		}
@@ -140,7 +141,7 @@ namespace Combinations {
 	}
 
 
-	static std::vector<std::vector<int>> combiAddSelective(int size, std::vector<std::vector<int>>& combiChecked) {
+	static std::vector<std::vector<int>> combiAddSelective(int size, std::vector<std::vector<int>>& combiChecked, int skip = 0) {
 		std::vector<std::vector<int>> combinations;
 		std::vector<std::vector<int>> combifind;
 		int nrOfElInCombiM1 = combiChecked[0].size() - 1;
@@ -153,13 +154,15 @@ namespace Combinations {
 		//for (std::vector<int>& cc : combiChecked) {
 		for (int k = 0; k < combiChecked.size(); k++) {
 			for (int i = combiChecked[k][nrOfElInCombiM1] + 1; i < size; i++) {
+				if (i < skip) continue;
 				int found = 0;
+
 				for (std::vector<int>& cf : combifind) {
-					//for (int f : cf) check.push_back(cc[f]); 
+
 					for (int j = 0; j<combifind[0].size(); j++) check[j] = combiChecked[k][cf[j]];
-					check[nrOfElInCombiM1] = i;// .push_back(i);
-					for (int m = k+1; m<combiChecked.size(); m++) {
-					//for (std::vector<int>& cc2 : combiChecked) {
+					check[nrOfElInCombiM1] = i;
+
+					for (int m = k + 1; m < combiChecked.size(); m++) {
 						if (combiChecked[m] == check) {
 							found++;
 							break;
@@ -178,11 +181,11 @@ namespace Combinations {
 		return combinations;
 	}
 
-	static std::vector<std::vector<int>> combi3(int size) {
+	static std::vector<std::vector<int>> combi3(int size, int skip = 1) {
 		std::vector<std::vector<int>> combinations;
 		for (int i = 0; i < size; i++) {
 			for (int j = i + 1; j < size; j++) {
-				for (int k = j + 1; k < size; k++) {
+				for (int k = j + skip; k < size; k++) {
 					std::vector<int> num = { i,j,k };
 					combinations.push_back(num);
 				}

@@ -15,7 +15,8 @@
 #include "textureRenderer.h"
 #include <embree3/rtcore.h>
 #include "cache.h"
-
+#include "splitSide.h"
+#include "extremalStabbingLine.h"
 class RaySpaceTree {
 
 public:
@@ -69,7 +70,7 @@ public:
 
 	void getSplittingLinesInLeaf(int leafnum, std::vector<Ray>& lines);
 	void getSplittingLinesInNode(Node* n, std::vector<Ray>& lines);
-	void getSplittingLinesInNodeWithSide(Node* n, std::vector<Ray>& lines, std::vector<bool>& sides);
+	void getSplittingLinesInNodeWithSide(Node* n, std::vector<Split>& lines);
 
 	int numOfLeaf(int ind);
 	int getNumberOfTriInleaf(int leafnum);

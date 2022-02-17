@@ -39,7 +39,9 @@
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
     <ClInclude Include="edge.h" />
-    <ClInclude Include="ESLfinder.h" />
+    <ClInclude Include="eslCandidate.h" />
+    <ClInclude Include="eslChecker.h" />
+    <ClInclude Include="eslFinder.h" />
     <ClInclude Include="extremalStabbingLine.h" />
     <ClInclude Include="geoObject.h" />
     <ClInclude Include="lights.h" />
@@ -67,6 +69,7 @@
     <ClInclude Include="shader.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="sphereSampler.h" />
+    <ClInclude Include="combiConfigurations.h" />
     <ClInclude Include="splitSide.h" />
     <ClInclude Include="square.h" />
     <ClInclude Include="tetrahedron.h" />

@@ -21,6 +21,31 @@ struct Primitive {
 		return glm::dot(normal, vertices[0]->pos - glm::vec3(r.origin)) / ndotdir;
 	}
 
+	bool onRightSideOfSplitEdge(Ray& split, bool side) {
+		Ray checkRay = Ray(center + normal, center);
+		return split.side(checkRay) == side;
+	}
+
+	bool onRightSideOfSplitVertex(Vertex* v, Ray& split , bool side) {
+		// check if center of primitive lies on correct side of splitline edge
+		if (split.side(Ray(center + normal, center)) == side) return true;
+
+		// check if one of vertices lies on correct side of splitline edge
+		for (Vertex* v2 : vertices)
+			if (v != v2 && split.side(Ray(v2->pos + normal, v2->pos)) == side)
+				return true;
+
+		Vertex* otherVertex;
+		// Check which of the edges attached to the vertex is the splitline
+		for (Edge* e : v->edges) 
+			if (e->ray.equal(split, 1E-5))
+				for (Vertex* v2 : e->vertices) if (v != v2) otherVertex = v2;
+
+		if (getPlane().pointOnPlane(otherVertex->pos)) return false;
+		else if (getPlane().pointOnPositiveSide(otherVertex->pos)) return false;
+		return true;
+	}
+
 	bool intersection(const Ray& or, float& depth) {
 		for (Ray& r : rays) if (r.side(or)) return false;
 		depth = getIntersectionDepth(or);

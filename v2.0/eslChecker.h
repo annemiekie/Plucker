@@ -12,26 +12,26 @@ public:
 
 	ESLChecker() {};
 
-	ESLChecker(Node* leaf, Primitive* prim, RaySpaceTree* rst, bool print) :
+	ESLChecker(Node* leaf, Primitive* prim, RaySpaceTree* rst, bool print = false) :
 		leaf(leaf), prim(prim), rst(rst), print(print)
 	{};
 
-	bool isExtremalStabbing(ESLCandidate& esl, bool visCheck = true) {
-		return checkRayAndReverse(esl, visCheck);
+	bool isExtremalStabbing(ESLCandidate& esl, bool visCheck = true, bool primCheck = true) {
+		return checkRayAndReverse(esl, visCheck, primCheck);
 	};
 
-	bool checkRayAndReverse(ESLCandidate& esl, bool visCheck) {
+	bool checkRayAndReverse(ESLCandidate& esl, bool visCheck, bool primCheck) {
 
-		if (checkExtremalStabbingLine(esl, visCheck)) return true;
+		if (checkExtremalStabbingLine(esl, visCheck, primCheck)) return true;
 		if ((rst->alldir && esl.inBox) || (!rst->alldir && esl.ray.checkboth && !esl.inBox)) {
 			esl.ray.inverseDir();
 			esl.inBox = true;
-			if (checkExtremalStabbingLine(esl, visCheck)) return true;
+			if (checkExtremalStabbingLine(esl, visCheck, primCheck)) return true;
 		}
 		return false;
 	};
 
-	bool checkExtremalStabbingLine(ESLCandidate& esl, bool visCheck) {
+	bool checkExtremalStabbingLine(ESLCandidate& esl, bool visCheck, bool primCheck) {
 		
 		esl.ray.get3DfromPlucker();
 		if (esl.ray.checkboth) {
@@ -43,7 +43,7 @@ public:
 		if (!checkRayInLeaf(esl, leaf)) return false;
 
 		bool inPlane = false;
-		if (prim != NULL && !checkRayInPrim(esl, inPlane)) return false;
+		if (primCheck && !checkRayInPrim(esl, inPlane)) return false;
 
 		// not for generic viewing direction yet, only the three 'minima'
 		if (visCheck && !checkPrimVisibleForRay(esl, inPlane)) return false;
