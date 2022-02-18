@@ -61,7 +61,6 @@ namespace Visualizer {
 		glClearColor(0.5f, 0.6f, 0.65f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 		glm::mat4 mvp = cam.vpMatrix();
 		glUseProgram(mainShader.index);
 		glUniformMatrix4fv(glGetUniformLocation(mainShader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
@@ -73,7 +72,6 @@ namespace Visualizer {
 			glDrawArrays(GL_POINTS, 0, visComp.sampling_size);
 		}
 		if (toggleBbox) model->boundingBox.draw();
-
 
 		glUseProgram(lineShader.index);
 		glUniformMatrix4fv(glGetUniformLocation(lineShader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
@@ -108,7 +106,6 @@ namespace Visualizer {
 		}
 	}
 
-
 	glm::vec2 getDrawRayPos(int xpos, int ypos) {
 		return { (xpos + .5f) / float(width) * 2.0f - 1.0f, 1.0f - (ypos + .5f) / float(height) * 2.0f };
 	}
@@ -129,13 +126,11 @@ namespace Visualizer {
 		eslLines.updateVaoWithLines(allSplittingCombis, geoObjects[geoObjectnr]);
 	}
 
-	void updateESLlines(bool allESLoptions) {
+	void updateESLlines(bool findAllESL) {
 		if (toggle4lines) {
 			notfoundprim = std::vector<int>();
-			std::vector<Ray> allESL;
-			std::vector<Ray> singleESL = RSTBuilderExact::getExtremalStabbingInLeaf(rst, leaf, notfoundprim, allESLoptions, allESL);
-			if (allESLoptions) eslLines.updateVaoWithLines(allESL, geoObjects[geoObjectnr]);
-			else eslLines.updateVaoWithLines(singleESL, geoObjects[geoObjectnr]);
+			std::vector<Ray> esls = RSTBuilderExact::getExtremalStabbingInLeaf(rst, leaf, notfoundprim, findAllESL);
+			eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr]);
 			if (notfoundprim.size() > 0) changeColoring = true;
 		}
 	}
@@ -159,6 +154,7 @@ namespace Visualizer {
 				trinum = rst->getNumberOfTriInleaf(leafnum);
 			}
 		} else leafnum += num;
+		notfoundprim = std::vector<int>();
 		leafnum = (leafnum + rst->noLeaves) % rst->noLeaves;
 		std::cout << "Leaf nr: " << leafnum << std::endl;
 		leaf = rst->getLeafFromNum(leafnum);
@@ -193,15 +189,12 @@ namespace Visualizer {
 		model->getIntersectionEmbree(r, primindex, t);
 		if (primindex >= 0) {
 			std::cout << primindex << std::endl;
-			Line4 extremalLine;
-			std::vector<Ray> alloptionsESVt;
+			std::vector<Ray> esls;
 			//std::vector<glm::vec3> edges;
 			//std::vector<Ray> eslEdges;
 
-			if (RSTBuilderExact::find(rst, extremalLine, rst->model->triangles[primindex], leaf, true, alloptionsESVt)) // , true, 0, true, edges, eslEdges))
-				eslLines.updateVaoWithLines(alloptionsESVt, geoObjects[geoObjectnr], rst->maindir);
-			//	eslLines.updateVaoWithLines(std::vector<Ray>{extremalLine}, geoObjects[geoObjectnr], rst->maindir);
-			//else eslLines.updateVaoWithLines(alloptionsESVt, geoObjects[geoObjectnr], rst->maindir);
+			if (RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls))
+				eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr], rst->maindir);
 
 			samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
 

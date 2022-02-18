@@ -48,9 +48,6 @@
     <ClCompile Include="rst.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="rstBuilderExact.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="line.frag">

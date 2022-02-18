@@ -1,7 +1,6 @@
 #ifndef PRIMITIVE_H
 #define PRIMITIVE_H
 #include <vector>
-//#include "edge.h"
 #include "vertex.h"
 #include "ray.h"
 #include "plane.h"
@@ -34,16 +33,7 @@ struct Primitive {
 		for (Vertex* v2 : vertices)
 			if (v != v2 && split.side(Ray(v2->pos + normal, v2->pos)) == side)
 				return true;
-
-		Vertex* otherVertex;
-		// Check which of the edges attached to the vertex is the splitline
-		for (Edge* e : v->edges) 
-			if (e->ray.equal(split, 1E-5))
-				for (Vertex* v2 : e->vertices) if (v != v2) otherVertex = v2;
-
-		if (getPlane().pointOnPlane(otherVertex->pos)) return false;
-		else if (getPlane().pointOnPositiveSide(otherVertex->pos)) return false;
-		return true;
+		return false;
 	}
 
 	bool intersection(const Ray& or, float& depth) {

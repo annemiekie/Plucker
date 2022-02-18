@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="rst.cpp" />
-    <ClCompile Include="rstBuilderExact.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="line.frag" />

@@ -17,6 +17,7 @@
 #include "cache.h"
 #include "splitSide.h"
 #include "extremalStabbingLine.h"
+
 class RaySpaceTree {
 
 public:
@@ -32,6 +33,7 @@ public:
 	std::vector<Ray> wronglines = std::vector<Ray>();
 	Model* model;
 	std::vector<Ray> splitters;
+	bool filledExact = false;
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
