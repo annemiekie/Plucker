@@ -14,12 +14,12 @@
 class GeoObject {
 public:
 	GLuint vao;
-	glm::vec3 center = glm::vec3(0);
+	glm::dvec3 center = glm::dvec3(0);
 	GeoObject() {};
 
-	GeoObject(glm::vec3 center) : center(center) {};
+	GeoObject(glm::dvec3 center) : center(center) {};
 	
-	virtual bool intersect(const Ray& ray, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) {
+	virtual bool intersect(const Ray& ray, double& tmin, double& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) {
 		return false;
 	};
 

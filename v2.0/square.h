@@ -4,21 +4,21 @@
 class Square : public Plane {
 public:
 	std::vector<Ray> quadLines = std::vector<Ray>(4);
-	std::vector<glm::vec3> cornerPoints = std::vector<glm::vec3>(4);
+	std::vector<glm::dvec3> cornerPoints = std::vector<glm::dvec3>(4);
 
-	Square(glm::vec3 n, float c) : Plane(n, c) { };
+	Square(glm::dvec3 n, float c) : Plane(n, c) { };
 
 	~Square() {};
 
-	Square(glm::vec3 v1main, glm::vec3 v2, glm::vec3 v3, glm::vec3 voppo) : Plane(v1main, v2, v3, voppo) {
+	Square(glm::dvec3 v1main, glm::dvec3 v2, glm::dvec3 v3, glm::dvec3 voppo) : Plane(v1main, v2, v3, voppo) {
 		cornerPoints[0] = v1main;
 		cornerPoints[1] = v2;
 		cornerPoints[2] = v2 + v3 - v1main;
 		cornerPoints[3] = v3;
 
-		glm::vec3 center;
-		for (glm::vec3& c : cornerPoints) center += c;
-		center /= 4.f;
+		glm::dvec3 center;
+		for (glm::dvec3& c : cornerPoints) center += c;
+		center /= 4.;
 		Ray centerInvNormal = Ray(normal + center, center);
 
 		for (int i = 0; i < 4; i++) {
@@ -28,12 +28,28 @@ public:
 		}
 	}
 
+	glm::dvec3 getMin() {
+		glm::dvec3 minim = glm::dvec3(INFINITY);
+		for (glm::dvec3& cp : cornerPoints) {
+			if (cp.x <= minim.x && cp.y <= minim.y && cp.z <= minim.z) minim = cp;
+		}
+		return minim;
+	}
+
+	glm::dvec3 getMax() {
+		glm::dvec3 maxim = glm::vec3(-INFINITY);
+		for (glm::dvec3& cp : cornerPoints) {
+			if (cp.x >= maxim.x && cp.y >= maxim.y && cp.z >= maxim.z) maxim = cp;
+		}
+		return maxim;
+	}
+
 	bool inBounds(const Ray& r, float thres = 0) {
 		int count = 0;
 		for (Ray& ql : quadLines) {
-			float x = ql.sideVal(r);
+			double x = ql.sideVal(r);
 			if (x < -thres) return false;
-			if (fabsf(x) < thres) count++;
+			if (fabs(x) < thres) count++;
 		}
 		if (count == 4) return false;
 		return true;

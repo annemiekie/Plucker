@@ -7,7 +7,7 @@ struct Primitive;
 // Per-vertex data
 struct Vertex {
 	int id = -1;
-	glm::vec3 pos;
+	glm::dvec3 pos;
 	std::vector<Primitive*> triangles;
 	std::vector<Edge*> edges;
 
@@ -21,8 +21,8 @@ struct Vertex {
 };
 
 struct VertexVis {
-	glm::vec3 pos;
-	glm::vec3 normal;
+	glm::dvec3 pos;
+	glm::dvec3 normal;
 	glm::vec3 color = glm::vec3(1);
 	float tri_id;
 };

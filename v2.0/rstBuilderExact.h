@@ -46,7 +46,7 @@ public:
 							bool allESLs = false, std::vector<Ray>& esls = std::vector<Ray>(),
 							bool print = false) {//, int edgeSelection,
 
-		std::vector<Split> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
 		if (splitLines.size() == 0) return false;
 		CombiConfigurations combiS(splitLines.size());
 		ESLFinder eslFinder(rst, prim, leaf, false, print, allESLs, splitLines, combiS, !rst->filledExact);
@@ -63,7 +63,7 @@ public:
 							std::vector<int>& notfoundprim = std::vector<int>(),
 							bool storeAllEsls = false, bool print = false) {
 
-		std::vector<Split> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
 		int size = splitLines.size();
 		if (size == 0) {
 			if (leaf->primitiveSet.size() == 0) return true;
@@ -88,7 +88,7 @@ public:
 	// check where to put the "only regard primitives in parent nodes" ///
 	static void buildLeaf(RaySpaceTree* rst, Node* leaf, bool fill, bool print) {
 
-		std::vector<Split> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
 		if (splitLines.size() == 0) return;
 		CombiConfigurations combiS(splitLines.size());
 
@@ -100,8 +100,8 @@ public:
 		}
 	}
 
-	static std::vector<Split> filterSplittingLines(RaySpaceTree* rst, Node* leaf, std::vector<Split>& splitlines,
-		bool storecombi = false, std::vector<Ray>& validCombis = std::vector<Ray>()) {
+	static std::vector<SplitSide> filterSplittingLines(RaySpaceTree* rst, Node* leaf, std::vector<SplitSide>& splitlines,
+													bool storecombi = false, std::vector<Ray>& validCombis = std::vector<Ray>()) {
 
 		std::vector<int> foundExtremalStabbing;
 		std::vector<std::vector<int>>& splitCombi4 = Combinations::combi4(splitlines.size());
@@ -109,7 +109,7 @@ public:
 
 		for (int i = 0; i < splitCombi4.size(); i++) {
 			std::vector<Ray> lines4;
-			for (int c : splitCombi4[i]) lines4.push_back(splitlines[c].line);
+			for (int c : splitCombi4[i]) lines4.push_back(splitlines[c].ray);
 			std::vector<Line4> intersectLines = Lines4Finder::find(lines4);
 			for (Line4& r : intersectLines) {
 				ESLCandidate esl({ r, lines4 });
@@ -128,28 +128,30 @@ public:
 				splitLineTimes[i]++;
 			}
 		}
-		std::vector<Split> filteredLines;
+		std::vector<SplitSide> filteredLines;
 		//for (int i : splitLineTimes) if (i == foundExtremalStabbing.size()) return;
 		for (int i : filtered) filteredLines.push_back(splitlines[i]);
 		//if (i < splitlines.size() - 4) filteredSides.push_back(sides[i]);
 		return filteredLines;
 	}
 
-	static std::vector<Split> getSplitLinesInLeaf(RaySpaceTree* rst, Node* leaf,
-		bool storeCombi = false, std::vector<Ray>& validCombis = std::vector<Ray>()) {
+	static std::vector<SplitSide> getSplitLinesInLeaf(RaySpaceTree* rst, Node* leaf, bool storeCombi = false, 
+														std::vector<Ray>& validCombis = std::vector<Ray>()) {
 
-		std::vector<Split> splitLines;
+		std::vector<SplitSide> splitLines;
 
 		rst->getSplittingLinesInNodeWithSide(leaf, splitLines);
 		if (!rst->alldir) {
 			std::vector<Ray> boxSides = rst->model->boundingCube.getCubeSideSquare(rst->maindir).quadLines;
 			for (int i = 0; i < 4; i++) {
 				Ray boxside = boxSides[i];
-				boxside.index = splitLines.size() + i;
-				splitLines.push_back(Split({ boxside }));
+				boxside.index = splitLines.size();
+				SplitSide split;
+				split.ray = boxside;
+				split.id = splitLines.size();
+				splitLines.push_back(split);
 			}
 		}
-
 		return filterSplittingLines(rst, leaf, splitLines, storeCombi, validCombis);
 	}
 

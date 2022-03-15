@@ -48,7 +48,7 @@ public:
 	Cube boundingBox;
 	Cube boundingCube;
 	Sphere boundingSphere;
-	glm::vec3 center = glm::vec3(0, 0, 0);
+	glm::dvec3 center = glm::dvec3(0);
 	float radius = 0.f;
 
 	RTCDevice device;
@@ -81,9 +81,8 @@ public:
 	}
 
 	void constructModelBounds() {
-		float n = 1000.f;
-		float maxx = -n, maxy = -n, maxz = -n;
-		float minx = n, miny = n, minz = n;
+		double maxx = -INFINITY, maxy = -INFINITY, maxz = -INFINITY;
+		double minx = INFINITY, miny = INFINITY, minz = INFINITY;
 
 		for (Vertex* vertex : vertices) {
 			if (vertex->pos.x > maxx) maxx = vertex->pos.x;
@@ -94,9 +93,9 @@ public:
 			else if (vertex->pos.z < minz) minz = vertex->pos.z;
 		}
 
-		boundingBox = Cube(glm::vec3(minx, miny, minz), glm::vec3(maxx, maxy, maxz));
-		center = glm::vec3((minx + maxx) / 2.f, (miny + maxy) / 2.f, (minz + maxz) / 2.f);
-		radius = glm::length(glm::vec3(maxx, maxy, maxz) - center);
+		boundingBox = Cube(glm::dvec3(minx, miny, minz), glm::dvec3(maxx, maxy, maxz));
+		center = glm::dvec3((minx + maxx) / 2., (miny + maxy) / 2., (minz + maxz) / 2.);
+		radius = glm::length(glm::dvec3(maxx, maxy, maxz) - center);
 		float maxside = std::max(std::max(maxx - minx, maxy - miny), maxz - minz);
 		boundingCube = Cube(center, maxside);
 		boundingSphere = Sphere(center, glm::length(boundingCube.getBounds(1) - center));
@@ -156,7 +155,7 @@ public:
 
 				prim->normal = glm::normalize(glm::cross(prim->vertices[0]->pos - prim->vertices[1]->pos, prim->vertices[2]->pos - prim->vertices[1]->pos));
 				if (glm::dot(prim->normal, verticesVis[prim->id*3].normal) < 0) prim->normal = -prim->normal;
-				prim->center = (prim->vertices[0]->pos + prim->vertices[1]->pos + prim->vertices[2]->pos) / 3.f;
+				prim->center = (prim->vertices[0]->pos + prim->vertices[1]->pos + prim->vertices[2]->pos) / 3.;
 
 				for (int j = 0; j < 3; j++) {
 					// Add the rays to the primitive
@@ -318,11 +317,11 @@ public:
 			}
 		}
 
-		std::vector<glm::vec3> e1v = { e1->vertices[0]->pos, e1->vertices[1]->pos };
-		std::vector<glm::vec3> e2v = { e2->vertices[0]->pos, e2->vertices[1]->pos };
+		std::vector<glm::dvec3> e1v = { e1->vertices[0]->pos, e1->vertices[1]->pos };
+		std::vector<glm::dvec3> e2v = { e2->vertices[0]->pos, e2->vertices[1]->pos };
 		Tetrahedron unboundTetra(e1v, e2v);
 
-		std::vector<glm::vec3> e3v = { e3->vertices[0]->pos, e3->vertices[1]->pos };
+		std::vector<glm::dvec3> e3v = { e3->vertices[0]->pos, e3->vertices[1]->pos };
 		if (unboundTetra.segmInTetra(e3v[0], e3v[1], 1E-7)) {
 			if (cacheEEE) edgeEdgeEdgeCombis[key] = true;
 			return true;
@@ -398,8 +397,8 @@ public:
 
 		Vertex* v1 = e->vertices[0];
 		Vertex* v2 = e->vertices[1];
-		if (!alldir && (glm::dot(v1->pos, maindir) > glm::dot(v->pos, maindir) &&
-			glm::dot(v2->pos, maindir) > glm::dot(v->pos, maindir))) return false;
+		if (!alldir && (dot_fd(v1->pos, maindir) > dot_fd(v->pos, maindir) &&
+			dot_fd(v2->pos, maindir) > dot_fd(v->pos, maindir))) return false;
 
 		return e->isSilhouetteForVertex(v, side);
 
@@ -445,9 +444,9 @@ public:
 		if (checktris.size() != 0) 	for (int t : checktris) for (Edge* e : triangles[t]->edges) insertEdgeInMap(e, edgesToCheck);
 		else edgesToCheck = edges;
 
-		glm::vec3 invMaindir = glm::vec3(1.f) - maindir;
-		glm::vec3 maindirMin = boundingBox.getBounds(0);
-		glm::vec3 maindirMax = boundingBox.getBounds(1);
+		glm::dvec3 invMaindir = glm::vec3(1.f) - maindir;
+		glm::dvec3 maindirMin = boundingBox.getBounds(0);
+		glm::dvec3 maindirMax = boundingBox.getBounds(1);
 
 		for (auto& check_edge : edgesToCheck) {
 			Edge* e = check_edge.second;
@@ -462,12 +461,12 @@ public:
 			if (glm::dot(tri->normal, e->vertices[0]->pos - tri->center) < 0 &&
 				glm::dot(tri->normal, e->vertices[1]->pos - tri->center) < 0) continue;
 
-			glm::vec3 v1pos = e->vertices[0]->pos;
-			glm::vec3 v2pos = e->vertices[1]->pos;
+			glm::dvec3 v1pos = e->vertices[0]->pos;
+			glm::dvec3 v2pos = e->vertices[1]->pos;
 
 			bool sideCheck = false;
 			bool intersect = false;
-			std::vector<glm::vec3> intersectpts;
+			std::vector<glm::dvec3> intersectpts;
 			bool toAdd = false;
 			bool first = true;
 
@@ -592,11 +591,11 @@ public:
 		// The position vectors should be retrieved from the specified Vertex Buffer Object with given offset and stride
 		// Stride is the distance in bytes between vertices
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, pos)));
+		glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, pos)));
 		glEnableVertexAttribArray(0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, normal)));
+		glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, normal)));
 		glEnableVertexAttribArray(1);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);

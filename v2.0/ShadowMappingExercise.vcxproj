@@ -37,12 +37,16 @@
     <ClInclude Include="colors.h" />
     <ClInclude Include="combinations.h" />
     <ClInclude Include="cube.h" />
+    <ClInclude Include="cubeSampler.h" />
     <ClInclude Include="edge.h" />
     <ClInclude Include="eslCandidate.h" />
     <ClInclude Include="eslChecker.h" />
     <ClInclude Include="eslFinder.h" />
     <ClInclude Include="extremalStabbingLine.h" />
     <ClInclude Include="geoObject.h" />
+    <ClInclude Include="vectorMath.h" />
+    <ClInclude Include="sampler.h" />
+    <ClInclude Include="split.h" />
     <ClInclude Include="lights.h" />
     <ClInclude Include="linemodel.h" />
     <ClInclude Include="findLineThroughFour.h" />

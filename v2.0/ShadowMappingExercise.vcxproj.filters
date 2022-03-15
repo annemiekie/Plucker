@@ -208,5 +208,17 @@
     <ClInclude Include="extremalStabbingLine.h">
       <Filter>Headers\Tree Building\Exact</Filter>
     </ClInclude>
+    <ClInclude Include="split.h">
+      <Filter>Headers\Tree Components</Filter>
+    </ClInclude>
+    <ClInclude Include="sampler.h">
+      <Filter>Headers\Tree Building\Sampling</Filter>
+    </ClInclude>
+    <ClInclude Include="cubeSampler.h">
+      <Filter>Headers\Tree Building\Sampling</Filter>
+    </ClInclude>
+    <ClInclude Include="vectorMath.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

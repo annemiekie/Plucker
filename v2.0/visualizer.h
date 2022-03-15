@@ -111,9 +111,11 @@ namespace Visualizer {
 	}
 
 	void updateSplitLines() {
-		std::vector<Ray> split;
+		std::vector<Split> split;
 		rst->getSplittingLinesInNode(leaf, split);
-		splitters.updateVaoWithLines(split, geoObjects[geoObjectnr]);
+		std::vector<Ray> raysplit;
+		for (Split& s : split) raysplit.push_back(s.ray);
+		splitters.updateVaoWithLines(raysplit, geoObjects[geoObjectnr]);
 	}
 
 	void updateSampleLines() {
@@ -193,9 +195,8 @@ namespace Visualizer {
 			//std::vector<glm::vec3> edges;
 			//std::vector<Ray> eslEdges;
 
-			if (RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls))
-				eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr], rst->maindir);
-
+			RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls, true);
+			eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr], rst->maindir);
 			samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
 
 			//edgeRays.makeVaoVbo(edges);
@@ -364,7 +365,7 @@ namespace Visualizer {
 		eslSilhEdges.setupVao();
 		eslLines.setupVao();
 
-		splitters.updateVaoWithLines(rst->splitters, geoObjects[geoObjectnr], rst->maindir);
+		splitters.updateVaoWithLines(rst->getAllSplittingLines(), geoObjects[geoObjectnr], rst->maindir);
 	}
 
 	void setToggles() {

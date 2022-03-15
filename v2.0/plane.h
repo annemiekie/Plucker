@@ -5,22 +5,22 @@
 #include "ray.h"
 class Plane {
 public: 
-	glm::vec3 normal;
+	glm::dvec3 normal;
 	float constant = 0;
 
     Plane() {};
 
     ~Plane() {};
 
-    Plane(glm::vec3 n, float c) : normal(n), constant(c) {};
+    Plane(glm::dvec3 n, float c) : normal(n), constant(c) {};
 
-    Plane(glm::vec3 point, glm::vec3 normal) : normal(normal) {
+    Plane(glm::dvec3 point, glm::dvec3 normal) : normal(normal) {
         constant = glm::dot(normal, point);
     }
 
-    Plane(glm::vec3 v1main, glm::vec3 v2, glm::vec3 v3, glm::vec3 voppo) {
-        glm::vec3 e1 = v2 - v1main;
-        glm::vec3 e2 = v3 - v1main;
+    Plane(glm::dvec3 v1main, glm::dvec3 v2, glm::dvec3 v3, glm::dvec3 voppo) {
+        glm::dvec3 e1 = v2 - v1main;
+        glm::dvec3 e2 = v3 - v1main;
         normal = glm::normalize(glm::cross(e1, e2));
         constant = glm::dot(normal, v1main);
         if (glm::dot(normal, voppo) - constant > 0) {
@@ -30,31 +30,31 @@ public:
     }
 
     bool rayInPlane(Ray& r, float eps = 1E-10) {
-        return (pointOnPlane(r.origin) && pointOnPlane(r.origin + r.direction));
+        return (pointOnPlane(r.origin, eps) && pointOnPlane(r.origin + r.direction, eps));
     }
 
-    bool pointOnPlane(glm::vec3 pt, float eps = 1E-10) {
+    bool pointOnPlane(glm::dvec3 pt, float eps = 1E-10) {
         return  fabsf(glm::dot(normal, pt) - constant) < eps;
     }
 
-    bool pointOnPositiveSide(glm::vec3 pt) {
+    bool pointOnPositiveSide(glm::dvec3 pt) {
         return (glm::dot(normal, pt) - constant) > 0;
     }
 
     double rayIntersectionDepth(const Ray& r) {
-        return (-glm::dot((glm::vec3)r.origin, normal) + constant) / glm::dot((glm::vec3)r.direction, normal);
+        return (-glm::dot(r.origin, normal) + constant) / glm::dot(r.direction, normal);
     }
 
     virtual glm::vec3 rayIntersection(const Ray& r) {
         return r.origin + rayIntersectionDepth(r) * r.direction;
     }
 
-    float rayIntersection(glm::vec3& v1, glm::vec3& v2) {
+    double rayIntersection(glm::dvec3& v1, glm::dvec3& v2) {
         return (-glm::dot(v1, normal) + constant) / glm::dot(v2-v1, normal);
     }
 
-    virtual bool raySegmentIntersection(glm::vec3 v1, glm::vec3 v2, glm::vec3& pt) {
-        float t = rayIntersection(v1, v2);
+    virtual bool raySegmentIntersection(glm::dvec3 v1, glm::dvec3 v2, glm::dvec3& pt) {
+        double t = rayIntersection(v1, v2);
         if (t < 0 || t > 1) return false;
         pt = v1 + t *(v2-v1);
         return true;

@@ -6,37 +6,37 @@
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
 #include "square.h"
-
+#include "vectorMath.h"
 #include "geoObject.h"
 
 class Cube : public GeoObject {
 private:
-    glm::vec3 bounds[2] = { glm::vec3(0), glm::vec3(0) };
-    glm::vec3 bigbounds[2] = { glm::vec3(0), glm::vec3(0) };
+    glm::dvec3 bounds[2] = { glm::dvec3(0), glm::dvec3(0) };
+    glm::dvec3 bigbounds[2] = { glm::dvec3(0), glm::dvec3(0) };
     //std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
     //std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
     std::vector<Square> sideSquares;
 
 public:
 
-    glm::vec3 size;
+    glm::dvec3 size;
 
 
     Cube() { };
 
-    Cube(glm::vec3 center, float cubesize) : GeoObject(center) {
-        size = glm::vec3(cubesize);
+    Cube(glm::dvec3 center, double cubesize) : GeoObject(center) {
+        size = glm::dvec3(cubesize);
         setBounds(center - cubesize / 2.f, center + cubesize / 2.f);
     };
 
-    Cube(glm::vec3 minvec, glm::vec3 maxvec) {
+    Cube(glm::dvec3 minvec, glm::dvec3 maxvec) {
         setBounds(minvec, maxvec);
     };
 
-    Cube(std::vector<glm::vec3> points) {
-        glm::vec3 bbmin = glm::vec3(1E10);
-        glm::vec3 bbmax = glm::vec3(-1E10f);
-        for (glm::vec3& p : points) {
+    Cube(std::vector<glm::dvec3> points) {
+        glm::dvec3 bbmin = glm::dvec3(1E10);
+        glm::dvec3 bbmax = glm::dvec3(-1E10f);
+        for (glm::dvec3& p : points) {
             for (int j = 0; j < 3; j++) {
                 if (p[j] < bbmin[j]) bbmin[j] = p[j];
                 if (p[j] > bbmax[j]) bbmax[j] = p[j];
@@ -45,18 +45,18 @@ public:
         setBounds(bbmin, bbmax, false);
     };
 
-    glm::vec3 getBounds(int minmax) {
+    glm::dvec3 getBounds(int minmax) {
         return bounds[minmax];
     };
 
-    glm::vec3 getBigBounds(int minmax) {
+    glm::dvec3 getBigBounds(int minmax) {
         return bigbounds[minmax];
     }
 
     void setBounds(glm::vec3 minvec, glm::vec3 maxvec, bool makesquares = true) {
         bounds[0] = minvec;
         bounds[1] = maxvec;
-        center = (bounds[0] + bounds[1]) / 2.f;
+        center = (bounds[0] + bounds[1]) / 2.;
         size = glm::abs(bounds[0] - bounds[1]);
         //vaoGeneration();
         if (makesquares) makeCubeSquares();
@@ -81,8 +81,8 @@ public:
     }
 
     void makeCubeSquaresBig() {
-        bigbounds[0] = center - 1.5f * size;
-        bigbounds[1] = center + 1.5f * size;
+        bigbounds[0] = center - 1.5 * size;
+        bigbounds[1] = center + 1.5 * size;
 
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < 3; i++) {
@@ -182,7 +182,7 @@ public:
 
     // should do this with square
     bool intersectSideBB(std::vector<Ray>& rays, glm::vec3& mainDir) {
-        std::vector<glm::vec3> points;
+        std::vector<glm::dvec3> points;
         for (Ray& r : rays) points.push_back(intersectSidePoint(mainDir, r));
         Cube bb(points);
         for (int j = 0; j < 3; j++) {
@@ -193,14 +193,14 @@ public:
         return true;
     }
 
-    bool intersectSideSwath(glm::vec3& vpos, glm::vec3& v1pos, glm::vec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
+    bool intersectSideSwath(glm::dvec3& vpos, glm::dvec3& v1pos, glm::dvec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
 
-        glm::vec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
-        glm::vec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
+        glm::dvec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
+        glm::dvec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
         intersects = { intr1, intr2 };
-        glm::vec3 invMain = 1.f - glm::abs(mainDir);
-        glm::vec3 sidemin = invMain * bounds[0];
-        glm::vec3 sidemax = invMain * bounds[1];
+        glm::dvec3 invMain = 1.f - glm::abs(mainDir);
+        glm::dvec3 sidemin = invMain * bounds[0];
+        glm::dvec3 sidemax = invMain * bounds[1];
         intr1 = intr1 * invMain;
         if (glm::all(glm::lessThanEqual(intr1, sidemax)) && glm::all(glm::greaterThanEqual(intr1, sidemin))) return true;
         intr1 = intr1 * invMain;
@@ -227,47 +227,64 @@ public:
         return false;
     }
 
-    virtual bool intersect(const Ray& r, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
+    virtual bool intersect(const Ray& r, double& tmin, double& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
     {
         bool sign[3];
         sign[0] = (r.invdir.x < 0);
         sign[1] = (r.invdir.y < 0);
         sign[2] = (r.invdir.z < 0);
-        float txmin, txmax, tymin, tymax, tzmin, tzmax;
+        double txmin, txmax, tymin, tymax, tzmin, tzmax;
+        tmin = -INFINITY;
+        tmax = INFINITY;
 
-        txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
-        txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
-        tmin = txmin;
-        tmax = txmax;
-        tymin = (bounds[sign[1]].y - r.origin.y) * r.invdir.y;
-        tymax = (bounds[1 - sign[1]].y - r.origin.y) * r.invdir.y;
+        if (r.direction.x == 0) {
+            if (r.origin.x < bounds[sign[0]].x) return false;
+            if (r.origin.x > bounds[1 - sign[0]].x) return false;
+        }
+        else {
+            txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
+            txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
+            tmin = txmin;
+            tmax = txmax;
+        }
 
-        if ((tmin > tymax) || (tymin > tmax))
-            return false;
-        if (tymin > tmin)
-            tmin = tymin;
-        if (tymax < tmax)
-            tmax = tymax;
+        if (r.direction.y == 0) {
+            if (r.origin.y < bounds[sign[0]].y) return false;
+            if (r.origin.y > bounds[1 - sign[0]].y) return false;
+        }
+        else {
+            tymin = (bounds[sign[1]].y - r.origin.y) * r.invdir.y;
+            tymax = (bounds[1 - sign[1]].y - r.origin.y) * r.invdir.y;
+            if ((tmin > tymax) || (tymin > tmax))
+                return false;
+            if (tymin > tmin)
+                tmin = tymin;
+            if (tymax < tmax)
+                tmax = tymax;
+        }
+        if (r.direction.z == 0) {
+            if (r.origin.z < bounds[sign[0]].z) return false;
+            if (r.origin.z > bounds[1 - sign[0]].z) return false;
+        }
+        else {
+            tzmin = (bounds[sign[2]].z - r.origin.z) * r.invdir.z;
+            tzmax = (bounds[1 - sign[2]].z - r.origin.z) * r.invdir.z;
 
-        tzmin = (bounds[sign[2]].z - r.origin.z) * r.invdir.z;
-        tzmax = (bounds[1 - sign[2]].z - r.origin.z) * r.invdir.z;
+            if ((tmin > tzmax) || (tzmin > tmax))
+                return false;
+            if (tzmin > tmin)
+                tmin = tzmin;
+            if (tzmax < tmax)
+                tmax = tzmax;
+        }
 
-        if ((tmin > tzmax) || (tzmin > tmax))
-            return false;
-        if (tzmin > tmin)
-            tmin = tzmin;
-        if (tzmax < tmax)
-            tmax = tzmax;
-
-        //start = r.origin + (double)tmin * r.direction;
-       // end = r.origin + (double)tmax * r.direction;
         if (getcolor) {
-            glm::vec3 tmin_xyz = glm::vec3(txmin, tymin, tzmin);
-            glm::vec3 tmax_xyz = glm::vec3(txmax, tymax, tzmax);
-            double x = glm::dot(maindir * maindir, tmin_xyz);
-            glm::vec3 inter = r.origin + x * r.direction;
-            glm::vec3 min = bounds[0] - size;
-            float sz = size.x * 3.f;
+            glm::dvec3 tmin_xyz = glm::dvec3(txmin, tymin, tzmin);
+            glm::dvec3 tmax_xyz = glm::dvec3(txmax, tymax, tzmax);
+            double x = dot_fd(maindir * maindir, tmin_xyz);
+            glm::dvec3 inter = r.origin + x * r.direction;
+            glm::dvec3 min = bounds[0] - size;
+            double sz = size.x * 3.;
             color = (inter - min) / sz;
             color.x = 0;
         }
@@ -281,32 +298,51 @@ public:
         sign[0] = (r.invdir.x < 0);
         sign[1] = (r.invdir.y < 0);
         sign[2] = (r.invdir.z < 0);
-        float tmin, tmax, txmin, txmax, tymin, tymax, tzmin, tzmax;
+        float txmin, txmax, tymin, tymax, tzmin, tzmax;
+        float tmin = -INFINITY;
+        float tmax = INFINITY;
 
-        txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
-        txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
-        tmin = txmin;
-        tmax = txmax;
-        tymin = (bounds[sign[1]].y - r.origin.y) * r.invdir.y;
-        tymax = (bounds[1 - sign[1]].y - r.origin.y) * r.invdir.y;
+        if (r.direction.x == 0) {
+            if (r.origin.x < bounds[sign[0]].x) return false;
+            if (r.origin.x > bounds[1 - sign[0]].x) return false;
+        }
+        else {
+            txmin = (bounds[sign[0]].x - r.origin.x) * r.invdir.x;
+            txmax = (bounds[1 - sign[0]].x - r.origin.x) * r.invdir.x;
+            tmin = txmin;
+            tmax = txmax;
+        }
 
-        if ((tmin > tymax) || (tymin > tmax))
-            return false;
-        if (tymin > tmin)
-            tmin = tymin;
-        if (tymax < tmax)
-            tmax = tymax;
+        if (r.direction.y == 0) {
+            if (r.origin.y < bounds[sign[0]].y) return false;
+            if (r.origin.y > bounds[1 - sign[0]].y) return false;
+        }
+        else {
+            tymin = (bounds[sign[1]].y - r.origin.y) * r.invdir.y;
+            tymax = (bounds[1 - sign[1]].y - r.origin.y) * r.invdir.y;
+            if ((tmin > tymax) || (tymin > tmax))
+                return false;
+            if (tymin > tmin)
+                tmin = tymin;
+            if (tymax < tmax)
+                tmax = tymax;
+        }
+        if (r.direction.z == 0) {
+            if (r.origin.z < bounds[sign[0]].z) return false;
+            if (r.origin.z > bounds[1 - sign[0]].z) return false;
+        }
+        else {
+            tzmin = (bounds[sign[2]].z - r.origin.z) * r.invdir.z;
+            tzmax = (bounds[1 - sign[2]].z - r.origin.z) * r.invdir.z;
 
-        tzmin = (bounds[sign[2]].z - r.origin.z) * r.invdir.z;
-        tzmax = (bounds[1 - sign[2]].z - r.origin.z) * r.invdir.z;
-
-        if ((tmin > tzmax) || (tzmin > tmax))
-            return false;
+            if ((tmin > tzmax) || (tzmin > tmax))
+                return false;
+        }
         return true;
     };
 
     void vaoGeneration() {
-        std::vector<GLfloat> lineSegments = {
+        std::vector<GLdouble> lineSegments = {
             bounds[0].x, bounds[0].y, bounds[0].z,
             bounds[1].x, bounds[0].y, bounds[0].z,
             bounds[0].x, bounds[0].y, bounds[0].z,
@@ -340,9 +376,9 @@ public:
         glGenBuffers(1, &lineVBO);
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * lineSegments.size(), &lineSegments[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble) * lineSegments.size(), &lineSegments[0], GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+        glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 3 * sizeof(GLdouble), (void*)0);
         //return lineVAO;
     };
 

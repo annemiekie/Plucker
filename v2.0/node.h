@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ray.h"
+#include "split.h"
 #include "sample.h"
 #include <utility> 
 #include <sstream>
@@ -13,7 +13,7 @@ class Node {
 	Node *leftNode = nullptr;
 	Node *rightNode = nullptr;
 	Node* parent = nullptr;
-	Ray splitter = Ray();
+	Split splitter;
 	std::set<int> primitiveSet = std::set<int>();
 	std::vector<Sample> primAndRayVector = std::vector<Sample>();
 	int index = 0;

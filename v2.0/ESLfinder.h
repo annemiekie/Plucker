@@ -29,7 +29,7 @@ public:
 
 	std::vector<Edge*> silhouetteEdges;
 	std::vector<Vertex*> silhouetteVertices;
-	std::vector<Split> splitLines;
+	std::vector<SplitSide> splitLines;
 
 	std::vector<std::vector<int>> combi2E_store;
 	std::vector<std::vector<int>> combi3E_store;
@@ -40,7 +40,7 @@ public:
 
 	ESLFinder(RaySpaceTree* rst, Primitive* prim, Node* leaf,
 				bool detail, bool print, bool allESLs, 
-				std::vector<Split>& splitLines, CombiConfigurations& splitcombi,
+				std::vector<SplitSide>& splitLines, CombiConfigurations& splitcombi,
 				bool checkAllPrimsForSilh,
 				bool cache = false, Cache<std::vector<Line4>>* combiCache = NULL) :
 
@@ -135,23 +135,23 @@ public:
 	}
 
 	bool checkEdgeSplittingDuplicates() {
-		for (Split& split : splitLines) {
+		for (SplitSide& split : splitLines) {
 			bool throughEdge = false;
 			for (Edge* e : prim->edges) {
-				if (split.line.equal(e->ray, 1E-5)) { // not very precise?!
+				if (split.ray.equal(e->ray, 1E-5)) { // not very precise?!
 					throughEdge = true;
-					if (!prim->onRightSideOfSplitEdge(split.line, split.side)) return false;
+					if (!prim->onRightSideOfSplitEdge(split.ray, split.side)) return false;
 				}
 			}
 			if (!throughEdge) {
 				for (Vertex* v : prim->vertices) {
-					if (split.line.throughVertex(v)) {
-						if (prim->onRightSideOfSplitVertex(v, split.line, split.side)) break;
+					if (split.ray.throughVertex(v)) {
+						if (prim->onRightSideOfSplitVertex(v, split.ray, split.side)) break;
 
 						Vertex* otherVertex;
 						// Check which of the edges attached to the vertex is the splitline
 						for (Edge* e : v->edges) {
-							if (e->ray.equal(split.line, 1E-5)) {
+							if (e->ray.equal(split.ray, 1E-5)) {
 								for (Vertex* v2 : e->vertices) if (v != v2) otherVertex = v2;
 							}
 						}
@@ -177,7 +177,7 @@ public:
 		for (std::vector<Ray>& rays : edgeCombi) {
 			for (int c = 0; c < combi.size(); c++) {
 				std::vector<Ray> lines4;
-				for (int i = 0; i < combi[0].size(); i++) lines4.push_back(splitLines[combi[c][i]].line);
+				for (int i = 0; i < combi[0].size(); i++) lines4.push_back(splitLines[combi[c][i]].ray);
 				for (Ray& r : rays) lines4.push_back(r);
 		
 				std::vector<Line4> intersectLines = Lines4Finder::find(lines4);		
@@ -195,24 +195,20 @@ public:
 	}
 
 	// should store potentially two lines?? for all ESLs
-	bool checkRaysThrough4Lines(std::vector<Ray>& lines4, bool vischeck, 
-								std::vector<uint64_t>& indices = std::vector<uint64_t>(),
-								std::vector<Vertex*>& silhVertices = std::vector<Vertex*>(), 
-								std::vector<Edge*>& silhEdges = std::vector<Edge*>()) {
+	bool checkRaysThrough4Lines(ESLCandidate& esl, bool vischeck) {
 
 		std::vector<Line4> intersectLines;
-		if (!cache || !combiCache->getValue(indices, intersectLines)) intersectLines = Lines4Finder::find(lines4);
+		if (!cache || !combiCache->getValue(esl.indices, intersectLines)) intersectLines = Lines4Finder::find(esl.lines4);
 		std::vector<Line4> cacheLines;
 		bool foundRay = false;
 
 		for (int i = 0; i < intersectLines.size(); i++) {
-			Line4 ray = intersectLines[i];
 			bool inBox = true;
-			ESLCandidate esl = { ray, lines4, silhVertices, silhEdges };
+			esl.ray = intersectLines[i];
 			bool checkRay = eslChecker.isExtremalStabbing(esl, vischeck);
 			if (cache && esl.inBox) {
-				ray.checkboth = false;
-				cacheLines.push_back(ray);
+				esl.ray.checkboth = false;
+				cacheLines.push_back(esl.ray);
 			}
 			if (checkRay) {
 				if (cache) {
@@ -220,7 +216,7 @@ public:
 					combiCache->storeValueAtLastKey(cacheLines);
 				}
 				foundRay = true;
-				if (vischeck) esls.push_back(ray);
+				if (vischeck) esls.push_back(esl.ray);
 				if (!storeAllESLs) return true;
 			}
 		}
@@ -233,7 +229,8 @@ public:
 		for (Vertex* vs : silhVertices) {
 			for (Vertex* vt : prim->vertices) {
 				Line4 ray(vs->pos, vt->pos);
-				ESLCandidate esl = { ray, std::vector<Ray>(), { vs } };
+				ESLCandidate esl = { ray };
+				esl.silhouetteVertices = { vs };
 				if (eslChecker.isExtremalStabbing(esl)) {
 					if (print) std::cout << "V(e)V(t)" << std::endl;
 					esls.push_back(ray);
@@ -252,7 +249,8 @@ public:
 			for (Vertex* vt : silhVertices) {
 				if (vs->id == vt->id) continue;
 				Line4 ray(vs->pos, vt->pos);
-				ESLCandidate esl = { ray, std::vector<Ray>(), { vs, vt } };
+				ESLCandidate esl = { ray };
+				esl.silhouetteVertices = { vs, vt };
 				if (eslChecker.isExtremalStabbing(esl)) {
 					if (print) std::cout << "V(e)V(e)" << std::endl;
 					esls.push_back(ray);
@@ -410,54 +408,36 @@ public:
 
 					for (int j = 0; j < std::max(1, (int)splitLineCombis.size()); j++) {
 
-						std::vector<Ray> lines4;
-						std::vector<Edge*> silhEdges;
-						std::vector<Vertex*> silhVertices;
-						std::vector<uint64_t> indices;
+						ESLCandidate esl;
+						//std::vector<uint64_t> indices;
 
 						int linecount = 0;
-						for (int k = 0; k < nrOfsplitLines; k++) {
-							lines4.push_back(splitLines[splitLineCombis[j][k]].line);
-							//	if (cacheCombi) indices.push_back(lines[linecount].index + model->edges.size() + model->vertices.size());
-							linecount++;
-						}
-
-						for (int k = 0; k < nrOfsilhEdges; k++) {
-							lines4.push_back(silhouetteEdges[silhLineCombis[i][k]]->ray);
-							silhEdges.push_back(silhouetteEdges[silhLineCombis[i][k]]);
-							//	if (cacheCombi) indices.push_back(lines[linecount].index);
-							linecount++;
-						}
-
-
-						for (int k = 0; k < nrOfTriEdges; k++) {
-							lines4.push_back(prim->rays[(g + k) % 3]);// triEdgeRays[edges[g][k]]);
-						//	if (cacheCombi) indices.push_back(lines[linecount].index);
-							linecount++;
-						}
+						for (int k = 0; k < nrOfsplitLines; k++) esl.splittingLines.push_back(splitLines[splitLineCombis[j][k]]);
+						for (int k = 0; k < nrOfsilhEdges; k++) esl.silhouetteEdges.push_back(silhouetteEdges[silhLineCombis[i][k]]);
+						for (int k = 0; k < nrOfTriEdges; k++) esl.triangleEdges.push_back(prim->edges[(g + k) % 3]);
 
 						// check equal lines
-						for (int x = 0; x < linecount; x++) for (int y = x + 1; y < linecount; y++)
-							if (lines4[x].equal(lines4[y])) continue;
-
 						cntn = false;
+						for (int x = 0; x < esl.lines4.size(); x++)
+							for (int y = x + 1; y < esl.lines4.size(); y++) 
+								if (esl.lines4[x].equal(esl.lines4[y])) cntn = true;
+						if (cntn) continue;
+
 						if (nrOfVertices) {
-							for (Ray& r : lines4) if (r.throughVertex(silhouetteVertices[h])) cntn = true;
+							for (Ray& r : esl.lines4) if (r.throughVertex(silhouetteVertices[h])) cntn = true;
 							if (cntn) continue;
-							lines4.push_back(silhouetteVertices[h]->edges[0]->ray);
-							lines4.push_back(silhouetteVertices[h]->edges[1]->ray);
-							silhVertices = vertexEdgeCheck;
+							esl.silhouetteVertices = vertexEdgeCheck;
 							//	if (cacheCombi) {
 							//		indices.push_back(lines[linecount].index + model->edges.size());
 							//		indices.push_back(lines[linecount + 1].index + model->edges.size());
 							//	}
-							linecount += 2;
 						}
+						esl.fillUpLines();
 
-						if (checkRaysThrough4Lines(lines4, vischeck, indices, silhVertices, silhEdges)) { 
-							if (print) {
+						if (checkRaysThrough4Lines(esl, vischeck)) { 
+							if (print && vischeck) {
 								std::cout << combi_text << " ";
-								for (Ray& r : lines4) std::cout << r.index << " ";
+								for (Ray& r : esl.lines4) std::cout << r.index << " ";
 								std::cout << std::endl;
 							}
 							if (!storeAllESLs || !vischeck) return true;

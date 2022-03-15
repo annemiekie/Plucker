@@ -12,25 +12,31 @@ struct Edge {
 	bool silhouette = false;
 
 	bool intersectsRay(Ray& oray) {
-		glm::vec3 ipoint = ray.pointOfintersectWithRay(oray);
-		glm::vec3 tvec = (ipoint - vertices[0]->pos) /
+		glm::dvec3 ipoint = ray.pointOfintersectWithRay(oray);
+		glm::dvec3 tvec = (ipoint - vertices[0]->pos) /
 						 (vertices[1]->pos - vertices[0]->pos);
 		return (tvec.x > 0 && tvec.x < 1);
 	}
 
-	bool isSilhouetteForPos(glm::vec3& pt) const {
+	bool pointOnRay(glm::dvec3& pt) {
+		glm::vec3 tvec = (pt - vertices[0]->pos) /
+						(vertices[1]->pos - vertices[0]->pos);
+		return (tvec.x > 0 && tvec.x < 1);
+	}
+
+	bool isSilhouetteForPos(glm::dvec3& pt) const {
 		bool side;
 		return isSilhouetteForPos(pt, side);
 	}
 
-	bool isSilhouetteForPos(glm::vec3& pt, bool& side) const {
+	bool isSilhouetteForPos(glm::dvec3& pt, bool& side) const {
 		if (triangles.size() == 1) return true;
 		Plane p1 = triangles[0]->getPlane();
 		Plane p2 = triangles[1]->getPlane();
 		return isSilhouetteForPos(pt, p1, p2, side);
 	}
 
-	bool isSilhouetteForPos(glm::vec3& pt, Plane& p1, Plane& p2, bool& side) const {
+	bool isSilhouetteForPos(glm::dvec3& pt, Plane& p1, Plane& p2, bool& side) const {
 		side = p1.pointOnPositiveSide(pt);
 		bool side2 = p2.pointOnPositiveSide(pt);
 		if (side != side2) return true;
@@ -38,7 +44,7 @@ struct Edge {
 	}
 
 	bool isSilhouetteForRay(Ray& r) {
-		return isSilhouetteForPos((glm::vec3)r.origin);
+		return isSilhouetteForPos(r.origin);
 	}
 
 	bool isSilhouetteForVertex(Vertex* v, bool &side) const {
@@ -46,12 +52,12 @@ struct Edge {
 		return isSilhouetteForPos(v->pos, side);
 	}
 
-	bool isSilhouetteForPrim(std::vector<glm::vec3>& pts) const {
+	bool isSilhouetteForPrim(std::vector<glm::dvec3>& pts) const {
 		if (triangles.size() == 1) return true;
 		Plane p1 = triangles[0]->getPlane();
 		Plane p2 = triangles[1]->getPlane();
 		int count = 0;
-		for (glm::vec3& pt : pts) {
+		for (glm::dvec3& pt : pts) {
 			bool side;
 			if (isSilhouetteForPos(pt, p1, p2, side)) return true;
 			if (side) count++;
@@ -62,15 +68,15 @@ struct Edge {
 
 	bool convex() {
 		if (triangles.size() == 2) {
-			glm::vec3 vNotOnEdge1pos;
-			glm::vec3 vNotOnEdge2pos;
+			glm::dvec3 vNotOnEdge1pos;
+			glm::dvec3 vNotOnEdge2pos;
 			for (int i = 0; i < 3; i++) {
 				int vNotOnEdge1 = triangles[0]->vertices[i]->id;
 				int vNotOnEdge2 = triangles[1]->vertices[i]->id;
 				if (vNotOnEdge1 != vertices[0]->id && vNotOnEdge1 != vertices[1]->id) vNotOnEdge1pos = triangles[0]->vertices[i]->pos;
 				if (vNotOnEdge2 != vertices[0]->id && vNotOnEdge2 != vertices[1]->id) vNotOnEdge2pos = triangles[1]->vertices[i]->pos;
 			}
-			float concaveConvex = glm::dot(vNotOnEdge2pos - vNotOnEdge1pos, triangles[0]->normal);
+			double concaveConvex = glm::dot(vNotOnEdge2pos - vNotOnEdge1pos, triangles[0]->normal);
 			if (fabsf(concaveConvex) < 1E-8 || concaveConvex > 0) return false; // in plane or concave
 		}
 		return true;

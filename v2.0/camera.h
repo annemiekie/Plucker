@@ -21,6 +21,7 @@ struct Camera
 	float near;
 	float far;
 
+
 	Camera(float near = 0.1f, float far = 30.f)
 		: position(glm::vec3(0, 0, 0))
 		, forward(glm::vec3(0, 0, -1))
@@ -29,7 +30,7 @@ struct Camera
 		, far(far)
 	{
 		invview = invVMatrix();
-	}
+	};
 
 	virtual Camera* makeCopy() {
 		Camera* ptr = new Camera(*this);

@@ -17,23 +17,23 @@
 
 class Sphere : public GeoObject {
 public:
-    float radius = 0.f;
+    double radius = 0.f;
     int indSize = 0;
 
     Sphere() {};
 
     Sphere(glm::vec3 center, float radius) : GeoObject(center), radius(radius) {   };
 
-    virtual bool intersect(const Ray &line, float& tmin, float& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override
+    virtual bool intersect(const Ray &line, double& tmin, double& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override
     {
-        glm::vec3 dir = line.direction;
-        glm::vec3 ori = line.origin;
-        float A = glm::dot(dir, dir);
-        float B = 2.f * (glm::dot(ori, dir) - glm::dot(dir, center));
-        float C = glm::dot(center, center) + glm::dot(ori, ori) - 2.f * glm::dot(ori, center) - radius * radius;
+        glm::dvec3 dir = line.direction;
+        glm::dvec3 ori = line.origin;
+        double A = glm::dot(dir, dir);
+        double B = 2. * (glm::dot(ori, dir) - glm::dot(dir, center));
+        double C = glm::dot(center, center) + glm::dot(ori, ori) - 2.f * glm::dot(ori, center) - radius * radius;
 
         // discriminant
-        float D = B * B - 4.f * A * C;
+        double D = B * B - 4.f * A * C;
         if (D <= 0) return false;
         tmin = (-B - sqrtf(D)) / (2.f * A);
         //start = ori + t1 * dir;
@@ -43,14 +43,14 @@ public:
         tmax = (-B + sqrtf(D)) / (2.f * A);
         //end = ori + t2 * dir;
         if (tmax < tmin) {
-            float t = tmin;
+            double t = tmin;
             tmin = tmax;
             tmax = t;
         }
 
         if (getcolor) {
-            glm::vec3 entry = ori + tmin * dir;
-            glm::vec3 vector = glm::normalize(entry - center);
+            glm::dvec3 entry = ori + tmin * dir;
+            glm::dvec3 vector = glm::normalize(entry - center);
             color.x = 0.2f;
             color.y = acos(vector.z) / M_PI;
             color.z = atan(vector.y / vector.x) / (M_PI / 2.f);

@@ -70,45 +70,52 @@ int main() {
 	}
 
 	std::string filestr, constructStr;
-	bool alldir, trace, exact, sampling, cacheEE, cacheEEE, cacheCombi, rasterization, storeSamples, storeAllSamples;
 	char dir;
-	int sgn, depth, noSamples, createRatio, w, h, width, height;
-	Options::constructOption construct;
+	int sgn, width, height;
+	Options::BuildOptions options;
 
 	try {
-		alldir = config.lookup("alldir");
+		options.alldir = config.lookup("alldir");
 		std::string dir1 = config.lookup("dir");
 		dir = dir1.c_str()[0];
 		sgn = config.lookup("sgn");
-		depth = config.lookup("depth");
-		noSamples = config.lookup("noSamples");
-		createRatio = config.lookup("createRatio");
-		w = config.lookup("w");
-		h = config.lookup("h");
-		std::string constructStr = config.lookup("constructOption");
-		if (Options::table.find(constructStr) != Options::table.end())
-			construct = Options::table.find(constructStr)->second;
-		else construct = Options::RANDOM_EDGE;
+		options.depth = config.lookup("depth");
+
 		std::string str = config.lookup("filename");
 		filestr = str;
 		width = config.lookup("width");
 		height = config.lookup("height");
-		trace = config.lookup("trace");
-		sampling = config.lookup("sampling");
-		exact = config.lookup("exact");
-		cacheEE = config.lookup("cacheEE");
-		cacheEEE = config.lookup("cacheEEE");
-		cacheCombi = config.lookup("cacheCombi");
-		rasterization = config.lookup("rasterization");
-		storeSamples = config.lookup("storeSamples");
-		storeAllSamples = config.lookup("storeAllSamples");
+
+		std::string constructStr = config.lookup("constructOption");
+		if (Options::table.find(constructStr) != Options::table.end())
+			options.construct = Options::table.find(constructStr)->second;
+		else options.construct = Options::RANDOM_EDGE;
+
+		std::string samplingStr = config.lookup("samplingType");
+		if (Options::table2.find(samplingStr) != Options::table2.end())
+			options.samplingtype = Options::table2.find(samplingStr)->second;
+		else options.samplingtype = Options::UNIFORM_SPHERE;
+
+		options.sampling = config.lookup("sampling");
+		options.noSamples = config.lookup("noSamples");
+		options.sampleStoreFillRatio = config.lookup("sampleStoreFillRatio");
+		options.s_w = config.lookup("w");
+		options.s_h = config.lookup("h");
+		options.rasterizationSampling = config.lookup("rasterization");
+		options.storeSamples = config.lookup("storeSamples");
+		options.storeAllSamples = config.lookup("storeAllSamples");
+		options.fillMoreSamples = config.lookup("fillMoreSamples");
+
+		options.exact = config.lookup("exact");
+		options.cacheEE = config.lookup("cacheEE");
+		options.cacheEEE = config.lookup("cacheEEE");
+		options.cacheCombi = config.lookup("cacheCombi");
+
 
 	}
 	catch (libconfig::SettingNotFoundException& e) {
 		std::cerr << "Incorrect setting(s) in configuration file." << std::endl;
 	}
-
-	Options::BuildOptions options = { construct, h, w, noSamples, rasterization, storeSamples, storeAllSamples, cacheCombi };
 
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW!" << std::endl;
@@ -146,9 +153,9 @@ int main() {
 
 	VisComponents visComp;
 	RaySpaceTree rst;
-	if (sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	if (!sampling && exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, depth, alldir, dir, sgn, options, visComp);
-	else if (exact) RSTBuilderExact::fill(&rst);
+	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, dir, sgn, options, visComp);
+	if (!options.sampling && options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, dir, sgn, options, visComp);
+	else if (options.exact) RSTBuilderExact::fill(&rst);
 
 	rst.printLeafNodes();
 	Visualizer::visualize(width, height, &model, &rst, visComp, window);

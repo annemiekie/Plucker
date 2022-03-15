@@ -5,7 +5,9 @@ struct Orthocamera : public Camera {
 
 	float w, h;
 
-	Orthocamera::Orthocamera(float w, float h, float far = 30.f, float near = 0.1f)
+	Orthocamera() : Camera() {};
+
+	Orthocamera(float w, float h, float far = 30.f, float near = 0.1f)
 		: Camera{ near, far }, w(w), h(h) {};
 
 	virtual Camera* makeCopy() override
