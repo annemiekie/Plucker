@@ -127,14 +127,17 @@ public:
 			for (Vertex* v : e->vertices)
 				if (esl.ray.throughPoint(v->pos, 1E-4)) return false;
 			// store intersection depth
-			intersectionDepths.insert(esl.ray.depthToIntersectionWithRay(e->ray));
+			//intersectionDepths.insert(esl.ray.depthToIntersectionWithRay(e->ray));
+			for (Primitive* p : e->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
 		}
 		for (Vertex* v : esl.silhouetteVertices) {
 			if (!esl.ray.throughPoint(v->pos, 1E-4)) return false;
 			// check if line does not intersect mesh
 			// 
 			// store intersection depth
-			intersectionDepths.insert(esl.ray.depthToPointOnRay(v->pos));
+			//intersectionDepths.insert(esl.ray.depthToPointOnRay(v->pos));
+			for (Primitive* p : v->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+
 		}
 		for (Split& s : esl.splittingLines) {
 			if (s.edge != NULL) { 
@@ -145,7 +148,11 @@ public:
 					double depthToPoint = esl.ray.depthToPointOnRay(pt);
 					if (depthToPoint < primaryprimdepth) {
 						if (!s.edge->isSilhouetteForRay(esl.ray)) return false;
-						else intersectionDepths.insert(depthToPoint);
+						else {
+							for (Primitive* p : s.edge->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+
+							//intersectionDepths.insert(depthToPoint);
+						}
 					}
 				}
 			}

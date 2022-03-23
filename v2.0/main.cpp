@@ -107,6 +107,9 @@ int main() {
 		options.fillMoreSamples = config.lookup("fillMoreSamples");
 
 		options.exact = config.lookup("exact");
+		options.exactStartLevel = config.lookup("exactStartLevel");
+		options.exactStartLevel = std::min(options.depth, options.exactStartLevel);
+
 		options.cacheEE = config.lookup("cacheEE");
 		options.cacheEEE = config.lookup("cacheEEE");
 		options.cacheCombi = config.lookup("cacheCombi");
@@ -153,11 +156,10 @@ int main() {
 
 	VisComponents visComp;
 	RaySpaceTree rst;
-	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, dir, sgn, options, visComp);
-	if (!options.sampling && options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, dir, sgn, options, visComp);
-	else if (options.exact) RSTBuilderExact::fill(&rst);
-
-	rst.printLeafNodes();
+	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, dir, sgn, options, visComp, false);
+	else if (options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, dir, sgn, options, visComp, true);
+	if (options.sampling && options.exact) RSTBuilderExact::fill(options, &rst, true);
+	//rst.printLeafNodes();
 	Visualizer::visualize(width, height, &model, &rst, visComp, window);
 
 

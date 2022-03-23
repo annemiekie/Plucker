@@ -38,8 +38,10 @@ public:
 	};
 	~RaySpaceTree() {};
 
-	void putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim = true);
-	void putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim = true);
+	void putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim = true, 
+						bool putInNodes = false, int putFromDepth = 0);
+	void putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim = true,
+						bool putInNodes = false, int putFromDepth = 0);
 
 	Node* descend(Ray& ray);
 	Node* descend(Ray& ray, Node* node);

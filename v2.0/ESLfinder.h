@@ -17,7 +17,7 @@ public:
 
 	RaySpaceTree* rst;
 	Primitive* prim;
-	Node* leaf;
+	Node* node;
 
 	ESLChecker eslChecker;
 
@@ -34,21 +34,20 @@ public:
 	std::vector<std::vector<int>> combi2E_store;
 	std::vector<std::vector<int>> combi3E_store;
 	CombiConfigurations combiS;
-	bool checkAllPrimsForSilh = true;
+
+	bool checkHardCombis = false;
 
 	ESLFinder() {};
 
-	ESLFinder(RaySpaceTree* rst, Primitive* prim, Node* leaf,
+	ESLFinder(RaySpaceTree* rst, Primitive* prim, Node* node,
 				bool detail, bool print, bool allESLs, 
 				std::vector<SplitSide>& splitLines, CombiConfigurations& splitcombi,
-				bool checkAllPrimsForSilh,
 				bool cache = false, Cache<std::vector<Line4>>* combiCache = NULL) :
 
-				rst(rst), prim(prim), leaf(leaf), print(print), printAll(detail), storeAllESLs(allESLs),
-				splitLines(splitLines), combiS(splitcombi),
-				checkAllPrimsForSilh(checkAllPrimsForSilh), cache(cache), combiCache(combiCache)
+				rst(rst), prim(prim), node(node), print(print), printAll(detail), storeAllESLs(allESLs),
+				splitLines(splitLines), combiS(splitcombi), cache(cache), combiCache(combiCache)
 	{	
-		eslChecker = ESLChecker(leaf, prim, rst, printAll);
+		eslChecker = ESLChecker(node, prim, rst, printAll);
 	};
 
 	bool find() {
@@ -74,6 +73,8 @@ public:
 		// Check basic combis of extremal stabbing lines
 		if (checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2)) return true;
 		if (checkCombi("SSST", combiS.c3.size() * 3, 3, 0, 0, 1, combiS.c3)) return true;
+
+		checkHardCombis = true;
 
 		// Find silhouette edges for primitive
 		std::vector<Edge*> silhouetteEdgesFirst;
@@ -108,30 +109,34 @@ public:
 
 	void findSilhouettes(std::vector<Edge*>& silhouetteEdgesFirst, std::vector<Edge*>& silhouetteEdgesSecond) {
 		std::vector<Edge*> foundsilhouettes;
-		if (checkAllPrimsForSilh) {
+		if (rst->filledExact) {
+			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->primitiveSet);
+			return;
+		}
+		else if (node->parent->filledExact)
+			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->parent->primitiveSet);
+		else
 			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes);
 
-			for (Edge* e : foundsilhouettes) {
-				bool found = false;
-				for (Primitive* pr : e->triangles) {
-					if (leaf->primitiveSet.find(pr->id) != leaf->primitiveSet.end()) {
-						silhouetteEdgesFirst.push_back(e);
-						found = true; break;
-					}
+		for (Edge* e : foundsilhouettes) {
+			bool found = false;
+			for (Primitive* pr : e->triangles) {
+				if (node->primitiveSet.find(pr->id) != node->primitiveSet.end()) {
+					silhouetteEdgesFirst.push_back(e);
+					found = true; break;
 				}
-				if (!found) {
-					Line4 eslEdge;
-					if (checkEdgeInLeafCombis(e, combiS.c2) || checkEdgeInLeafCombis(e, combiS.c3)) {
-						silhouetteEdgesSecond.push_back(e);
-						//if (getedges) {
-						//	eslEdge.get3DfromPlucker();
-						//	eslEdges.push_back(eslEdge);
-						//}
-					}
+			}
+			if (!found) {
+				Line4 eslEdge;
+				if (checkEdgeInLeafCombis(e, combiS.c2) || checkEdgeInLeafCombis(e, combiS.c3)) {
+					silhouetteEdgesSecond.push_back(e);
+					//if (getedges) {
+					//	eslEdge.get3DfromPlucker();
+					//	eslEdges.push_back(eslEdge);
+					//}
 				}
 			}
 		}
-		else rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, silhouetteEdgesFirst, leaf->parent->primitiveSet);
 	}
 
 	bool checkEdgeSplittingDuplicates() {

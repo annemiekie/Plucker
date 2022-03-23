@@ -18,6 +18,7 @@ class Node {
 	std::vector<Sample> primAndRayVector = std::vector<Sample>();
 	int index = 0;
 	int depth = 0;
+	bool filledExact = false;
 
 	Node() : leaf(false) {};
 

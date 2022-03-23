@@ -36,6 +36,7 @@ namespace Options {
 		int depth = 0;
 		bool sampling = false;
 		bool exact = false;
+		int exactStartLevel = 0;
 	};
 
 	//constructOption findconstruct(std::string str) {

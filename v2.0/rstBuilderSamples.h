@@ -18,7 +18,7 @@
 class RSTBuilderSamples : public RSTBuilder<RSTBuilderSamples> {
 public:
 
-	static void build(Options::BuildOptions& options, RaySpaceTree* rst, VisComponents& visComp) {
+	static void build(Options::BuildOptions& options, RaySpaceTree* rst, VisComponents& visComp, bool print) {
 		// spheresampler for now, will be cubesampling
 		Sampler* sampler;
 		SphereSampler sphereSampler;
@@ -105,9 +105,9 @@ public:
 		}
 		else {
 			if (tri >= 0)
-				rst->putPrimitive(ray, tri, !options.fillMoreSamples && options.storeSamples);
+				rst->putPrimitive(ray, tri, !options.fillMoreSamples && options.storeSamples, true, options.exact, options.exactStartLevel);
 			else if (options.storeAllSamples && !options.fillMoreSamples)
-				rst->putPrimitive(ray, tri, true, false);
+				rst->putPrimitive(ray, tri, true, false, options.exact, options.exactStartLevel);
 		}
 	};
 

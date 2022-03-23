@@ -4,52 +4,79 @@
 #include "cache.h"
 #include "ESLfinder.h"
 #include "rst.h"
+#include <chrono>
+#include "exactBuildTracker.h"
+
 
 static bool false_bool = false;
 
 class RSTBuilderExact : public RSTBuilder<RSTBuilderExact> {
 
 public:
-	bool cacheEE = false;
-	bool cacheEEE = false;
-	bool cacheCombi = false;
-	Cache<std::vector<Ray>> combiCache;
+	//bool cacheEE = false;
+	//bool cacheEEE = false;
+	//bool cacheCombi = false;
+	//Cache<std::vector<Ray>> combiCache;
 
-	static void build(Options::BuildOptions& options, RaySpaceTree* rst, VisComponents& visComp) {//, ESLfinder& eslfinder) {
-		rst->filledExact = true;
-		//rst->model->findPotentialSilhouettes(rst->alldir, rst->maindir);
-		//ESLfinder finder(options.cacheCombi);	
-		//void RaySpaceTree::fillExact() {
-		for (Node* node : rst->nodes) {
-			std::cout << "Computing node nr: " << node->index << " of " << rst->nodes.size() << std::endl;
-			if (node->leaf) buildLeaf(rst, node, false, true);
-			std::cout << std::endl;
-			//	if (cacheCombi)  std::cout << "Combi Cache, Size: " << combiCache.cache.size() << " Hits: " << combiCache.hitcount << " Hash Hit Size: " << combiCache.hashes.size() << std::endl;
-			//	if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " << model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
-			//	if (model->cacheEE) std::cout << "Edge Edge Cache, Size: " << model->edgeEdgeCombis[0].size() << " Hits: " << model->cachehitee << std::endl;
-		}
-
+	static void build(Options::BuildOptions& options, RaySpaceTree* rst, VisComponents& visComp, bool print) {
+		fill(options, rst, print);
 	};
 
-	static void fill(RaySpaceTree* rst) {
-		rst->filledExact = true;
-		for (Node* node : rst->nodes) {
-			if (node->leaf) {
-				std::cout << "Leaf: " << node->index << std::endl;
-				buildLeaf(rst, node, true, true);
-				std::cout << std::endl << std::endl;
+	static void fill(Options::BuildOptions& options, RaySpaceTree* rst, bool print) {
+		ExactBuildTracker track;
+		std::queue<Node*> nodesToProcess;
+		nodesToProcess.push(rst->rootNode);
+
+		while (!nodesToProcess.empty()) {
+			Node* node = nodesToProcess.front();
+			if (node->depth <= rst->depth) {
+				if (node->depth >= options.exactStartLevel) {
+					if (print) std::cout 
+						<< "Filling Node: " << node->index << " / " << rst->nodes.size() << ". Progress: ";
+					auto start_time = std::chrono::system_clock::now();
+					fillNode(rst, node, print, track);
+					auto end_time = std::chrono::system_clock::now();
+					int time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+					track.totalTime += time / 1000;
+					if (print) std::cout << std::endl 
+						<< "Time to fill node: " << time << " ms, Total time: " << track.totalTime << " s"
+						<< std::endl << std::endl;
+				}
+				if (!node->leaf) {
+					nodesToProcess.push(node->leftNode);
+					nodesToProcess.push(node->rightNode);
+				}
 			}
+			nodesToProcess.pop();
 		}
-	};
+
+		//	//	if (cacheCombi)  std::cout << "Combi Cache, Size: " << combiCache.cache.size() << " Hits: " << combiCache.hitcount << " Hash Hit Size: " << combiCache.hashes.size() << std::endl;
+		//	//	if (model->cacheEEE) std::cout << "Edge Edge Edge Cache, Size: " << model->edgeEdgeEdgeCombis.size() << " Hits: " << model->cachehiteee << std::endl;
+		//	//	if (model->cacheEE) std::cout << "Edge Edge Cache, Size: " << model->edgeEdgeCombis[0].size() << " Hits: " << model->cachehitee << std::endl;
+		rst->filledExact = true;
+	}
+
+
+	//static void fill(RaySpaceTree* rst, bool print = false) {
+	//
+	//	for (Node* node : rst->nodes) {
+	//		if (node->leaf) {
+	//			std::cout << "Leaf: " << node->index << std::endl;
+	//			fillNode(rst, node, true, print);
+	//			std::cout << std::endl << std::endl;
+	//		}
+	//	}
+	//	rst->filledExact = true;
+	//};
 
 	static bool check1Prim(RaySpaceTree* rst, Primitive* prim, Node* leaf,
 							bool allESLs = false, std::vector<Ray>& esls = std::vector<Ray>(),
 							bool print = false) {//, int edgeSelection,
 
-		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInNode(rst, leaf);
 		if (splitLines.size() == 0) return false;
 		CombiConfigurations combiS(splitLines.size());
-		ESLFinder eslFinder(rst, prim, leaf, false, print, allESLs, splitLines, combiS, !rst->filledExact);
+		ESLFinder eslFinder(rst, prim, leaf, false, print, allESLs, splitLines, combiS);
 
 		if (eslFinder.find()) {
 			for (Ray& r : eslFinder.esls) esls.push_back(r);
@@ -63,7 +90,7 @@ public:
 							std::vector<int>& notfoundprim = std::vector<int>(),
 							bool storeAllEsls = false, bool print = false) {
 
-		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInNode(rst, leaf);
 		int size = splitLines.size();
 		if (size == 0) {
 			if (leaf->primitiveSet.size() == 0) return true;
@@ -72,7 +99,7 @@ public:
 		CombiConfigurations combiS(size);
 
 		for (int id : leaf->primitiveSet) {
-			ESLFinder eslFinder(rst, rst->model->triangles[id], leaf, false, print, storeAllEsls, splitLines, combiS, !rst->filledExact);
+			ESLFinder eslFinder(rst, rst->model->triangles[id], leaf, false, print, storeAllEsls, splitLines, combiS);
 			if (!eslFinder.find()) {
 				notfoundprim.push_back(id);
 				std::cout << " DID NOT FIND PRIM " << id << " IN LEAF NR " << leaf->index << std::endl;
@@ -86,18 +113,58 @@ public:
 	}
 
 	// check where to put the "only regard primitives in parent nodes" ///
-	static void buildLeaf(RaySpaceTree* rst, Node* leaf, bool fill, bool print) {
+	static void fillNode(RaySpaceTree* rst, Node* node, bool print, ExactBuildTracker& track) {
 
-		std::vector<SplitSide> splitLines = getSplitLinesInLeaf(rst, leaf);
+		std::vector<SplitSide> splitLines = getSplitLinesInNode(rst, node);
 		if (splitLines.size() == 0) return;
 		CombiConfigurations combiS(splitLines.size());
-
-		for (Primitive* prim : rst->model->triangles) {
-			if (print) std::cout << prim->id << ", ";
-			if (fill && leaf->primitiveSet.find(prim->id) != leaf->primitiveSet.end()) continue;
-			ESLFinder eslFinder(rst, prim, leaf, false, print, false, splitLines, combiS, false);
-			if (eslFinder.find()) leaf->insert(prim->id);
+		std::vector<Primitive*> checkPrims;
+		if (node->parent->filledExact) {
+			for (int primId : node->parent->primitiveSet) checkPrims.push_back(rst->model->triangles[primId]);
 		}
+		else checkPrims = rst->model->triangles;
+
+		float nrOfSteps = 10;
+		float percentagePerStep = 100.f / nrOfSteps;
+		float primPerStep = checkPrims.size() / nrOfSteps;
+		int primnum = 0;
+		int step = 0;
+
+		for (Primitive* prim : checkPrims) {
+			if (print) {
+				if (primnum - int(step * primPerStep) == 0) {
+					std::cout << int(percentagePerStep * step) << "%...";
+					step++;
+				}
+				primnum++;
+			}
+
+			if (node->primitiveSet.find(prim->id) != node->primitiveSet.end()) {
+				track.alreadyInNode++;
+				continue;
+			}
+			ESLFinder eslFinder(rst, prim, node, false, false, false, splitLines, combiS);
+			if (eslFinder.find()) {
+				if (eslFinder.checkHardCombis) track.inNodeSlow++;
+				else track.inNodeFast++;
+				node->insert(prim->id);
+			}
+			else {
+				if (eslFinder.checkHardCombis) track.notInNodeSlow++;
+				else track.notInNodeFast++;
+			}
+		}
+		track.totalPrimitives += checkPrims.size();
+		if (print) std::cout << "100%" << std::endl;
+		if (print) std::cout << "Total primitives checked: " << track.totalPrimitives
+								<< ", Already in node: " << track.alreadyInNode
+								<< ", Not in node fast: " << track.notInNodeFast
+								<< ", slow: " << track.notInNodeSlow
+								<< ", In node fast: " << track.inNodeFast
+								<< ", slow: " << track.inNodeSlow;
+
+
+		node->filledExact = true;
 	}
 
 	static std::vector<SplitSide> filterSplittingLines(RaySpaceTree* rst, Node* leaf, std::vector<SplitSide>& splitlines,
@@ -135,7 +202,7 @@ public:
 		return filteredLines;
 	}
 
-	static std::vector<SplitSide> getSplitLinesInLeaf(RaySpaceTree* rst, Node* leaf, bool storeCombi = false, 
+	static std::vector<SplitSide> getSplitLinesInNode(RaySpaceTree* rst, Node* leaf, bool storeCombi = false, 
 														std::vector<Ray>& validCombis = std::vector<Ray>()) {
 
 		std::vector<SplitSide> splitLines;
@@ -159,7 +226,7 @@ public:
 
 	static std::vector<Ray> splitLineCombis(RaySpaceTree* rst, Node* leaf) {
 		std::vector<Ray> validCombis;
-		getSplitLinesInLeaf(rst, leaf, true, validCombis);
+		getSplitLinesInNode(rst, leaf, true, validCombis);
 		for (Ray& r : validCombis) r.get3DfromPlucker();
 		return validCombis;
 	}

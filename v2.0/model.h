@@ -182,7 +182,7 @@ public:
 
 				}
 
-				triangles[(h + i) / 3] = prim;
+				triangles[prim->id] = prim;
 			}
 			h += shape.mesh.indices.size();
 		}

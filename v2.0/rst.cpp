@@ -41,19 +41,24 @@ void RaySpaceTree::printTree(Node* node, int level) {
 	}
 }
 
-void RaySpaceTree::putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim) {
-	putPrimitive(ray, primId, rootNode, putRay, putPrim);
+void RaySpaceTree::putPrimitive(Ray& ray, int primId, bool putRay, bool putPrim, 
+								bool putInNodes, int putFromDepth) {
+	putPrimitive(ray, primId, rootNode, putRay, putPrim, putInNodes, putFromDepth);
 }
 
-void RaySpaceTree::putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim) {
+void RaySpaceTree::putPrimitive(Ray& ray, int primId, Node* node, bool putRay, bool putPrim,
+								bool putInNodes, int putFromDepth) {
 	if (node->leaf) {
 		if (putRay && putPrim) node->insert(primId, ray);
 		else if (putPrim) node->insert(primId);
 		else if (putRay) node->insert(ray);
 		return;
 	}
-	if (node->splitter.ray.side(ray)) putPrimitive(ray, primId, node->leftNode, putRay, putPrim);
-	else putPrimitive(ray, primId, node->rightNode, putRay, putPrim);
+	else if (putInNodes && node->depth >= putFromDepth) node->insert(primId);
+
+	if (node->splitter.ray.side(ray)) 
+		putPrimitive(ray, primId, node->leftNode, putRay, putPrim, putInNodes, putFromDepth);
+	else putPrimitive(ray, primId, node->rightNode, putRay, putPrim, putInNodes, putFromDepth);
 }
 
 Node* RaySpaceTree::descend(Ray& ray)
