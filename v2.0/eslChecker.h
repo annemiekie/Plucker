@@ -181,16 +181,16 @@ public:
 		if (!rst->model->getIntersectionEmbree(esl.ray, embreePrim, embreeDepth)) return true;
 		// if hit something, check it is same depth or further than prim
 		double checkDepth = rst->model->triangles[embreePrim]->getIntersectionDepth(esl.ray);
-		if (checkDepth > primaryprimdepth - 1E-4) return true;
+		if (checkDepth > primaryprimdepth - 1E-6) return true;
 
 		double depth = checkDepth;
 		double offset = 0.001;
 
-		while (depth < primaryprimdepth - 1E-4) {
+		while (depth < primaryprimdepth - 1E-6) {
 			bool found = false;
 			// check if it hits a silhouette vertex or edge
 			for (double idepth : intersectionDepths) {
-				if (fabsf(idepth - depth) < 1E-3) {
+				if (fabsf(idepth - depth) < 1E-6) {
 					found = true;
 					intersectionDepths.erase(idepth);
 					break;

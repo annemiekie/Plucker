@@ -22,13 +22,16 @@ public:
 		fill(options, rst, print);
 	};
 
-	static void fill(Options::BuildOptions& options, RaySpaceTree* rst, bool print) {
+	static void fill(Options::BuildOptions& options, RaySpaceTree* rst, bool print, bool depthFirst = false) {
 		ExactBuildTracker track;
-		std::queue<Node*> nodesToProcess;
-		nodesToProcess.push(rst->rootNode);
+		std::deque<Node*> nodesToProcess;
+		nodesToProcess.push_back(rst->rootNode);
 
 		while (!nodesToProcess.empty()) {
-			Node* node = nodesToProcess.front();
+			Node* node;
+			if (depthFirst) node = nodesToProcess.back();
+			else node = nodesToProcess.front();
+
 			if (node->depth <= rst->depth) {
 				if (node->depth >= options.exactStartLevel) {
 					if (print) std::cout 
@@ -43,11 +46,12 @@ public:
 						<< std::endl << std::endl;
 				}
 				if (!node->leaf) {
-					nodesToProcess.push(node->leftNode);
-					nodesToProcess.push(node->rightNode);
+					nodesToProcess.push_back(node->leftNode);
+					nodesToProcess.push_back(node->rightNode);
 				}
 			}
-			nodesToProcess.pop();
+			if (depthFirst) nodesToProcess.pop_back();
+			else nodesToProcess.pop_front();
 		}
 
 		//	//	if (cacheCombi)  std::cout << "Combi Cache, Size: " << combiCache.cache.size() << " Hits: " << combiCache.hitcount << " Hash Hit Size: " << combiCache.hashes.size() << std::endl;

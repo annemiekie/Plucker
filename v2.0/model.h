@@ -430,7 +430,7 @@ public:
 
 	bool insertEdgeInMap(Edge* e, robin_hood::unordered_map<uint64_t, Edge*>& map) {
 		uint64_t edgeKey = (uint64_t)e->vertices[0]->id << 32 | (uint64_t)e->vertices[1]->id;
-		if (!edges.contains(edgeKey)) {
+		if (!map.contains(edgeKey)) {
 			map[edgeKey] = e;
 			return true;
 		}

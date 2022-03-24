@@ -110,7 +110,7 @@ public:
 	void findSilhouettes(std::vector<Edge*>& silhouetteEdgesFirst, std::vector<Edge*>& silhouetteEdgesSecond) {
 		std::vector<Edge*> foundsilhouettes;
 		if (rst->filledExact) {
-			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->primitiveSet);
+			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, silhouetteEdgesFirst, node->primitiveSet);
 			return;
 		}
 		else if (node->parent->filledExact)
