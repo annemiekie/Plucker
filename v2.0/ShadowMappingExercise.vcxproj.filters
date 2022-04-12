@@ -220,5 +220,17 @@
     <ClInclude Include="vectorMath.h">
       <Filter>Headers\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="exactBuildTracker.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
+    <ClInclude Include="matrix.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="vector.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="qrDecomposition.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

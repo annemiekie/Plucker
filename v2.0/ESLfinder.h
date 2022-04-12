@@ -25,17 +25,19 @@ public:
 	bool print;
 
 	bool storeAllESLs;
-	std::vector<Line4> esls;
+	std::vector<ESLCandidate> esls;
 
 	std::vector<Edge*> silhouetteEdges;
 	std::vector<Vertex*> silhouetteVertices;
 	std::vector<SplitSide> splitLines;
 
+	std::vector<std::vector<int>> combi1E_store;
 	std::vector<std::vector<int>> combi2E_store;
 	std::vector<std::vector<int>> combi3E_store;
 	CombiConfigurations combiS;
 
 	bool checkHardCombis = false;
+	bool splitVertexFlag = false;
 
 	ESLFinder() {};
 
@@ -52,7 +54,7 @@ public:
 
 	bool find() {
 		if (findEsl()) {
-			for (auto& r : esls) r.get3DfromPlucker();
+			for (auto& esl : esls) esl.ray.get3DfromPlucker();
 			return true;
 		}
 		return false;
@@ -66,9 +68,9 @@ public:
 		std::vector<std::vector<int>> cc;
 
 		// Check without occlusion to see if prim can be excluded
-		if (!checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2, cc, false) &&
-			!checkCombi("SSST", combiS.c3.size() * 3, 3, 0, 0, 1, combiS.c3, cc, false) &&
-			!checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4, cc, false)) return false;
+		if (!checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2, 0, cc, false) &&
+			!checkCombi("SSST", combiS.c3.size() * 3, 3, 0, 0, 1, combiS.c3, 0, cc, false) &&
+			!checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4, 0, cc, false)) return false;
 
 		// Check basic combis of extremal stabbing lines
 		if (checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2)) return true;
@@ -104,15 +106,13 @@ public:
 		// Check combis involving second tier silhouette edges
 		if (silhouetteEdgesSecond.size() > 0) if (checkSilhouetteCombis(silhouetteEdgesSecond, silhEdgeVertices)) return true;
 
-		return esls.size();
+		return storeAllESLs && esls.size() && !checkDegenerateESLs();
 	}
 
 	void findSilhouettes(std::vector<Edge*>& silhouetteEdgesFirst, std::vector<Edge*>& silhouetteEdgesSecond) {
 		std::vector<Edge*> foundsilhouettes;
-		if (rst->filledExact) {
-			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, silhouetteEdgesFirst, node->primitiveSet);
-			return;
-		}
+		if (rst->filledExact)
+			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->primitiveSet);
 		else if (node->parent->filledExact)
 			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->parent->primitiveSet);
 		else
@@ -121,20 +121,16 @@ public:
 		for (Edge* e : foundsilhouettes) {
 			bool found = false;
 			for (Primitive* pr : e->triangles) {
-				if (node->primitiveSet.find(pr->id) != node->primitiveSet.end()) {
-					silhouetteEdgesFirst.push_back(e);
-					found = true; break;
+				if (node->containsPrim(pr->id)) {
+					if (checkEdgeInLeafCombis(e, combiS.c2) || checkEdgeInLeafCombis(e, combiS.c3)) {
+						silhouetteEdgesFirst.push_back(e);
+						found = true; break;
+					}
 				}
 			}
-			if (!found) {
-				Line4 eslEdge;
-				if (checkEdgeInLeafCombis(e, combiS.c2) || checkEdgeInLeafCombis(e, combiS.c3)) {
+			if (!found && !rst->filledExact) {
+				if (checkEdgeInLeafCombis(e, combiS.c2) || checkEdgeInLeafCombis(e, combiS.c3))
 					silhouetteEdgesSecond.push_back(e);
-					//if (getedges) {
-					//	eslEdge.get3DfromPlucker();
-					//	eslEdges.push_back(eslEdge);
-					//}
-				}
 			}
 		}
 	}
@@ -151,6 +147,8 @@ public:
 			if (!throughEdge) {
 				for (Vertex* v : prim->vertices) {
 					if (split.ray.throughVertex(v)) {
+
+						splitVertexFlag = true;
 						if (prim->onRightSideOfSplitVertex(v, split.ray, split.side)) break;
 
 						Vertex* otherVertex;
@@ -191,7 +189,7 @@ public:
 					ESLCandidate esl = { r, lines4 };
 					if (!eslChecker.isExtremalStabbing(esl, false, false)) continue;
 					if (combi[0].size() == 2) return true;
-					float t = e->ray.depthToIntersectionWithRay(r);
+					float t = e->ray.depthToIntersectionWithRay(r, e->vertices[0]->pos, e->vertices[1]->pos);
 					if (t > 0 && t < 1) return true;
 				}
 			}
@@ -221,7 +219,7 @@ public:
 					combiCache->storeValueAtLastKey(cacheLines);
 				}
 				foundRay = true;
-				if (vischeck) esls.push_back(esl.ray);
+				if (vischeck) esls.push_back(esl);
 				if (!storeAllESLs) return true;
 			}
 		}
@@ -229,16 +227,18 @@ public:
 		return foundRay;
 	}
 
-	bool checkVeVt(std::vector<Vertex*>& silhVertices) {
+	bool checkVeVt(std::vector<Vertex*>& silhVertices, int offset) {
 		if (printAll) std::cout << "V(e)V(t) combi's: " << silhVertices.size() * 3 << std::endl;
-		for (Vertex* vs : silhVertices) {
+		for (int i = offset; i < silhVertices.size(); i++) {// Vertex * vs : silhVertices) {
+			Vertex* vs = silhVertices[i];
 			for (Vertex* vt : prim->vertices) {
 				Line4 ray(vs->pos, vt->pos);
 				ESLCandidate esl = { ray };
 				esl.silhouetteVertices = { vs };
+				esl.triangleVertex = { vt };
 				if (eslChecker.isExtremalStabbing(esl)) {
 					if (print) std::cout << "V(e)V(t)" << std::endl;
-					esls.push_back(ray);
+					esls.push_back(esl);
 					if (!storeAllESLs) true;
 				}
 			}
@@ -246,11 +246,12 @@ public:
 		return false;
 	};
 
-	bool checkVeVe(std::vector<Vertex*>& silhVertices) {
+	bool checkVeVe(std::vector<Vertex*>& silhVertices, int offset) {
 		//std::vector<std::vector<int>> combi = Combinations::combi2(silhouettesize);
 
 		if (printAll) std::cout << "V(e)V(e) combi's: " << silhVertices.size() * (silhVertices.size() - 1) << std::endl;
-		for (Vertex* vs : silhVertices) {
+		for (int i = offset; i < silhVertices.size(); i++) {
+			Vertex* vs = silhVertices[i];
 			for (Vertex* vt : silhVertices) {
 				if (vs->id == vt->id) continue;
 				Line4 ray(vs->pos, vt->pos);
@@ -258,7 +259,7 @@ public:
 				esl.silhouetteVertices = { vs, vt };
 				if (eslChecker.isExtremalStabbing(esl)) {
 					if (print) std::cout << "V(e)V(e)" << std::endl;
-					esls.push_back(ray);
+					esls.push_back(esl);
 					if (!storeAllESLs) true;
 				}
 			}
@@ -266,18 +267,28 @@ public:
 		return false;
 	};
 
-	bool checkCombiStoreAll(std::string combi_text, int combiNr, int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
-							std::vector<std::vector<int>>& splitLineCombis, std::vector<std::vector<int>>& silhLineCombis = std::vector<std::vector<int>>(),
-							bool vischeck = true) {
-		return checkCombi(combi_text, combiNr, nrOfsplitLines, nrOfVertices, nrOfsilhEdges, nrOfTriEdges,
-							splitLineCombis, silhLineCombis, vischeck) && !storeAllESLs;
-	}
+	//bool checkCombiStoreAll(std::string combi_text, int combiNr, int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
+	//						std::vector<std::vector<int>>& splitLineCombis, std::vector<std::vector<int>>& silhLineCombis = std::vector<std::vector<int>>(),
+	//						bool vischeck = true) {
+	//	return checkCombi(combi_text, combiNr, nrOfsplitLines, nrOfVertices, nrOfsilhEdges, nrOfTriEdges,
+	//						splitLineCombis, silhLineCombis, vischeck) && !storeAllESLs;
+	//}
 
 	bool checkSilhouetteCombis(std::vector<Edge*>& silhouetteEdgesToAdd, std::set<Vertex*, Vertex::cmp_ptr>& silhVertices) {
 
+		int offset_edge = silhouetteEdges.size();
+		int offset_vertex = silhouetteVertices.size();
 
+		std::set<Vertex*, Vertex::cmp_ptr> silhVertices1;
 		for (Edge* toAdd : silhouetteEdgesToAdd) {
-			silhouetteEdges.push_back(toAdd);
+			bool add = true;
+			for (Split& split : splitLines) {
+				if (split.edge == toAdd) {
+					add = false;
+					break;
+				}
+			}
+			if (add) silhouetteEdges.push_back(toAdd);
 			for (Vertex* v : toAdd->vertices) {
 				bool skip = false;
 				for (Vertex* vp : prim->vertices) {
@@ -286,62 +297,85 @@ public:
 						break;
 					}
 				}
-				if (!skip) silhVertices.insert(v);
+				if (!skip) silhVertices1.insert(v);
+			}
+		}
+		if (offset_edge == 0) {
+			silhVertices = silhVertices1;
+			for (Vertex* v : silhVertices) silhouetteVertices.push_back(v);
+		}
+		else {
+			for (Vertex* v : silhVertices1) {
+				if (silhVertices.find(v) == silhVertices.end()) silhouetteVertices.push_back(v);
 			}
 		}
 
-		int offset = silhouetteEdges.size() - silhouetteEdgesToAdd.size();
-
-		for (Vertex* v : silhVertices) silhouetteVertices.push_back(v);
-
 		std::vector<std::vector<int>> e2;
+		
+		if (checkVeVt(silhouetteVertices, offset_vertex)) return true;
 
-		if (checkVeVt(silhouetteVertices)) return true;
+		if (checkCombi("SV(E)T", combiS.c1.size() * silhouetteEdges.size() * 2 * 3, 1, 2, 0, 1, combiS.c1, offset_vertex, e2)) return true;
+		if (checkVeVe(silhouetteVertices, offset_vertex)) return true;
 
-		if (checkCombi("SV(E)T", combiS.c1.size() * silhouetteEdges.size() * 2 * 3, 1, 2, 0, 1, combiS.c1, e2)) return true;
-		if (checkVeVe(silhouetteVertices)) return true;
+		std::vector<std::vector<int>> combi1E = Combinations::combi1(silhouetteEdges.size(), offset_edge);
 
-		std::vector<std::vector<int>> combi1E = Combinations::combi1(silhouetteEdges.size(), offset);
+		if (combi1E.size() > 0) {
+			if (checkCombi("SV(E)E", combiS.c1.size() * combi1E.size() * silhouetteVertices.size(), 1, 2, 1, 0, combiS.c1, 0, combi1E)) return true;
 
-		if (checkCombi("SV(E)E", combiS.c1.size() * combi1E.size() * silhouetteEdges.size() * 2, 1, 2, 1, 0, combiS.c1, combi1E)) return true;
-		if (checkCombi("SEV(T)", combiS.c1.size() * combi1E.size() * 3, 1, 0, 1, 2, combiS.c1, combi1E)) return true;
+			if (checkCombi("SEV(T)", combiS.c1.size() * combi1E.size() * 3, 1, 0, 1, 2, combiS.c1, 0, combi1E)) return true;
 
-		if (checkCombi("SSV(E)", combiS.c2.size() * silhouetteEdges.size() * 2, 2, 2, 0, 0, combiS.c2, e2)) return true;
-		if (checkCombi("V(E)ET", combi1E.size() * silhouetteEdges.size() * 2 * 3, 0, 2, 1, 1, e2, combi1E)) return true;
+			if (checkCombi("V(E)ET", combi1E.size() * silhouetteVertices.size() * 3, 0, 2, 1, 1, e2, 0, combi1E)) return true;
+		}
+		if (silhouetteVertices.size() - offset_vertex > 0)
+			if (checkCombi("SSV(E)", combiS.c2.size() * (silhouetteVertices.size() - offset_vertex), 2, 2, 0, 0, combiS.c2, offset_vertex, e2)) return true;
+
+		if (offset_edge > 0) {
+			if (combi1E_store.size() > 0) {
+				if (checkCombi("SV(E)E", combiS.c1.size() * combi1E_store.size() * (silhouetteVertices.size() - offset_vertex), 1, 2, 1, 0, combiS.c1, offset_vertex, combi1E_store)) return true;
+				if (checkCombi("V(E)ET", combi1E_store.size() * (silhouetteVertices.size() - offset_vertex) * 3, 0, 2, 1, 1, e2, offset_vertex, combi1E_store)) return true;
+			}
+			if (combi2E_store.size() > 0)
+				if (checkCombi("V(E)EE", combi2E_store.size() * (silhouetteVertices.size() - offset_vertex), 0, 2, 2, 0, e2, offset_vertex, combi2E_store)) return true;
+		}
+		combi1E_store = combi1E;
 
 		std::vector<std::vector<int>> combi2E;
-		getEECombis(silhouetteEdges, combi2E, offset);
+		getEECombis(silhouetteEdges, combi2E, offset_edge);
 		for (std::vector<int>& combi : combi2E) combi2E_store.push_back(combi);
 
 		if (combi2E.size() > 0) {
-			if (checkCombi("EEV(T)", combi2E.size() * 3, 0, 0, 2, 2, e2, combi2E)) return true;
+			if (checkCombi("EEV(T)", combi2E.size() * 3, 0, 0, 2, 2, e2, 0, combi2E)) return true;
 
 			std::vector<std::vector<int>> combi3E;
-			getEEECombis(silhouetteEdges, combi2E_store, combi3E, offset);
+			getEEECombis(silhouetteEdges, combi2E_store, combi3E, offset_edge);
 			for (std::vector<int>& combi : combi3E) combi3E_store.push_back(combi);
 
 			if (combi3E.size() > 0) {
-				if (checkCombi("EEET", combi3E.size() * 3, 0, 0, 3, 1, e2, combi3E)) return true;
-				if (checkCombi("SEEE", combiS.c1.size() * combi3E.size(), 1, 0, 3, 0, combiS.c1, combi3E)) return true;
+				if (checkCombi("EEET", combi3E.size() * 3, 0, 0, 3, 1, e2, 0, combi3E)) return true;
+				if (checkCombi("SEEE", combiS.c1.size() * combi3E.size(), 1, 0, 3, 0, combiS.c1, 0, combi3E)) return true;
 
-				std::vector<std::vector<int>> combi4E = Combinations::combiAddSelective(silhouetteEdges.size(), combi3E_store, offset);
-				if (combi4E.size() > 0) if (checkCombi("EEEE", combi4E.size() * 3, 0, 0, 4, 0, e2, combi4E)) return true;
+				std::vector<std::vector<int>> combi4E = Combinations::combiAddSelective(silhouetteEdges.size(), combi3E_store, offset_edge);
+				if (combi4E.size() > 0) if (checkCombi("EEEE", combi4E.size() * 3, 0, 0, 4, 0, e2, 0, combi4E)) return true;
 			}
 
-			if (checkCombi("V(E)EE", combi2E.size() * silhouetteEdges.size() * 2, 0, 2, 2, 0, e2, combi2E)) return true;
-			if (checkCombi("SEET", combiS.c1.size() * combi2E.size() * 3, 1, 0, 2, 1, combiS.c1, combi2E)) return true;
-			if (checkCombi("SSEE", combiS.c2.size() * combi2E.size(), 2, 0, 2, 0, combiS.c2, combi2E)) return true;
+
+			if (checkCombi("V(E)EE", combi2E.size() * silhouetteVertices.size(), 0, 2, 2, 0, e2, 0, combi2E)) return true;
+
+			if (checkCombi("SEET", combiS.c1.size() * combi2E.size() * 3, 1, 0, 2, 1, combiS.c1, 0, combi2E)) return true;
+			if (checkCombi("SSEE", combiS.c2.size() * combi2E.size(), 2, 0, 2, 0, combiS.c2, 0, combi2E)) return true;
 		}
 
-		if (checkCombi("SSET", combiS.c2.size() * combi1E.size() * 3, 2, 0, 1, 1, combiS.c2, combi1E)) return true;
-		if (checkCombi("SSSE", combiS.c3.size() * combi1E.size(), 3, 0, 1, 0, combiS.c3, combi1E)) return true;
+		if (combi1E.size() > 0) {
+			if (checkCombi("SSET", combiS.c2.size() * combi1E.size() * 3, 2, 0, 1, 1, combiS.c2, 0, combi1E)) return true;
+			if (checkCombi("SSSE", combiS.c3.size() * combi1E.size(), 3, 0, 1, 0, combiS.c3, 0, combi1E)) return true;
+		}
 
 		return false;
 	}
 
 
 	void getEEECombis(std::vector<Edge*>& silhouetteEdges, std::vector<std::vector<int>>& combi2Edges, 
-						std::vector<std::vector<int>>& combi3Edges, int offset) {
+						std::vector<std::vector<int>>& combi3Edges, int offset = 0) {
 		if (silhouetteEdges.size() >= 3 && combi2Edges.size() > 0) {
 			std::vector<std::vector<int>> combi = Combinations::combiAddSelective(silhouetteEdges.size(), combi2Edges, offset);
 			for (std::vector<int>& c : combi) {
@@ -354,9 +388,9 @@ public:
 		}
 	}
 
-	void getEECombis(std::vector<Edge*>& silhouetteEdges, std::vector<std::vector<int>>& combi2Edges, int offset) {
+	void getEECombis(std::vector<Edge*>& silhouetteEdges, std::vector<std::vector<int>>& combi2Edges, int offset = 0, int substract = 0) {
 		if (silhouetteEdges.size() >= 2) {
-			std::vector<std::vector<int>> combi = Combinations::combi2(silhouetteEdges.size(), offset);
+			std::vector<std::vector<int>> combi = Combinations::combi2(silhouetteEdges.size(), offset, substract);
 
 			for (std::vector<int>& c : combi) {
 				Edge* e1 = silhouetteEdges[c[0]];
@@ -366,10 +400,18 @@ public:
 		}
 	}
 
+	bool checkDegenerateESLs() {
+		for (int i = 0; i < esls.size(); i++) {
+			for (int j = i + 1; j < esls.size(); j++) {
+				if (!esls[i].ray.intersect(esls[j].ray)) return false;
+			}
+		}
+		return true;
+	}
 
 	bool checkCombi(std::string combi_text, int combiNr, 
 					int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
-					std::vector<std::vector<int>>& splitLineCombis, 
+					std::vector<std::vector<int>>& splitLineCombis, int vertex_offset = 0,
 					std::vector<std::vector<int>>& silhLineCombis = std::vector<std::vector<int>>(),
 					bool vischeck = true) {
 
@@ -381,7 +423,7 @@ public:
 			if (nrOfTriEdges == 2) vertexEdgeCheck = { prim->vertices[(g + 1) % 3] };
 			//if (nrOfTriEdges == 1) vertexEdgeCheck = { (int)model->indices[prim * 3 + edges[g][0]] , (int)model->indices[prim * 3 + edges[g][1]] };
 
-			for (int h = 0; h < (nrOfVertices ? silhouetteVertices.size() : 1); h++) {
+			for (int h = vertex_offset; h < (nrOfVertices ? silhouetteVertices.size() : 1); h++) {
 				if (nrOfVertices > 0) vertexEdgeCheck = { silhouetteVertices[h] };
 
 				for (int i = 0; i < std::max(1, (int)silhLineCombis.size()); i++) {
@@ -437,6 +479,7 @@ public:
 							//		indices.push_back(lines[linecount + 1].index + model->edges.size());
 							//	}
 						}
+						if (nrOfTriEdges == 2) esl.triangleVertex.push_back(prim->vertices[(g + 1) % 3]);
 						esl.fillUpLines();
 
 						if (checkRaysThrough4Lines(esl, vischeck)) { 
@@ -445,7 +488,7 @@ public:
 								for (Ray& r : esl.lines4) std::cout << r.index << " ";
 								std::cout << std::endl;
 							}
-							if (!storeAllESLs || !vischeck) return true;
+							if ((!storeAllESLs && !(splitVertexFlag && checkDegenerateESLs())) || !vischeck) return true;
 						}
 					}
 				}

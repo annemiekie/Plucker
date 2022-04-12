@@ -44,6 +44,15 @@ public:
 		}
 	}
 
+	void updateVaoWithLines(std::vector<Edge*> edges) {
+		std::vector<glm::vec3> lines;
+		for (Edge* e : edges) {
+			lines.push_back(e->vertices[0]->pos);
+			lines.push_back(e->vertices[1]->pos);
+		}
+		makeVaoVbo(lines);
+	}
+
 	void updateVaoWithLines(std::vector<Ray> rays_new, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
 		//if (rays_new.size() == 0) return;
 		rays = rays_new;
@@ -67,7 +76,6 @@ public:
 			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * size, size == 0 ? NULL : &colors[0].x, GL_STATIC_DRAW);
 		}
 	}
-
 
 	void getLinesInGeo(GeoObject* object, std::vector<glm::vec3>& lines, std::vector<glm::vec3>& colors = std::vector<glm::vec3>(), glm::vec3 maindir = glm::vec3(0)) {
 		glm::vec3 line, col;

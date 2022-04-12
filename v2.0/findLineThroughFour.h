@@ -3,6 +3,7 @@
 
 #include "lineThroughFourLines.h"
 #include "model.h"
+#include "qrDecomposition.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Jacobi>
@@ -61,7 +62,7 @@ namespace Lines4Finder {
 		return delta == 0.0 ? 1 : 2;
 	}
 
-	static void findNullSpace(Eigen::MatrixXd& m, Line4 &F, Line4 &G, Line4 &H, int rank = 4) {
+	static void findNullSpaceLU(Eigen::MatrixXd& m, Line4 &F, Line4 &G, Line4 &H, int rank = 4) {
 		Eigen::FullPivLU<Eigen::MatrixXd> lu(m);
 		Eigen::MatrixXd A_null_space = lu.kernel();
 
@@ -70,7 +71,7 @@ namespace Lines4Finder {
 		if (rank == 3) H = Line4(A_null_space.col(2), true);
 	}
 
-	static void findNullSpace2(Eigen::MatrixXd& m, Line4& F, Line4& G, Line4 &H) {
+	static void findNullSpaceCOD(Eigen::MatrixXd& m, Line4& F, Line4& G, Line4 &H) {
 		Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod;
 		cod.compute(m);
 		// Find URV^T
@@ -82,12 +83,21 @@ namespace Lines4Finder {
 		G = Line4(A_null_space.col(1), true);
 	}
 
+	static void findNullSpaceQR(Eigen::MatrixXd& m, Line4& F, Line4& G, Line4& H) {
+		Eigen::MatrixXd mt = m.transpose();
+		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(mt);
+		Eigen::MatrixXd q = qr.matrixQ();
+
+		F = Line4(q.col(4), true);
+		G = Line4(q.col(5), true);
+	}
+
 	static std::vector<Line4> find(std::vector<Ray>& lines) {
 		std::vector<Line4> intersectLines;
 		Line4 F, G, H;
 		Eigen::MatrixXd m = makePluckerMat(lines);
 
-		findNullSpace(m, F, G, H);
+		findNullSpaceLU(m, F, G, H);
 		//if (rank == 4) 
 		intersectLinesQuadric(F, G, intersectLines);
 		//else if (rank == 5) num = intersectLinesQuadric3(F, G, H, intersectLines);

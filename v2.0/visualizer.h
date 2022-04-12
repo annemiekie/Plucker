@@ -31,7 +31,7 @@ namespace Visualizer {
 	Shader mainShader, lineShader;
 	Model* model;
 	PreviewCamera cam;
-	LineModel splitters, samples, clickRay, edgeRays, eslSilhEdges, eslLines;
+	LineModel splitters, samples, clickRay, edgeRays, silhEdges, eslLines;
 	std::vector<GeoObject*> geoObjects;
 	int geoObjectnr = 0;
 	RaySpaceTree* rst;
@@ -82,7 +82,7 @@ namespace Visualizer {
 			if (viewline) drawLines(clickRay, 1, 1.f, Colors::red);
 			if (edgelines) {
 				drawLines(edgeRays, 1, 1.f, Colors::green);
-				drawLines(eslSilhEdges, 1, 1.f, Colors::orange);
+				drawLines(silhEdges, 1, 1.f, Colors::orange);
 			}
 		}
 
@@ -193,15 +193,14 @@ namespace Visualizer {
 			std::cout << primindex << std::endl;
 			std::vector<Ray> esls;
 			//std::vector<glm::vec3> edges;
-			//std::vector<Ray> eslEdges;
+			std::vector<Edge*> silh;
 
-			RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls, true);
+			RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls, true, silh);
 			eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr], rst->maindir);
 			samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
-
+			silhEdges.updateVaoWithLines(silh);
 			//edgeRays.makeVaoVbo(edges);
-			//eslSilhEdges.updateVaoWithLines(eslEdges, geoObjects[geoObjectnr]);
-			//edgelines = true;
+			edgelines = true;
 
 			selectedPrim = primindex;
 			changeColoring = true;
@@ -362,7 +361,7 @@ namespace Visualizer {
 		samples.setupVao();
 		clickRay.setupVao(); 
 		edgeRays.setupVao();
-		eslSilhEdges.setupVao();
+		silhEdges.setupVao();
 		eslLines.setupVao();
 
 		splitters.updateVaoWithLines(rst->getAllSplittingLines(), geoObjects[geoObjectnr], rst->maindir);

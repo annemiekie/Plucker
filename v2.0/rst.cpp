@@ -1,24 +1,6 @@
 #include "rst.h"
 #include <chrono>
 
-
-//
-//Ray RaySpaceTree::getRay(std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
-//	int camNr = raynr / (res.x * res.y);
-//
-//	int rayInCam = raynr % (res.x * res.y);
-//	int y = rayInCam / res.x;
-//	int x = rayInCam % res.x;
-//	const glm::vec2 pixpos{ (x + .5f) / res.x * 2.0f - 1.0f, 1.0f - (y + .5f) / res.y * 2.0f };
-//	return cams[camNr]->pixRayDirection(pixpos);
-//}
-//
-//bool RaySpaceTree::intoLeftNode(Ray& splitter, std::vector<Camera*>& cams, int raynr, glm::ivec2 res) {
-//	Ray ray = getRay(cams, raynr, res);
-//	return splitter.side(ray);
-//}
-
-
 void RaySpaceTree::printTree() {
 	printTree(rootNode, 0);
 	std::cout << std::endl << std::endl;
@@ -54,7 +36,7 @@ void RaySpaceTree::putPrimitive(Ray& ray, int primId, Node* node, bool putRay, b
 		else if (putRay) node->insert(ray);
 		return;
 	}
-	else if (putInNodes && node->depth >= putFromDepth) node->insert(primId);
+	else if (putInNodes && putPrim && node->depth >= putFromDepth) node->insert(primId);
 
 	if (node->splitter.ray.side(ray)) 
 		putPrimitive(ray, primId, node->leftNode, putRay, putPrim, putInNodes, putFromDepth);

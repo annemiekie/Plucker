@@ -87,10 +87,10 @@ namespace Combinations {
 		return combinations;
 	}
 
-	static std::vector<std::vector<int>> combi2(int size, int skip = 0) {
+	static std::vector<std::vector<int>> combi2(int size, int skip = 0, int sub = 0) {
 		std::vector<std::vector<int>> combinations;
-		for (int i = 0; i < size; i++) {
-			for (int j = i + 1; j < size; j++) {
+		for (int i = 0; i < size - sub; i++) {
+			for (int j = i + 1; j < size - sub; j++) {
 				if (skip && j < skip) continue;
 				std::vector<int> num = { i,j };
 				combinations.push_back(num);
@@ -99,9 +99,9 @@ namespace Combinations {
 		return combinations;
 	}
 
-	static std::vector<std::vector<int>> combi1(int size, int skip = 0) {
+	static std::vector<std::vector<int>> combi1(int size, int skip = 0, int sub = 0) {
 		std::vector<std::vector<int>> combinations;
-		for (int i = skip; i < size; i++) {
+		for (int i = skip; i < size - sub; i++) {
 			std::vector<int> num = { i};
 			combinations.push_back(num);
 		}

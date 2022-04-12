@@ -118,7 +118,9 @@ public:
 		return false;
 	};
 
-	bool checkSilhouettesForRay(ESLCandidate& esl, std::set<double>& intersectionDepths, double primaryprimdepth) {
+	//bool checkSilhouettesForRay(ESLCandidate& esl, std::set<double>& intersectionDepths, double primaryprimdepth) {
+	bool checkSilhouettesForRay(ESLCandidate & esl, std::set<int>& intersectionPrims, double primaryprimdepth) {
+
 		for (Edge* e : esl.silhouetteEdges) {
 			if (!e->isSilhouetteForRay(esl.ray)) return false;
 			// check if ray intersects edge between vertices
@@ -128,7 +130,7 @@ public:
 				if (esl.ray.throughPoint(v->pos, 1E-4)) return false;
 			// store intersection depth
 			//intersectionDepths.insert(esl.ray.depthToIntersectionWithRay(e->ray));
-			for (Primitive* p : e->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+			for (Primitive* p : e->triangles) intersectionPrims.insert(p->id);//intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
 		}
 		for (Vertex* v : esl.silhouetteVertices) {
 			if (!esl.ray.throughPoint(v->pos, 1E-4)) return false;
@@ -136,23 +138,24 @@ public:
 			// 
 			// store intersection depth
 			//intersectionDepths.insert(esl.ray.depthToPointOnRay(v->pos));
-			for (Primitive* p : v->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+			for (Primitive* p : v->triangles)  intersectionPrims.insert(p->id);// intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
 
 		}
-		for (Split& s : esl.splittingLines) {
+		for (SplitSide& s : esl.splittingLines) {
 			if (s.edge != NULL) { 
 				glm::dvec3 pt = s.edge->ray.pointOfintersectWithRay(esl.ray);
 				// check if intersection is on edge
 				if (s.edge->pointOnRay(pt)) {
 					// check if edge is silhouette
-					double depthToPoint = esl.ray.depthToPointOnRay(pt);
+					double depthToPoint = esl.ray.depthToPointOnRay(pt, s.edge->vertices[0]->pos, s.edge->vertices[1]->pos);
 					if (depthToPoint < primaryprimdepth) {
 						if (!s.edge->isSilhouetteForRay(esl.ray)) return false;
-						else {
-							for (Primitive* p : s.edge->triangles) intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+						// if a ray interseting one of the silhouette triangles centers lies on the correct side of the
+						// splitting line, the configuration is invalid.
+						if (s.ray.side(Ray(s.edge->triangles[0]->center, s.edge->triangles[0]->center + esl.ray.direction)) == s.side) return false;
 
-							//intersectionDepths.insert(depthToPoint);
-						}
+						for (Primitive* p : s.edge->triangles)  intersectionPrims.insert(p->id);// intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
+						//intersectionDepths.insert(depthToPoint);
 					}
 				}
 			}
@@ -170,9 +173,9 @@ public:
 		else t = rst->model->boundingCube.getCubeSideSquare(rst->maindir).rayIntersectionDepth(esl.ray) - 0.1f;
 		esl.ray.offsetByDepth(t);
 
-		std::set<double> intersectionDepths;
+		std::set<int> intersectionPrims;
 		double primaryprimdepth = prim->getIntersectionDepth(esl.ray);
-		if (!checkSilhouettesForRay(esl, intersectionDepths, primaryprimdepth)) return false;
+		if (!checkSilhouettesForRay(esl, intersectionPrims, primaryprimdepth)) return false;
 
 		int embreePrim = -1;
 		float embreeDepth = 0.f;
@@ -189,10 +192,12 @@ public:
 		while (depth < primaryprimdepth - 1E-6) {
 			bool found = false;
 			// check if it hits a silhouette vertex or edge
-			for (double idepth : intersectionDepths) {
-				if (fabsf(idepth - depth) < 1E-6) {
+			//for (double idepth : intersectionDepths) {
+			for (int primid: intersectionPrims) {
+				//if (fabsf(idepth - depth) < 1E-6) {
+				if (primid == embreePrim) {
 					found = true;
-					intersectionDepths.erase(idepth);
+					//intersectionDepths.erase(idepth);
 					break;
 				}
 			}

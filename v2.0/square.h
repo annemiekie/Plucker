@@ -7,7 +7,7 @@ public:
 	std::vector<glm::dvec3> cornerPoints = std::vector<glm::dvec3>(4);
 
 	Square(glm::dvec3 n, float c) : Plane(n, c) { };
-
+	Square() {};
 	~Square() {};
 
 	Square(glm::dvec3 v1main, glm::dvec3 v2, glm::dvec3 v3, glm::dvec3 voppo) : Plane(v1main, v2, v3, voppo) {
@@ -53,6 +53,34 @@ public:
 		}
 		if (count == 4) return false;
 		return true;
+	}
+
+	bool inBounds(const glm::dvec3& pt, float thres = 0) {
+		Ray r(pt + normal, pt);
+		return (inBounds(r, thres));
+	}
+
+	bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
+		//for (Ray& r : lines) {
+		//	if (inBounds(r)) return true;
+		//	r.inverseDir();
+		//	if (inBounds(r)) return true;
+		//}
+		if (lines.size() == 1) {
+			Ray r = lines[0];
+			if (inBounds(r)) return true;
+			r.inverseDir();
+			if (inBounds(r)) return true;
+			return false;
+		}
+		glm::dvec3 pt1 = rayIntersection(lines[0]);
+		glm::dvec3 pt2 = rayIntersection(lines[1]);
+		Ray r12(pt1, pt2);
+		for (Ray& qr : quadLines) {
+			glm::dvec3 intersect = qr.pointOfintersectWithRay(r12);
+			if (inBounds(intersect)) return true;
+		}
+		return false;
 	}
 
 }; 

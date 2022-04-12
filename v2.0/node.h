@@ -39,4 +39,8 @@ class Node {
 		primAndRayVector.push_back(Sample{ ray, -1 });
 	};
 
+	bool containsPrim(int pri) {
+		return primitiveSet.find(pri) != primitiveSet.end();
+	};
+
 };

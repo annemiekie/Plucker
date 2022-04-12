@@ -100,8 +100,10 @@ public:
 		for (Split &ps : parentSplitters) if (splitter.ray.equal(ps.ray, 1E-6)) { dupli = true; break; }
 		if (dupli) construct(rst, lvl, node, option, splitnum);
 		else {
+			if (splitter.edge != NULL) splitter.ray.index = splitter.edge->id;
+			else splitter.ray.index = splitnum;;
 			splitter.id = splitnum;
-			splitter.ray.index = splitnum;
+			
 			rst->splitters.push_back(splitter);
 
 			node->splitter = splitter;

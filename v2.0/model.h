@@ -447,6 +447,7 @@ public:
 		glm::dvec3 invMaindir = glm::vec3(1.f) - maindir;
 		glm::dvec3 maindirMin = boundingBox.getBounds(0);
 		glm::dvec3 maindirMax = boundingBox.getBounds(1);
+		Square window = boundingBox.getCubeSideSquare(maindir);
 
 		for (auto& check_edge : edgesToCheck) {
 			Edge* e = check_edge.second;
@@ -457,53 +458,78 @@ public:
 			if (e->triangles[0] == tri) continue;
 			if (e->triangles.size() == 2 && e->triangles[1] == tri) continue;
 
-			// check if edge lies on correct side of triangle
-			if (glm::dot(tri->normal, e->vertices[0]->pos - tri->center) < 0 &&
-				glm::dot(tri->normal, e->vertices[1]->pos - tri->center) < 0) continue;
+			// check if edge lies on correct side of triangle plane
+			Plane triPlane = tri->getPlane();
+			bool cntn = false;
+			bool edgeIntersectPlane = true;
+			for (Vertex* v : e->vertices) {
+				if (!triPlane.pointOnPositiveSide(v->pos) || tri->hasVertex(v->id) || triPlane.pointOnPlane(v->pos, 1E-7)) {
+					edgeIntersectPlane = true;
+					cntn = true;
+				}
+				else cntn = false;
+			}
+			if (cntn) continue;
 
-			glm::dvec3 v1pos = e->vertices[0]->pos;
-			glm::dvec3 v2pos = e->vertices[1]->pos;
+			for (Primitive* p : e->triangles) {
+				if (glm::dot(window.normal, p->normal) < 0) {
+					if (!window.intersectsPlaneFromLines(p->getRayVector())) cntn = true;
+					else cntn = false;
+				}
+				else cntn = false;
+			}
+			if (cntn) continue;
 
 			bool sideCheck = false;
 			bool intersect = false;
 			std::vector<glm::dvec3> intersectpts;
-			bool toAdd = false;
 			bool first = true;
+			bool silhouetteFound = false;
+
+			glm::dvec3 v1pos = e->vertices[0]->pos;
+			glm::dvec3 v2pos = e->vertices[1]->pos;
 
 			for (int i = 0; i < 3; i++) {
 				bool side = false;
-				bool checkEdge = checkSilhouetteEdge(tri->vertices[i], e, alldir, maindir, side);
+				silhouetteFound = silhouetteFound || checkSilhouetteEdge(tri->vertices[i], e, alldir, maindir, side);
 				if (!alldir) {
-					Ray r1 = Ray(v1pos, tri->vertices[i]->pos);
-					Ray r2 = Ray(v2pos, tri->vertices[i]->pos);
+					Ray r1 = Ray(tri->vertices[i]->pos, v1pos);
+					Ray r2 = Ray(tri->vertices[i]->pos, v2pos);
 
-					intersect = intersect || boundingCube.intersectSide(maindir, r1) || boundingCube.intersectSide(maindir, r2);
-					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r1));
-					intersectpts.push_back(boundingCube.intersectSidePoint(maindir, r2));
-				}
-				if (!checkEdge) {
-					if (first) { first = false;  sideCheck = side; }
-					else if (side != sideCheck) {
-						if (alldir || intersect) { silhouetteEdge.push_back(e); toAdd = false;  break; }
-						else toAdd = true;
+					intersect = intersect || window.inBounds(r1) || window.inBounds(r2);
+					glm::vec3 windowR1Intersect = window.rayIntersection(r1);
+					glm::vec3 windowR2Intersect = window.rayIntersection(r2);
+
+					if (edgeIntersectPlane) {
+						if (window.rayIntersectionDepth(r1) < 0) windowR1Intersect *= INFINITY;
+						if (window.rayIntersectionDepth(r2) < 0) windowR2Intersect *= INFINITY;
 					}
+					intersectpts.push_back(windowR1Intersect);
+					intersectpts.push_back(windowR2Intersect);
 				}
-				else {
-					if (alldir || intersect) { silhouetteEdge.push_back(e); toAdd = false;  break; }
-					else toAdd = true;
+
+				if (!silhouetteFound) {
+					if (first) { first = false;  sideCheck = side; }
+					else if (side != sideCheck) silhouetteFound = true;
+				}
+
+				if (silhouetteFound && (alldir || intersect)) { 
+					silhouetteEdge.push_back(e); 
+					break; 
 				}
 			}
-			if (toAdd) {
+			if (silhouetteFound && !intersect) {
+				intersect = true;
 				Cube bb(intersectpts);
 				for (int i = 0; i < 3; i++) {
 					if (invMaindir[i] == 1) {
 						if (bb.getBounds(1)[i] < maindirMin[i] || bb.getBounds(0)[i] > maindirMax[i]) {
-							toAdd = false;
+							intersect = false;
 							break;
 						}
 					}
 				}
-				if (toAdd) silhouetteEdge.push_back(e);
+				if (intersect) silhouetteEdge.push_back(e);
 			}
 		}
 	}

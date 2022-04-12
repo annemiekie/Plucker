@@ -44,6 +44,10 @@
     <ClInclude Include="eslFinder.h" />
     <ClInclude Include="extremalStabbingLine.h" />
     <ClInclude Include="geoObject.h" />
+    <ClInclude Include="exactBuildTracker.h" />
+    <ClInclude Include="matrix.h" />
+    <ClInclude Include="qrDecomposition.h" />
+    <ClInclude Include="vector.h" />
     <ClInclude Include="vectorMath.h" />
     <ClInclude Include="sampler.h" />
     <ClInclude Include="split.h" />

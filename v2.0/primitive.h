@@ -45,6 +45,26 @@ struct Primitive {
 	Plane getPlane() {
 		return Plane(vertices[0]->pos, normal);
 	}
+
+	std::vector<Ray> getRayVector() {
+		return  { rays[0], rays[1], rays[2] };
+	}
+
+	bool hasVertex(int id) {
+		for (Vertex* pv : vertices) {
+			if (pv->id == id) return true;
+		}
+		return false;
+	}
+
+	//bool vertexInCommonWithEdge(Edge* e) {
+	//	for (Vertex* pv : vertices) {
+	//		for (Vertex* ev : e->vertices) {
+	//			if (pv->id == ev->id) return true;
+	//		}
+	//	}
+	//	return false;
+	//}
 };
 
 #endif

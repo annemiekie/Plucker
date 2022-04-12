@@ -78,6 +78,11 @@ public:
         return glm::dot(u, oRay.v) + glm::dot(v, oRay.u);
     };
 
+    bool intersect(const Ray& oRay, double thres = 1E-8) const {
+        if (fabs(sideVal(oRay)) < thres) return true;
+        return false;
+    };
+
     bool intersectsWithRayAtDepth(Ray& oRay, double depth, float thres = 1E-8) {
         glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
         return (fabsf(intersectionTs.x - intersectionTs.y) < thres && fabsf(intersectionTs.x - intersectionTs.z) < thres);
@@ -119,13 +124,13 @@ public:
         return (pointToRayDist(pt) < eps);
     }
 
-    float depthToIntersectionWithRay(Ray& oRay) {
+    float depthToIntersectionWithRay(Ray& oRay, glm::dvec3 start, glm::dvec3 end) {
         glm::dvec3 intersect = pointOfintersectWithRay(oRay);
-        return depthToPointOnRay(intersect);
+        return depthToPointOnRay(intersect, start, end);
     }
 
-    float depthToPointOnRay(glm::dvec3 pt) {
-        return (pt.x - origin.x) / direction.x;
+    float depthToPointOnRay(glm::dvec3 pt, glm::dvec3 start, glm::dvec3 end) {
+        return (pt.x - start.x) / (end.x - start.x);
     }
 
     //bool inPlane(Ray& ray1, Ray& ray2, double eps = 1E-8) {

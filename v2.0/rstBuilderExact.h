@@ -75,19 +75,18 @@ public:
 
 	static bool check1Prim(RaySpaceTree* rst, Primitive* prim, Node* leaf,
 							bool allESLs = false, std::vector<Ray>& esls = std::vector<Ray>(),
-							bool print = false) {//, int edgeSelection,
+							bool print = false, std::vector<Edge*>& silhEdges = std::vector<Edge*>()) {//, int edgeSelection,
 
 		std::vector<SplitSide> splitLines = getSplitLinesInNode(rst, leaf);
 		if (splitLines.size() == 0) return false;
 		CombiConfigurations combiS(splitLines.size());
 		ESLFinder eslFinder(rst, prim, leaf, false, print, allESLs, splitLines, combiS);
+		bool found = eslFinder.find();
+		silhEdges = eslFinder.silhouetteEdges;
 
-		if (eslFinder.find()) {
-			for (Ray& r : eslFinder.esls) esls.push_back(r);
-			return true;
-		}
-		else if (print) std::cout << "Not Found" << std::endl;
-		return false;
+		for (ESLCandidate& esl : eslFinder.esls) esls.push_back(esl.ray);
+		if (!found) std::cout << "Not Found" << std::endl;
+		return found;
 	};
 
 	static bool checkLeaf(RaySpaceTree* rst, Node* leaf, std::vector<Ray>& rays, bool getrays, 
@@ -108,7 +107,7 @@ public:
 				notfoundprim.push_back(id);
 				std::cout << " DID NOT FIND PRIM " << id << " IN LEAF NR " << leaf->index << std::endl;
 			}			
-			else if (getrays) for (Ray& r : eslFinder.esls) rays.push_back(r);
+			else if (getrays) for (ESLCandidate &esl : eslFinder.esls) rays.push_back(esl.ray);
 		}
 		if (notfoundprim.size() > 0) std::cout << " DID NOT FIND " << notfoundprim.size() << " OF "
 			<< leaf->primitiveSet.size() << " PRIMS IN LEAF NR "
@@ -143,10 +142,14 @@ public:
 				primnum++;
 			}
 
-			if (node->primitiveSet.find(prim->id) != node->primitiveSet.end()) {
+			if (node->containsPrim(prim->id)) {
 				track.alreadyInNode++;
 				continue;
 			}
+			if (glm::dot(rst->window.normal, prim->normal) < 0) {
+				if (!rst->window.intersectsPlaneFromLines(prim->getRayVector())) continue;
+			}
+
 			ESLFinder eslFinder(rst, prim, node, false, false, false, splitLines, combiS);
 			if (eslFinder.find()) {
 				if (eslFinder.checkHardCombis) track.inNodeSlow++;

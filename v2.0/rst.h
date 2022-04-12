@@ -25,6 +25,7 @@ public:
 	Model* model;
 	std::vector<Split> splitters;
 	bool filledExact = false;
+	Square window;
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
@@ -35,6 +36,7 @@ public:
 		: model(model), depth(depth), alldir(alldir), maindir(maindir) {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
+		window = model->boundingCube.getCubeSideSquare(maindir);
 	};
 	~RaySpaceTree() {};
 
