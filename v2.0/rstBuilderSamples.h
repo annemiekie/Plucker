@@ -92,7 +92,7 @@ public:
 							std::set<int>& triangles = std::set<int>()) {
 
 		Ray ray = sampler->getNextSample(options.fillMoreSamples);
-		if (!rst->alldir && !rst->model->boundingCube.intersectSide(rst->maindir, ray)) return;
+		if (!rst->alldir && !rst->window->inBounds(ray)) return;
 		//if (options.storeAllSamples) rst->putPrimitive(ray, -1, true, false);
 
 		int tri = -1;
@@ -109,8 +109,6 @@ public:
 			else if (options.storeAllSamples && !options.fillMoreSamples)
 				rst->putPrimitive(ray, tri, true, false, options.exact, options.exactStartLevel);
 		}
-
-
 	};
 
 	static void fill(RaySpaceTree* rst, Options::BuildOptions& options, Sampler* sampler, TextureRenderer& texrender = TextureRenderer()) {

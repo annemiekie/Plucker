@@ -126,11 +126,11 @@ public:
 
     float depthToIntersectionWithRay(Ray& oRay, glm::dvec3 start, glm::dvec3 end) {
         glm::dvec3 intersect = pointOfintersectWithRay(oRay);
-        return depthToPointOnRay(intersect, start, end);
+        return depthToPointOnRay(intersect);
     }
 
-    float depthToPointOnRay(glm::dvec3 pt, glm::dvec3 start, glm::dvec3 end) {
-        return (pt.x - start.x) / (end.x - start.x);
+    float depthToPointOnRay(glm::dvec3 pt) {
+        return (pt.x - origin.x) / (direction.x);
     }
 
     //bool inPlane(Ray& ray1, Ray& ray2, double eps = 1E-8) {

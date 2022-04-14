@@ -35,7 +35,7 @@ public:
 		
 		esl.ray.get3DfromPlucker();
 		if (esl.ray.checkboth) {
-			if (!checkRayInBox(esl.ray)) {
+			if (!checkRayInWindow(esl.ray)) {
 				esl.inBox = false;
 				return false;
 			}
@@ -147,7 +147,7 @@ public:
 				// check if intersection is on edge
 				if (s.edge->pointOnRay(pt)) {
 					// check if edge is silhouette
-					double depthToPoint = esl.ray.depthToPointOnRay(pt, s.edge->vertices[0]->pos, s.edge->vertices[1]->pos);
+					double depthToPoint = esl.ray.depthToPointOnRay(pt);
 					if (depthToPoint < primaryprimdepth) {
 						if (!s.edge->isSilhouetteForRay(esl.ray)) return false;
 						// if a ray interseting one of the silhouette triangles centers lies on the correct side of the
@@ -213,12 +213,12 @@ public:
 		return true;
 	};
 
-	bool checkRayInBox(Line4& ray) {
+	bool checkRayInWindow(Line4& ray) {
 		if (rst->alldir && !rst->model->boundingCube.intersect(ray)) {
 			if (print) std::cout << "Ray not in Box" << std::endl << std::endl;
 			return false;
 		}
-		else if (!rst->model->boundingCube.intersectSide(rst->maindir, ray)) {
+		else if (!rst->window->inBounds(ray, 1E-7)) {
 			if (print) std::cout << "Ray not in Square" << std::endl << std::endl;
 			return false;
 		}

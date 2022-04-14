@@ -47,8 +47,13 @@ struct Edge {
 		return isSilhouetteForPos(r.origin);
 	}
 
-	bool isSilhouetteForVertex(Vertex* v, bool &side) const {
-		if (v->id == vertices[0]->id || v->id == vertices[1]->id) return true;
+	//normal here points in the direction of the 'front' so edge must lie before vertex to be silhouette
+	bool isSilhouetteForVertex(Vertex* v, bool &side, glm::dvec3 normal = glm::dvec3()) const {
+		if (normal.length() != 0) {
+			if (glm::dot(vertices[0]->pos, -normal) > glm::dot(v->pos, -normal) &&
+				glm::dot(vertices[1]->pos, -normal) > glm::dot(v->pos, -normal)) return false;
+		}
+		//if (v->id == vertices[0]->id || v->id == vertices[1]->id) return true;
 		return isSilhouetteForPos(v->pos, side);
 	}
 
@@ -88,6 +93,10 @@ struct Edge {
 		{
 			return lhs->id < rhs->id;
 		}
+	};
+
+	uint64_t getKey() {
+		return (uint64_t) vertices[0]->id << 32 | (uint64_t) vertices[1]->id;
 	};
 
 };

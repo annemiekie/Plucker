@@ -121,13 +121,13 @@ public:
 		}
 	}
 
-	static RaySpaceTree build(Model* model, char dir, int sgn, Options::BuildOptions& options, VisComponents& visComp, bool print) {
+	static RaySpaceTree build(Model* model, AxisAlignedPolygon* window, char dir, int sgn, Options::BuildOptions& options, VisComponents& visComp, bool print) {
 		glm::vec3 maindir = glm::vec3(0);
 		if (!options.alldir) maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
 
-		model->findPotentialSilhouettes(options.alldir, maindir);
+		//model->findPotentialSilhouettes(options.alldir, maindir);
 
-		RaySpaceTree rst(model, options.depth, options.alldir, maindir);
+		RaySpaceTree rst(model, options.depth, window, options.alldir, maindir);
 		if (options.construct != Options::ADAPTIVE) construct(&rst, options.construct);
 		T::build(options, &rst, visComp, print);
 		return rst;

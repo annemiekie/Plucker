@@ -10,12 +10,26 @@ public:
 
     Plane() {};
 
-    ~Plane() {};
+    Plane(Plane* plane) {
+        normal = plane->normal;
+        constant = plane->constant;
+    };
 
     Plane(glm::dvec3 n, float c) : normal(n), constant(c) {};
 
     Plane(glm::dvec3 point, glm::dvec3 normal) : normal(normal) {
         constant = glm::dot(normal, point);
+    }
+
+    Plane(std::vector<glm::dvec3> vertices, glm::dvec3 voppo) {
+        glm::dvec3 e1 = vertices[1] - vertices[0];
+        glm::dvec3 e2 = vertices[2] - vertices[0];
+        normal = glm::normalize(glm::cross(e1, e2));
+        constant = glm::dot(normal, vertices[0]);
+        if (glm::dot(normal, voppo) - constant > 0) {
+            normal *= -1;
+            constant *= -1;
+        }
     }
 
     Plane(glm::dvec3 v1main, glm::dvec3 v2, glm::dvec3 v3, glm::dvec3 voppo) {
@@ -59,5 +73,6 @@ public:
         pt = v1 + t *(v2-v1);
         return true;
     }
-    
+    ~Plane() {};
+
 };

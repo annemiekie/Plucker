@@ -146,8 +146,8 @@ public:
 				track.alreadyInNode++;
 				continue;
 			}
-			if (glm::dot(rst->window.normal, prim->normal) < 0) {
-				if (!rst->window.intersectsPlaneFromLines(prim->getRayVector())) continue;
+			if (glm::dot(rst->window->normal, prim->normal) < 0) {
+				if (!rst->window->intersectsPlaneFromLines(prim->getRayVector())) continue;
 			}
 
 			ESLFinder eslFinder(rst, prim, node, false, false, false, splitLines, combiS);
@@ -216,12 +216,11 @@ public:
 
 		rst->getSplittingLinesInNodeWithSide(leaf, splitLines);
 		if (!rst->alldir) {
-			std::vector<Ray> boxSides = rst->model->boundingCube.getCubeSideSquare(rst->maindir).quadLines;
-			for (int i = 0; i < 4; i++) {
-				Ray boxside = boxSides[i];
-				boxside.index = splitLines.size();
+			std::vector<Ray> windowEdges = rst->model->boundingCube.getCubeSideSquare(rst->maindir).edges;
+			for (Ray& we : windowEdges) {
+				we.index = splitLines.size();
 				SplitSide split;
-				split.ray = boxside;
+				split.ray = we;
 				split.id = splitLines.size();
 				splitLines.push_back(split);
 			}
@@ -256,4 +255,16 @@ public:
 		checkLeaf(rst, n, rays, true, notfoundprim, storeAllESLs, print);
 		return rays;
 	}
+
+	//void findPotentialSilhouettes(bool alldir, glm::vec3 maindir) {
+	//	Square sq = boundingCube.getCubeSideSquare(maindir);
+
+	//	for (auto& edgemap : rst->model->edges) {
+	//		bool check = false;
+	//		Edge* e = edgemap.second;
+	//		e->silhouette = e->convex();
+	//		if (alldir) continue;
+	//		if (e->isSilhouetteForPrim(sq.cornerPoints)) e->silhouette = true;
+	//	}
+	//}
 };

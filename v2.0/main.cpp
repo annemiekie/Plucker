@@ -27,7 +27,7 @@
 #include "buildOptions.h"
 #include "visComponents.h"
 #include "visualizer.h"
-
+#include "axisAlignedPolygon.h"
 
 #include <iostream>
 #include <fstream>
@@ -156,8 +156,11 @@ int main() {
 
 	VisComponents visComp;
 	RaySpaceTree rst;
-	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, dir, sgn, options, visComp, false);
-	else if (options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, dir, sgn, options, visComp, true);
+	glm::vec3 maindir = glm::vec3(0);
+	if (!options.alldir) maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
+	AxisAlignedPolygon polyWindow = model.boundingCube.getCubeSideSquare(maindir);
+	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, &polyWindow, dir, sgn, options, visComp, false);
+	else if (options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, &polyWindow, dir, sgn, options, visComp, true);
 	if (options.sampling && options.exact) RSTBuilderExact::fill(options, &rst, true);
 	//rst.printLeafNodes();
 	Visualizer::visualize(width, height, &model, &rst, visComp, window);

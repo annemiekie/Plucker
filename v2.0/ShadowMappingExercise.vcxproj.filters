@@ -232,5 +232,17 @@
     <ClInclude Include="qrDecomposition.h">
       <Filter>Headers\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="axisAlignedPlane.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="polygon.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="axisAlignedPolygon.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="axisAlignedSquare.h">
+      <Filter>Headers\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -57,6 +57,10 @@ struct Primitive {
 		return false;
 	}
 
+	bool vertexOnPositiveSidePlane(Vertex* v) {
+		Plane plane = getPlane();
+		return plane.pointOnPositiveSide(v->pos) && !plane.pointOnPlane(v->pos, 1E-7) && !hasVertex(v->id);
+	}
 	//bool vertexInCommonWithEdge(Edge* e) {
 	//	for (Vertex* pv : vertices) {
 	//		for (Vertex* ev : e->vertices) {

@@ -5,7 +5,7 @@
 #include "ray.h"
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
-#include "square.h"
+#include "axisAlignedSquare.h"
 #include "vectorMath.h"
 #include "geoObject.h"
 
@@ -15,7 +15,7 @@ private:
     glm::dvec3 bigbounds[2] = { glm::dvec3(0), glm::dvec3(0) };
     //std::vector<std::vector<Ray>> quadLines = std::vector<std::vector<Ray>>(6, std::vector<Ray>(4));
     //std::vector<std::vector<glm::vec3>> cornerPoints = std::vector<std::vector<glm::vec3>>(6, std::vector<glm::vec3>(4));
-    std::vector<Square> sideSquares;
+    std::vector<AxisAlignedSquare> sideSquares;
 
 public:
 
@@ -49,9 +49,9 @@ public:
         return bounds[minmax];
     };
 
-    glm::dvec3 getBigBounds(int minmax) {
-        return bigbounds[minmax];
-    }
+    //glm::dvec3 getBigBounds(int minmax) {
+    //    return bigbounds[minmax];
+    //}
 
     void setBounds(glm::vec3 minvec, glm::vec3 maxvec, bool makesquares = true) {
         bounds[0] = minvec;
@@ -76,20 +76,20 @@ public:
 
     // CHECK IF THIS WORKS
 
-    Square getCubeSideSquare(glm::vec3 mainDir) {
+    AxisAlignedSquare getCubeSideSquare(glm::vec3 mainDir) {
         return sideSquares[getIndex(mainDir)];
     }
 
-    void makeCubeSquaresBig() {
-        bigbounds[0] = center - 1.5 * size;
-        bigbounds[1] = center + 1.5 * size;
+    //void makeCubeSquaresBig() {
+    //    bigbounds[0] = center - 1.5 * size;
+    //    bigbounds[1] = center + 1.5 * size;
 
-        for (int j = 0; j < 2; j++) {
-            for (int i = 0; i < 3; i++) {
-                sideSquares.push_back(makeCubeSquareBig(i, j));
-            }
-        }
-    }
+    //    for (int j = 0; j < 2; j++) {
+    //        for (int i = 0; i < 3; i++) {
+    //            sideSquares.push_back(makeCubeSquareBig(i, j));
+    //        }
+    //    }
+    //}
 
     void makeCubeSquares() {
         for (int j = 0; j < 2; j++) {
@@ -99,46 +99,65 @@ public:
         }
     }
 
-    Square makeCubeSquare(int xyz, int pm) {
-        glm::vec3 vmin, vside1, vside2, vopp;
-        vmin[xyz] = bounds[pm][xyz];
-        vmin[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
-        vmin[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
+    AxisAlignedSquare makeCubeSquare(int xyz, int pm) {
+        
+        glm::ivec3 normal;
+        normal[xyz] = -1 + 2 * pm;
 
-        vside1[xyz] = vmin[xyz];
-        vside1[(xyz + 1) % 3] = bounds[1][(xyz + 1) % 3];
-        vside1[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
+        glm::dvec3 point;
+        point[xyz] = bounds[pm][xyz];
 
-        vside2[xyz] = vmin[xyz];
-        vside2[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
-        vside2[(xyz + 2) % 3] = bounds[1][(xyz + 2) % 3];
+        glm::dvec2 minm, maxm;
+        int c2 = 0;
+        for (int c3 = 0; c3 < 3; c3++) {
+            if (c3 != xyz) {
+                minm[c2] = bounds[0][c3];
+                maxm[c2] = bounds[1][c3];
+                c2++;
+            }
+        }
 
-        vopp = vmin;
-        vopp[xyz] = bounds[1 - pm][xyz];
+        return AxisAlignedSquare(minm, maxm, point, normal);
 
-        return Square(vmin, vside1, vside2, vopp);
+        //glm::vec3 vmin, vside1, vside2, vopp;
+        //vmin[xyz] = bounds[pm][xyz];
+        //vmin[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
+        //vmin[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
+
+        //vside1[xyz] = vmin[xyz];
+        //vside1[(xyz + 1) % 3] = bounds[1][(xyz + 1) % 3];
+        //vside1[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
+
+        //vside2[xyz] = vmin[xyz];
+        //vside2[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
+        //vside2[(xyz + 2) % 3] = bounds[1][(xyz + 2) % 3];
+
+        //vopp = vmin;
+        //vopp[xyz] = bounds[1 - pm][xyz];
+
+        //return Square(vmin, vside1, vside2, vopp);
     }
 
     //// xyz = x, y or z direction, pm = plus or minus
-    Square makeCubeSquareBig(int xyz, int pm) {
-        glm::vec3 vmin, vside1, vside2, vopp;
-        vmin[xyz] = bounds[pm][xyz];
-        vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-        vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+    //Square makeCubeSquareBig(int xyz, int pm) {
+    //    glm::vec3 vmin, vside1, vside2, vopp;
+    //    vmin[xyz] = bounds[pm][xyz];
+    //    vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+    //    vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
 
-        vside1[xyz] = vmin[xyz];
-        vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
-        vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
+    //    vside1[xyz] = vmin[xyz];
+    //    vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
+    //    vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
 
-        vside2[xyz] = vmin[xyz];
-        vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-        vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
+    //    vside2[xyz] = vmin[xyz];
+    //    vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
+    //    vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
 
-        vopp = vmin;
-        vopp[xyz] = bounds[1 - pm][xyz];
+    //    vopp = vmin;
+    //    vopp[xyz] = bounds[1 - pm][xyz];
 
-        return Square(vmin, vside1, vside2, vopp);
-    }
+    //    return Square(vmin, vside1, vside2, vopp);
+    //}
 
     //// CHECK IF THIS WORKS
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
@@ -388,8 +407,8 @@ public:
         std::vector<glm::vec3> lines;
 
         for (int i = 0; i < 4; i++) {
-            lines.push_back(sq.cornerPoints[i]);
-            lines.push_back(sq.cornerPoints[(i + 1) % 4]);
+            lines.push_back(sq.vertices[i]);
+            lines.push_back(sq.vertices[(i + 1) % 4]);
         }
 
         GLuint lineVAO, lineVBO;

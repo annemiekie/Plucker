@@ -9,12 +9,14 @@
 #include "nodeSamples.h"
 #include "model.h"
 #include "splitSide.h"
+#include "axisAlignedPolygon.h"
 
 class RaySpaceTree {
 
 public:
 
 	Node* rootNode;
+	AxisAlignedPolygon* window;
 	int depth = 0;
 	int noLeaves = 0;
 	glm::vec3 maindir;
@@ -25,18 +27,17 @@ public:
 	Model* model;
 	std::vector<Split> splitters;
 	bool filledExact = false;
-	Square window;
 
 	RaySpaceTree() {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
 	};
 
-	RaySpaceTree(Model* model, int depth, bool alldir = false, glm::vec3 maindir = glm::vec3())
-		: model(model), depth(depth), alldir(alldir), maindir(maindir) {
+	RaySpaceTree(Model* model, int depth, AxisAlignedPolygon* window, bool alldir = false, glm::vec3 maindir = glm::vec3())
+		: model(model), depth(depth), alldir(alldir), maindir(maindir), window(window) {
 		rootNode = new Node(0, 0);
 		nodes.push_back(rootNode);
-		window = model->boundingCube.getCubeSideSquare(maindir);
+		//window = &(model->boundingCube.getCubeSideSquare(maindir));
 	};
 	~RaySpaceTree() {};
 

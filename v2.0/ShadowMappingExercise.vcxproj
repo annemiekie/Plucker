@@ -31,6 +31,7 @@
     <None Include="standard.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="axisAlignedPolygon.h" />
     <ClInclude Include="buildOptions.h" />
     <ClInclude Include="cache.h" />
     <ClInclude Include="camera.h" />
@@ -45,7 +46,10 @@
     <ClInclude Include="extremalStabbingLine.h" />
     <ClInclude Include="geoObject.h" />
     <ClInclude Include="exactBuildTracker.h" />
+    <ClInclude Include="axisAlignedPlane.h" />
+    <ClInclude Include="axisAlignedSquare.h" />
     <ClInclude Include="matrix.h" />
+    <ClInclude Include="polygon.h" />
     <ClInclude Include="qrDecomposition.h" />
     <ClInclude Include="vector.h" />
     <ClInclude Include="vectorMath.h" />

@@ -12,6 +12,34 @@
 
 class ESLFinder {
 public:
+
+	std::vector<ESLCandidate> esls;
+	std::vector<Edge*> silhouetteEdges;
+	bool checkHardCombis = false;
+
+	ESLFinder() {};
+
+	ESLFinder(RaySpaceTree* rst, Primitive* prim, Node* node,
+		bool detail, bool print, bool allESLs,
+		std::vector<SplitSide>& splitLines, CombiConfigurations& splitcombi,
+		bool cache = false, Cache<std::vector<Line4>>* combiCache = NULL) :
+
+		rst(rst), prim(prim), node(node), print(print), printAll(detail), storeAllESLs(allESLs),
+		splitLines(splitLines), combiS(splitcombi), cache(cache), combiCache(combiCache)
+	{
+		eslChecker = ESLChecker(node, prim, rst, printAll);
+	};
+
+	bool find() {
+		if (findEsl()) {
+			for (auto& esl : esls) esl.ray.get3DfromPlucker();
+			return true;
+		}
+		return false;
+	};
+
+private:
+
 	bool cache = false;
 	Cache<std::vector<Line4>>* combiCache;
 
@@ -25,9 +53,7 @@ public:
 	bool print;
 
 	bool storeAllESLs;
-	std::vector<ESLCandidate> esls;
 
-	std::vector<Edge*> silhouetteEdges;
 	std::vector<Vertex*> silhouetteVertices;
 	std::vector<SplitSide> splitLines;
 
@@ -36,29 +62,7 @@ public:
 	std::vector<std::vector<int>> combi3E_store;
 	CombiConfigurations combiS;
 
-	bool checkHardCombis = false;
 	bool splitVertexFlag = false;
-
-	ESLFinder() {};
-
-	ESLFinder(RaySpaceTree* rst, Primitive* prim, Node* node,
-				bool detail, bool print, bool allESLs, 
-				std::vector<SplitSide>& splitLines, CombiConfigurations& splitcombi,
-				bool cache = false, Cache<std::vector<Line4>>* combiCache = NULL) :
-
-				rst(rst), prim(prim), node(node), print(print), printAll(detail), storeAllESLs(allESLs),
-				splitLines(splitLines), combiS(splitcombi), cache(cache), combiCache(combiCache)
-	{	
-		eslChecker = ESLChecker(node, prim, rst, printAll);
-	};
-
-	bool find() {
-		if (findEsl()) {
-			for (auto& esl : esls) esl.ray.get3DfromPlucker();
-			return true;
-		}
-		return false;
-	};
 
 	bool findEsl() {
 
@@ -84,21 +88,10 @@ public:
 
 		findSilhouettes(silhouetteEdgesFirst, silhouetteEdgesSecond);
 
-		//if (getedges) {
-		//	for (Edge* e : silhouetteEdgesFirst) {
-		//		for (Vertex* v : e->vertices) edges.push_back(v->pos);
-		//	}
-		//	for (Edge* e : silhouetteEdgesSecond) {
-		//		for (Vertex* v : e->vertices) edges.push_back(v->pos);
-		//	}
-		//}
-
 		// Check all combis involving silhouette edges of some sort
 		std::set<Vertex*, Vertex::cmp_ptr> silhEdgeVertices;
 
-		if (silhouetteEdgesFirst.size() > 0) {
-			if (checkSilhouetteCombis(silhouetteEdgesFirst, silhEdgeVertices)) return true;
-		}
+		if (silhouetteEdgesFirst.size() > 0)  if (checkSilhouetteCombis(silhouetteEdgesFirst, silhEdgeVertices)) return true;
 
 		// Check basic (but large) combi of extremal stabbing lines
 		if (checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4)) return true;
@@ -112,11 +105,11 @@ public:
 	void findSilhouettes(std::vector<Edge*>& silhouetteEdgesFirst, std::vector<Edge*>& silhouetteEdgesSecond) {
 		std::vector<Edge*> foundsilhouettes;
 		if (rst->filledExact)
-			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->primitiveSet);
+			getSilhouetteEdges(foundsilhouettes, node->primitiveSet);
 		else if (node->parent->filledExact)
-			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes, node->parent->primitiveSet);
+			getSilhouetteEdges(foundsilhouettes, node->parent->primitiveSet);
 		else
-			rst->model->findSilhouetteEdgesForTri(prim, rst->alldir, rst->maindir, foundsilhouettes);
+			getSilhouetteEdges(foundsilhouettes);
 
 		for (Edge* e : foundsilhouettes) {
 			bool found = false;
@@ -189,8 +182,7 @@ public:
 					ESLCandidate esl = { r, lines4 };
 					if (!eslChecker.isExtremalStabbing(esl, false, false)) continue;
 					if (combi[0].size() == 2) return true;
-					float t = e->ray.depthToIntersectionWithRay(r, e->vertices[0]->pos, e->vertices[1]->pos);
-					if (t > 0 && t < 1) return true;
+					if (e->intersectsRay(esl.ray)) return true;
 				}
 			}
 		}
@@ -267,13 +259,6 @@ public:
 		return false;
 	};
 
-	//bool checkCombiStoreAll(std::string combi_text, int combiNr, int nrOfsplitLines, int nrOfVertices, int nrOfsilhEdges, int nrOfTriEdges,
-	//						std::vector<std::vector<int>>& splitLineCombis, std::vector<std::vector<int>>& silhLineCombis = std::vector<std::vector<int>>(),
-	//						bool vischeck = true) {
-	//	return checkCombi(combi_text, combiNr, nrOfsplitLines, nrOfVertices, nrOfsilhEdges, nrOfTriEdges,
-	//						splitLineCombis, silhLineCombis, vischeck) && !storeAllESLs;
-	//}
-
 	bool checkSilhouetteCombis(std::vector<Edge*>& silhouetteEdgesToAdd, std::set<Vertex*, Vertex::cmp_ptr>& silhVertices) {
 
 		int offset_edge = silhouetteEdges.size();
@@ -340,14 +325,14 @@ public:
 		combi1E_store = combi1E;
 
 		std::vector<std::vector<int>> combi2E;
-		getEECombis(silhouetteEdges, combi2E, offset_edge);
+		getEECombis(combi2E, offset_edge);
 		for (std::vector<int>& combi : combi2E) combi2E_store.push_back(combi);
 
 		if (combi2E.size() > 0) {
 			if (checkCombi("EEV(T)", combi2E.size() * 3, 0, 0, 2, 2, e2, 0, combi2E)) return true;
 
 			std::vector<std::vector<int>> combi3E;
-			getEEECombis(silhouetteEdges, combi2E_store, combi3E, offset_edge);
+			getEEECombis(combi2E_store, combi3E, offset_edge);
 			for (std::vector<int>& combi : combi3E) combi3E_store.push_back(combi);
 
 			if (combi3E.size() > 0) {
@@ -374,8 +359,75 @@ public:
 	}
 
 
-	void getEEECombis(std::vector<Edge*>& silhouetteEdges, std::vector<std::vector<int>>& combi2Edges, 
-						std::vector<std::vector<int>>& combi3Edges, int offset = 0) {
+	void getSilhouetteEdges(std::vector<Edge*>& silhouettes, std::set<int>& checktris = std::set<int>()) {
+		robin_hood::unordered_map<uint64_t, Edge*> edgesToCheck;
+		if (checktris.size() != 0) 	for (int t : checktris) for (Edge* e : rst->model->triangles[t]->edges) edgesToCheck[e->getKey()] = e;
+		else edgesToCheck = rst->model->edges;
+
+		for (auto& check_edge : edgesToCheck) {
+			Edge* e = check_edge.second;
+			// If edge is not in potential silhouettes
+			//if (!rst->alldir && !e->silhouette) continue;
+
+			// Don't use same triangle as silhouette edge.
+			if (e->triangles[0] == prim) continue;
+			if (e->triangles.size() == 2 && e->triangles[1] == prim) continue;
+
+			// check if edge lies on correct side of primitive plane
+			Vertex* edgeV1 = e->vertices[0];
+			Vertex* edgeV2 = e->vertices[1];
+			bool edgeIntersectPlane = false;
+			if (!prim->vertexOnPositiveSidePlane(edgeV1) || !prim->vertexOnPositiveSidePlane(edgeV2)) {
+				edgeIntersectPlane = true;
+				if (!prim->vertexOnPositiveSidePlane(edgeV1) && !prim->vertexOnPositiveSidePlane(edgeV2)) continue;
+			}
+
+			// check if edge can be seen through window
+			bool cntn = false;
+			for (Primitive* p : e->triangles) {
+				if (glm::dot(rst->window->normal, p->normal) < 0 && !rst->window->intersectsPlaneFromLines(p->getRayVector())) cntn = true;
+				else cntn = false;
+			}
+			if (cntn) continue;
+
+			bool sideCheck = false;
+			bool intersect = false;
+			std::vector<glm::dvec3> intersectpts;
+			bool first = true;
+			bool silhouetteFound = false;
+
+			for (Vertex* primV : prim->vertices) {
+				bool side = false;
+				silhouetteFound = silhouetteFound || e->isSilhouetteForVertex(primV, side, rst->window->normal);
+
+				if (!rst->alldir) {
+					for (Vertex* edgeV : e->vertices) {
+						Ray r = Ray(edgeV->pos, primV->pos);
+						intersect = intersect || rst->window->inBounds(r);
+						glm::vec3 windowIntersect = rst->window->rayIntersection(r);
+						if (edgeIntersectPlane && rst->window->rayIntersectionDepth(r) > 0) windowIntersect *= -INFINITY;
+						intersectpts.push_back(windowIntersect);
+					}
+				}
+				if (!silhouetteFound) {
+					if (first) { first = false;  sideCheck = side; }
+					else if (side != sideCheck) silhouetteFound = true;
+				}
+				if (silhouetteFound && (rst->alldir || intersect)) break;
+			}
+
+			if (silhouetteFound) {
+				if (!intersect) {
+					AxisAlignedSquare window(rst->window);
+					AxisAlignedSquare boundingSquare(intersectpts, rst->window);
+					intersect = !window.noIntersection(boundingSquare);
+				}
+				if (intersect) silhouettes.push_back(e);
+			}
+		}
+	}
+
+	void getEEECombis(std::vector<std::vector<int>>& combi2Edges, std::vector<std::vector<int>>& combi3Edges, int offset = 0) {
 		if (silhouetteEdges.size() >= 3 && combi2Edges.size() > 0) {
 			std::vector<std::vector<int>> combi = Combinations::combiAddSelective(silhouetteEdges.size(), combi2Edges, offset);
 			for (std::vector<int>& c : combi) {
@@ -388,7 +440,7 @@ public:
 		}
 	}
 
-	void getEECombis(std::vector<Edge*>& silhouetteEdges, std::vector<std::vector<int>>& combi2Edges, int offset = 0, int substract = 0) {
+	void getEECombis(std::vector<std::vector<int>>& combi2Edges, int offset = 0, int substract = 0) {
 		if (silhouetteEdges.size() >= 2) {
 			std::vector<std::vector<int>> combi = Combinations::combi2(silhouetteEdges.size(), offset, substract);
 
@@ -399,13 +451,34 @@ public:
 			}
 		}
 	}
-
+	//not working yet for vertices
 	bool checkDegenerateESLs() {
+		bool allintersect = true;
 		for (int i = 0; i < esls.size(); i++) {
-			for (int j = i + 1; j < esls.size(); j++) {
-				if (!esls[i].ray.intersect(esls[j].ray)) return false;
+			if (!esls[i].ray.intersect(esls[(i + 1) % esls.size()].ray)) allintersect = false;
+		}
+		if (allintersect) return true;
+		std::set<int> sameIds;
+		if (esls.size() <= 2) return true;
+		for (Ray& r1 : esls[0].lines4) {
+			for (Ray& r2 : esls[1].lines4) {
+				if (r1.index == r2.index) sameIds.insert(r1.index);
 			}
 		}
+		std::vector<int> notfound;
+		for (int i = 2; i < esls.size(); i++) {
+			for (int id : sameIds) {
+				bool found = false;
+
+				for (Ray& r1 : esls[i].lines4) {
+					if (r1.index == id) found = true;
+				}
+				if (!found) notfound.push_back(id);
+			}
+			for (int id : notfound) sameIds.erase(id);
+		}
+		if (sameIds.size() == 0) return false;
+
 		return true;
 	}
 
