@@ -6,4 +6,6 @@ struct Split {
 	Ray ray;
 	Edge* edge = NULL;
 	int id;
+	bool edgeIsSilhouette = false;
+
 };

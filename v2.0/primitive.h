@@ -15,7 +15,15 @@ struct Primitive {
 	Edge* edges[3];
 	Ray rays[3];
 
-	float getIntersectionDepth(const Ray& r) {
+	double getIntersectionDepth(const Ray& r, bool inplane = false) {
+		if (inplane || getPlane().rayInPlane(r, 1E-7)) {
+			double depth = -INFINITY;
+			for (Ray er : rays) {
+				double edgeIntersect = r.depthToIntersectionWithRay(er);
+				if (edgeIntersect > depth) depth = edgeIntersect;
+			}
+			return depth;
+		}
 		double ndotdir = glm::dot(normal, r.direction);
 		return glm::dot(normal, vertices[0]->pos - r.origin) / ndotdir;
 	}
@@ -36,9 +44,9 @@ struct Primitive {
 		return false;
 	}
 
-	bool intersection(const Ray& or, float& depth) {
+	bool intersection(const Ray& or , double& depth, bool inplane = false) {
 		for (Ray& r : rays) if (r.side(or)) return false;
-		depth = getIntersectionDepth(or);
+		depth = getIntersectionDepth(or, inplane);
 		return true;
 	}
 

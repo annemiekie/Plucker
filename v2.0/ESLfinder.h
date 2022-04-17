@@ -12,7 +12,7 @@
 
 class ESLFinder {
 public:
-
+	std::vector<ESLCandidate> eslsNoVis;
 	std::vector<ESLCandidate> esls;
 	std::vector<Edge*> silhouetteEdges;
 	bool checkHardCombis = false;
@@ -75,6 +75,8 @@ private:
 		if (!checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2, 0, cc, false) &&
 			!checkCombi("SSST", combiS.c3.size() * 3, 3, 0, 0, 1, combiS.c3, 0, cc, false) &&
 			!checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4, 0, cc, false)) return false;
+		// maybe these can be used to check for degeneracies?
+
 
 		// Check basic combis of extremal stabbing lines
 		if (checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2)) return true;
@@ -99,14 +101,14 @@ private:
 		// Check combis involving second tier silhouette edges
 		if (silhouetteEdgesSecond.size() > 0) if (checkSilhouetteCombis(silhouetteEdgesSecond, silhEdgeVertices)) return true;
 
-		return storeAllESLs && esls.size() && !checkDegenerateESLs();
+		return storeAllESLs && esls.size();// && !checkDegenerateESLs();
 	}
 
 	void findSilhouettes(std::vector<Edge*>& silhouetteEdgesFirst, std::vector<Edge*>& silhouetteEdgesSecond) {
 		std::vector<Edge*> foundsilhouettes;
 		if (rst->filledExact)
 			getSilhouetteEdges(foundsilhouettes, node->primitiveSet);
-		else if (node->parent->filledExact)
+		if (node->parent->filledExact)
 			getSilhouetteEdges(foundsilhouettes, node->parent->primitiveSet);
 		else
 			getSilhouetteEdges(foundsilhouettes);
@@ -212,6 +214,7 @@ private:
 				}
 				foundRay = true;
 				if (vischeck) esls.push_back(esl);
+				else eslsNoVis.push_back(esl);
 				if (!storeAllESLs) return true;
 			}
 		}
@@ -358,7 +361,6 @@ private:
 		return false;
 	}
 
-
 	void getSilhouetteEdges(std::vector<Edge*>& silhouettes, std::set<int>& checktris = std::set<int>()) {
 		robin_hood::unordered_map<uint64_t, Edge*> edgesToCheck;
 		if (checktris.size() != 0) 	for (int t : checktris) for (Edge* e : rst->model->triangles[t]->edges) edgesToCheck[e->getKey()] = e;
@@ -451,33 +453,42 @@ private:
 			}
 		}
 	}
-	//not working yet for vertices
+
 	bool checkDegenerateESLs() {
+		if (eslsNoVis.size() <= 2) return true;
+
 		bool allintersect = true;
-		for (int i = 0; i < esls.size(); i++) {
-			if (!esls[i].ray.intersect(esls[(i + 1) % esls.size()].ray)) allintersect = false;
+		for (int i = 0; i < eslsNoVis.size(); i++) {
+			if (!eslsNoVis[i].ray.intersect(eslsNoVis[(i + 1) % eslsNoVis.size()].ray)) allintersect = false;
 		}
+		std::string tf = allintersect ? "true" : "false";
+		if (node->index == 275 && prim->id == 246) std::cout << "intersect all? " << tf << std::endl;
+
 		if (allintersect) return true;
+
 		std::set<int> sameIds;
-		if (esls.size() <= 2) return true;
-		for (Ray& r1 : esls[0].lines4) {
-			for (Ray& r2 : esls[1].lines4) {
-				if (r1.index == r2.index) sameIds.insert(r1.index);
+		for (Edge* e1 : eslsNoVis[0].allEdges) {
+			for (Edge* e2 : eslsNoVis[1].allEdges) {
+				if (e1->id == e2->id) sameIds.insert(e1->id);
 			}
 		}
 		std::vector<int> notfound;
-		for (int i = 2; i < esls.size(); i++) {
+		for (int i = 2; i < eslsNoVis.size(); i++) {
 			for (int id : sameIds) {
 				bool found = false;
 
-				for (Ray& r1 : esls[i].lines4) {
-					if (r1.index == id) found = true;
+				for (Edge* e1 : eslsNoVis[i].allEdges) {
+					if (e1->id == id) found = true;
 				}
 				if (!found) notfound.push_back(id);
 			}
 			for (int id : notfound) sameIds.erase(id);
 		}
+		tf = allintersect ? "true" : "false";
+		if (node->index == 275 && prim->id == 246) std::cout << "same ids nr? " << sameIds.size() << std::endl;
+		
 		if (sameIds.size() == 0) return false;
+
 
 		return true;
 	}
@@ -537,31 +548,42 @@ private:
 						for (int k = 0; k < nrOfTriEdges; k++) esl.triangleEdges.push_back(prim->edges[(g + k) % 3]);
 
 						// check equal lines
-						cntn = false;
-						for (int x = 0; x < esl.lines4.size(); x++)
-							for (int y = x + 1; y < esl.lines4.size(); y++) 
-								if (esl.lines4[x].equal(esl.lines4[y])) cntn = true;
-						if (cntn) continue;
+						//cntn = false;
+						//for (int x = 0; x < esl.lines4.size(); x++) {
+						//	for (int y = x + 1; y < esl.lines4.size(); y++) {
+						//		if (esl.lines4[x].equal(esl.lines4[y])) cntn = true;
+						//		// also check for shared vertices among the triedges/silhouette edges and splitlines -- don't check these!
+						//		// need more info in eslcandidate
+						//	}
+						//}
+						//if (cntn) continue;
 
-						if (nrOfVertices) {
-							for (Ray& r : esl.lines4) if (r.throughVertex(silhouetteVertices[h])) cntn = true;
-							if (cntn) continue;
-							esl.silhouetteVertices = vertexEdgeCheck;
-							//	if (cacheCombi) {
-							//		indices.push_back(lines[linecount].index + model->edges.size());
-							//		indices.push_back(lines[linecount + 1].index + model->edges.size());
-							//	}
-						}
+						if (nrOfVertices) esl.silhouetteVertices = vertexEdgeCheck;
 						if (nrOfTriEdges == 2) esl.triangleVertex.push_back(prim->vertices[(g + 1) % 3]);
 						esl.fillUpLines();
+						if (esl.combinationDegenerate()) continue;
+
+						for (SplitSide& s : esl.splittingLines) {
+								if (s.edge != NULL) {
+									for (Edge* e : silhouetteEdges) {
+										if (e->id == s.edge->id) s.edgeIsSilhouette = true;
+									}
+							}
+						}
 
 						if (checkRaysThrough4Lines(esl, vischeck)) { 
-							if (print && vischeck) {
+							if (print) {
 								std::cout << combi_text << " ";
+								if (!vischeck) std::cout << "No visibility Check: ";
 								for (Ray& r : esl.lines4) std::cout << r.index << " ";
 								std::cout << std::endl;
 							}
-							if ((!storeAllESLs && !(splitVertexFlag && checkDegenerateESLs())) || !vischeck) return true;
+							
+							if (!storeAllESLs) {
+								if (vischeck) return true;
+								else if (!checkDegenerateESLs()) return true;
+							}
+							else if (!vischeck && !checkDegenerateESLs()) return true;
 						}
 					}
 				}

@@ -186,7 +186,7 @@ namespace Visualizer {
 	void picking(int xpos, int ypos) {
 		Ray r = cam.pixRayDirection(getDrawRayPos(xpos, ypos));
 		int primindex = -1;
-		float t = 0;
+		double t = 0;
 		selectedPrim = -1;
 		model->getIntersectionEmbree(r, primindex, t);
 		if (primindex >= 0) {

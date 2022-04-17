@@ -252,7 +252,7 @@ public:
 	//}
 
 
-	bool getIntersectionEmbree(const Ray& ray, int& primIndex, float& depth, bool backculling = false) {
+	bool getIntersectionEmbree(const Ray& ray, int& primIndex, double& depth, bool backculling = false) {
 		struct RTCRayHit rayhit;
 		rayhit.ray.org_x = ray.origin.x;
 		rayhit.ray.org_y = ray.origin.y;
@@ -527,7 +527,7 @@ public:
 		primIndex = -1;
 		depth = 10000.f;
 		for (Primitive* prim : triangles) {
-			float newdepth;
+			double newdepth;
 			if (prim->intersection(r, newdepth)) {
 				if (newdepth < depth) {
 					depth = newdepth;

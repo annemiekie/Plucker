@@ -20,4 +20,3 @@ public:
 
 }; 
 
-#pragma once

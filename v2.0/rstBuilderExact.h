@@ -150,7 +150,11 @@ public:
 				if (!rst->window->intersectsPlaneFromLines(prim->getRayVector())) continue;
 			}
 
-			ESLFinder eslFinder(rst, prim, node, false, false, false, splitLines, combiS);
+			bool printall = false;
+			if (node->index == 275 && prim->id == 246) {
+				printall = true;
+			}
+			ESLFinder eslFinder(rst, prim, node, false, printall, false, splitLines, combiS);
 			if (eslFinder.find()) {
 				if (eslFinder.checkHardCombis) track.inNodeSlow++;
 				else track.inNodeFast++;

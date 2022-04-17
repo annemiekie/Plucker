@@ -4,9 +4,9 @@
 #include <glm/glm.hpp>
 #include "ray.h"
 class Plane {
-public: 
-	glm::dvec3 normal;
-	float constant = 0;
+public:
+    glm::dvec3 normal;
+    float constant = 0;
 
     Plane() {};
 
@@ -43,7 +43,17 @@ public:
         }
     }
 
-    bool rayInPlane(Ray& r, float eps = 1E-10) {
+    Plane(Ray &r1, Ray &r2) {
+        normal = glm::normalize(glm::cross(r1.direction, r2.direction));
+        constant = glm::dot(normal, r1.origin);
+    }
+
+    Plane(glm::dvec3& dir1, glm::dvec3& dir2, glm::dvec3 point) {
+        normal = glm::normalize(glm::cross(dir1, dir2));
+        constant = glm::dot(normal, point);
+    }
+
+    bool rayInPlane(const Ray& r, float eps = 1E-10) {
         return (pointOnPlane(r.origin, eps) && pointOnPlane(r.origin + r.direction, eps));
     }
 
@@ -73,6 +83,13 @@ public:
         pt = v1 + t *(v2-v1);
         return true;
     }
+
+    bool equal(Plane& other, double thres = 1E-10) {
+        if (glm::length(glm::normalize(normal) - glm::normalize(other.normal)) > thres) return false;
+        if (fabs(constant - other.constant) > thres) return false;
+        return true;
+    }
+
     ~Plane() {};
 
 };

@@ -97,7 +97,7 @@ public:
 
 		int tri = -1;
 		//		if (options.rasterizationSampling) tri = int(pixels[pixloc]) - 1;
-		float t = 0.f;
+		double t = 0.f;
 		rst->model->getIntersectionEmbree(ray, tri, t, true);
 		if (options.construct == Options::ADAPTIVE) {
 			samples.push_back(SampleInd({ tri, sampler->counter }));

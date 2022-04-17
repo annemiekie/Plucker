@@ -114,7 +114,7 @@ public:
         origin += (depth * direction);
     }
 
-    float pointToRayDist(glm::dvec3 pt) {
+    double pointToRayDist(glm::dvec3 pt) {
         return glm::length(glm::cross(pt - origin, pt - origin + direction)) /
                         glm::length(direction);
 
@@ -124,12 +124,12 @@ public:
         return (pointToRayDist(pt) < eps);
     }
 
-    float depthToIntersectionWithRay(Ray& oRay, glm::dvec3 start, glm::dvec3 end) {
+    double depthToIntersectionWithRay(Ray& oRay) const {
         glm::dvec3 intersect = pointOfintersectWithRay(oRay);
         return depthToPointOnRay(intersect);
     }
 
-    float depthToPointOnRay(glm::dvec3 pt) {
+    double depthToPointOnRay(glm::dvec3 pt) const {
         return (pt.x - origin.x) / (direction.x);
     }
 

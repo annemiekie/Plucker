@@ -53,8 +53,8 @@ public:
 
 	bool checkRayInPrim(ESLCandidate& esl, bool& inPlane) {
 		//check orientation
-		float orient = glm::dot(esl.ray.direction, prim->normal);
-		if (orient > 0) {
+		double orient = glm::dot(esl.ray.direction, prim->normal);
+		if (orient > 1E-8) {
 			if (print) std::cout << "Ray not in Prim (wrong orientation): " << orient << std::endl << std::endl;
 			return false;
 		}
@@ -72,7 +72,7 @@ public:
 					if (print) std::cout << "Ray not in Prim (wrong side of edge): " << er.sideVal(esl.ray) << std::endl << std::endl;
 					return false;
 				}
-				else if (abs(side) < 1E-10) return checkRayInPlane(esl.ray, inPlane);
+				else if (abs(side) < 1E-8) return checkRayInPlane(esl.ray, inPlane);
 			}
 		}
 
@@ -82,12 +82,18 @@ public:
 	// add ray through triangle
 	bool checkRayInPlane(Line4& ray, bool& inPlane) {
 		if (print) std::cout << "Ray in plane " << " ";
+		int leftSide = 0;
 		for (Vertex* v : prim->vertices) {
 			if (ray.throughVertex(v, 1E-8)) {
 				if (print) std::cout << " and through vertex " << std::endl;
 				inPlane = true;
 				return true;
 			}
+			if (Ray(v->pos, v->pos + prim->normal).side(ray)) leftSide++;
+		}
+		if (leftSide > 0 && leftSide < 3) {
+			inPlane = true;
+			return true;
 		}
 		if (print) std::cout << std::endl;
 		return false;
@@ -125,6 +131,8 @@ public:
 			if (!e->isSilhouetteForRay(esl.ray)) return false;
 			// check if ray intersects edge between vertices
 			if (!e->intersectsRay(esl.ray)) return false;
+
+			if (esl.ray.depthToIntersectionWithRay(e->ray) > primaryprimdepth) return false;
 			// check if ray does not intersect exactly at vertex
 			for (Vertex* v : e->vertices)
 				if (esl.ray.throughPoint(v->pos, 1E-4)) return false;
@@ -135,7 +143,7 @@ public:
 		for (Vertex* v : esl.silhouetteVertices) {
 			if (!esl.ray.throughPoint(v->pos, 1E-4)) return false;
 			// check if line does not intersect mesh
-			// 
+			if (esl.ray.depthToPointOnRay(v->pos) > primaryprimdepth) return false;
 			// store intersection depth
 			//intersectionDepths.insert(esl.ray.depthToPointOnRay(v->pos));
 			for (Primitive* p : v->triangles)  intersectionPrims.insert(p->id);// intersectionDepths.insert(p->getIntersectionDepth(esl.ray));
@@ -149,6 +157,8 @@ public:
 					// check if edge is silhouette
 					double depthToPoint = esl.ray.depthToPointOnRay(pt);
 					if (depthToPoint < primaryprimdepth) {
+						if (s.edgeIsSilhouette) return false;
+						// check if this edge is indeed a silhouetteEdge for this primitive (Edge* silhE : silhouette)
 						if (!s.edge->isSilhouetteForRay(esl.ray)) return false;
 						// if a ray interseting one of the silhouette triangles centers lies on the correct side of the
 						// splitting line, the configuration is invalid.
@@ -170,45 +180,61 @@ public:
 			double tend;
 			rst->model->boundingCube.intersect(esl.ray, t, tend);
 		}
-		else t = rst->model->boundingCube.getCubeSideSquare(rst->maindir).rayIntersectionDepth(esl.ray) - 0.1f;
+		else t = rst->window->rayIntersectionDepth(esl.ray) - 0.1f;
 		esl.ray.offsetByDepth(t);
 
 		std::set<int> intersectionPrims;
-		double primaryprimdepth = prim->getIntersectionDepth(esl.ray);
+		double primaryprimdepth = prim->getIntersectionDepth(esl.ray, inplane);
+		if (primaryprimdepth <= 0) primaryprimdepth = prim->getIntersectionDepth(esl.ray, true);
 		if (!checkSilhouettesForRay(esl, intersectionPrims, primaryprimdepth)) return false;
 
 		int embreePrim = -1;
-		float embreeDepth = 0.f;
+		double embreeDepth = 0.f;
 
 		// if not hit anything, return true (we already know it hits the prim)
 		if (!rst->model->getIntersectionEmbree(esl.ray, embreePrim, embreeDepth)) return true;
 		// if hit something, check it is same depth or further than prim
 		double checkDepth = rst->model->triangles[embreePrim]->getIntersectionDepth(esl.ray);
-		if (checkDepth > primaryprimdepth - 1E-6) return true;
-
 		double depth = checkDepth;
 		double offset = 0.001;
+		double jump = 0;
+		bool inPlaneOfPrim = false;
 
-		while (depth < primaryprimdepth - 1E-6) {
+
+		while (depth < primaryprimdepth - 1E-6 && embreePrim != prim->id) {
 			bool found = false;
 			// check if it hits a silhouette vertex or edge
-			//for (double idepth : intersectionDepths) {
-			for (int primid: intersectionPrims) {
-				//if (fabsf(idepth - depth) < 1E-6) {
+			for (int primid : intersectionPrims) {
 				if (primid == embreePrim) {
 					found = true;
-					//intersectionDepths.erase(idepth);
 					break;
 				}
 			}
+			// check if primitive in same plane as target is hit
+			if (inplane) {
+				if (prim->getPlane().equal(rst->model->triangles[embreePrim]->getPlane())) {
+					found = true;
+					inPlaneOfPrim = true;
+				}
+			}
+
 			if (!found) return false;
 
 			// update the ray origin and shoot new ray
-			esl.ray.offsetByDepth(checkDepth + offset);
+			esl.ray.offsetByDepth(jump);
 			if (!rst->model->getIntersectionEmbree(esl.ray, embreePrim, embreeDepth)) return true;
 			// update the depth with offset from previous intersection and new checkDepth
-			checkDepth = rst->model->triangles[embreePrim]->getIntersectionDepth(esl.ray);
-			depth += (offset + checkDepth);
+			Primitive* ePrim = rst->model->triangles[embreePrim];
+			checkDepth = ePrim->getIntersectionDepth(esl.ray);
+			if (fabs(checkDepth - embreeDepth) > offset || checkDepth < 0 || inPlaneOfPrim) {
+				if (!ePrim->intersection(esl.ray, checkDepth, true)) jump = offset + embreeDepth;
+				else {
+					checkDepth = ePrim->getIntersectionDepth(esl.ray, true);
+					jump = offset + checkDepth;
+				}
+			}
+			else jump = offset + checkDepth;
+			depth += jump;
 		}
 		return true;
 	};
