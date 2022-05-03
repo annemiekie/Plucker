@@ -27,7 +27,10 @@ struct CubeSampler : Sampler {
 
 	virtual Ray getNextSample(bool inverseRatio) override {
 		if (inverseRatio && counter % ratio == 0) counter++;
-		if (counter % detailGridNum == 0) currentDome = main_grid[counter / detailGridNum];
+		if (counter % detailGridNum == 0) {
+			int index = counter / (long long)detailGridNum;
+			currentDome = main_grid[index];
+		}
 		// dodecahedron?
 		// or subdivide into bands
 		// or just theta phi for now

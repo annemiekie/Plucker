@@ -2,6 +2,8 @@
 #include "rst.h"
 #include "eslCandidate.h"
 
+#define eps 1E-8
+
 class ESLChecker {
 public:
 	Node* leaf;
@@ -42,22 +44,28 @@ public:
 		}
 		if (!checkRayInLeaf(esl, leaf)) return false;
 
-		bool inPlane = false;
-		if (primCheck && !checkRayInPrim(esl, inPlane)) return false;
+		//if (primCheck && (prim->id == 339 || prim->id == 338) && !visCheck && esl.triangleEdges.size()==2) return true;
+
+		if (primCheck && !checkRayInPrim(esl, visCheck)) return false;
 
 		// not for generic viewing direction yet, only the three 'minima'
-		if (visCheck && !checkPrimVisibleForRay(esl, inPlane)) return false;
+		if (visCheck && !checkPrimVisibleForRay(esl)) return false;
 
 		return true;
 	};
 
-	bool checkRayInPrim(ESLCandidate& esl, bool& inPlane) {
+	bool checkRayInPrim(ESLCandidate& esl, bool visCheck) {
 		//check orientation
 		double orient = glm::dot(esl.ray.direction, prim->normal);
-		if (orient > 1E-8) {
-			if (print) std::cout << "Ray not in Prim (wrong orientation): " << orient << std::endl << std::endl;
-			return false;
+		if (orient > eps) {
+		//	if (!visCheck) esl.stabBack = true;
+		//	else {
+				if (print) std::cout << "Ray not in Prim (wrong orientation): " << orient << std::endl << std::endl;
+				return false;
+		//	}
 		}
+		//int checks = 0;
+		//int left = 0;
 		for (auto& er : prim->rays) {
 			bool equal = false;
 			for (auto& igray : esl.lines4) {
@@ -65,36 +73,43 @@ public:
 					equal = true;
 					break;
 				}
+				// also check if vertex gets intersected?
+				// if the resulting esls are not built with vertex, then why does the same combi with vertex not work?
 			}
+
 			if (!equal) {
+			//	if (!visCheck) checks++;
 				double side = er.sideVal(esl.ray);
-				if (side < -1E-8) {
-					if (print) std::cout << "Ray not in Prim (wrong side of edge): " << er.sideVal(esl.ray) << std::endl << std::endl;
-					return false;
+				if (side < -eps) {
+					//if (!visCheck) left++;
+					//else {
+						if (print) std::cout << "Ray not in Prim (wrong side of edge): " << er.sideVal(esl.ray) << std::endl << std::endl;
+						return false;
+					//}
 				}
-				else if (abs(side) < 1E-8) return checkRayInPlane(esl.ray, inPlane);
+				else if (abs(orient) < 1E-8 && abs(side) < 1E-8) {
+					esl.inPlane = true;
+					return checkRayInPlane(esl.ray);
+				}
 			}
 		}
+		//if (!visCheck) if (left != 0 && checks != left) return false;
 
 		return true;
 	};
 
 	// add ray through triangle
-	bool checkRayInPlane(Line4& ray, bool& inPlane) {
+	bool checkRayInPlane(Line4& ray) {
 		if (print) std::cout << "Ray in plane " << " ";
 		int leftSide = 0;
 		for (Vertex* v : prim->vertices) {
-			if (ray.throughVertex(v, 1E-8)) {
+			if (ray.throughVertex(v, eps)) {
 				if (print) std::cout << " and through vertex " << std::endl;
-				inPlane = true;
 				return true;
 			}
 			if (Ray(v->pos, v->pos + prim->normal).side(ray)) leftSide++;
 		}
-		if (leftSide > 0 && leftSide < 3) {
-			inPlane = true;
-			return true;
-		}
+		if (leftSide > 0 && leftSide < 3) return true;
 		if (print) std::cout << std::endl;
 		return false;
 	};
@@ -111,7 +126,7 @@ public:
 			}
 		}
 		double sidev = parent->splitter.ray.sideVal(esl.ray);
-		if (abs(sidev) < 1E-8) ign = true;
+		if (abs(sidev) < eps) ign = true;
 
 		if (parent->leftNode == node) {
 			if (sidev < 0 || ign) return checkRayInLeaf(esl, parent);
@@ -173,7 +188,7 @@ public:
 		return true;
 	};
 
-	bool checkPrimVisibleForRay(ESLCandidate& esl, bool inplane) {
+	bool checkPrimVisibleForRay(ESLCandidate& esl) {
 		
 		double t;
 		if (rst->alldir) {
@@ -184,8 +199,9 @@ public:
 		esl.ray.offsetByDepth(t);
 
 		std::set<int> intersectionPrims;
-		double primaryprimdepth = prim->getIntersectionDepth(esl.ray, inplane);
+		double primaryprimdepth = prim->getIntersectionDepth(esl.ray, esl.inPlane);
 		if (primaryprimdepth <= 0) primaryprimdepth = prim->getIntersectionDepth(esl.ray, true);
+
 		if (!checkSilhouettesForRay(esl, intersectionPrims, primaryprimdepth)) return false;
 
 		int embreePrim = -1;
@@ -197,7 +213,7 @@ public:
 		double checkDepth = rst->model->triangles[embreePrim]->getIntersectionDepth(esl.ray);
 		double depth = checkDepth;
 		double offset = 0.001;
-		double jump = 0;
+		double jump = offset + checkDepth;
 		bool inPlaneOfPrim = false;
 
 
@@ -211,7 +227,7 @@ public:
 				}
 			}
 			// check if primitive in same plane as target is hit
-			if (inplane) {
+			if (esl.inPlane) {
 				if (prim->getPlane().equal(rst->model->triangles[embreePrim]->getPlane())) {
 					found = true;
 					inPlaneOfPrim = true;
@@ -244,7 +260,7 @@ public:
 			if (print) std::cout << "Ray not in Box" << std::endl << std::endl;
 			return false;
 		}
-		else if (!rst->window->inBounds(ray, 1E-7)) {
+		else if (!rst->window->inBounds(ray, eps)) {
 			if (print) std::cout << "Ray not in Square" << std::endl << std::endl;
 			return false;
 		}

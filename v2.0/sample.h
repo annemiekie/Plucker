@@ -8,5 +8,5 @@ struct Sample {
 
 struct SampleInd {
 	int prim = -1;
-	int raynr = -1;
+	uint64_t raynr = -1;
 };

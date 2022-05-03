@@ -142,12 +142,13 @@ public:
 				primnum++;
 			}
 
+
+			if (glm::dot(rst->window->normal, prim->normal) < 0) {
+				if (!rst->window->intersectsPlaneFromLines(prim->getRayVector())) continue;
+			}
 			if (node->containsPrim(prim->id)) {
 				track.alreadyInNode++;
 				continue;
-			}
-			if (glm::dot(rst->window->normal, prim->normal) < 0) {
-				if (!rst->window->intersectsPlaneFromLines(prim->getRayVector())) continue;
 			}
 
 			bool printall = false;
@@ -163,6 +164,8 @@ public:
 			else {
 				if (eslFinder.checkHardCombis) track.notInNodeSlow++;
 				else track.notInNodeFast++;
+
+				//if (node->containsPrim(prim->id)) node->remove(prim->id);
 			}
 		}
 		track.totalPrimitives += checkPrims.size();

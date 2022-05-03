@@ -24,7 +24,7 @@ namespace Lines4Finder {
 		return m;
 	}
 
-	static int singularValueDecomp(Eigen::MatrixXd m, Line4& F, Line4& G, int& dim) {
+	static int singularValueDecomp(Eigen::MatrixXd m, Line4& F, Line4& G) {
 		Eigen::JacobiSVD<Eigen::MatrixXd> svd(m, Eigen::ComputeFullU | Eigen::ComputeFullV);
 		int rank = svd.nonzeroSingularValues();
 		//dim = 5 - rank;
@@ -58,7 +58,7 @@ namespace Lines4Finder {
 		l0.normalize();
 		l1.normalize();
 		intersectLines.push_back(l0);
-		if (delta > 1E-6) intersectLines.push_back(l1);
+		if (delta > 1E-15) intersectLines.push_back(l1);
 		return delta == 0.0 ? 1 : 2;
 	}
 
@@ -96,7 +96,8 @@ namespace Lines4Finder {
 		std::vector<Line4> intersectLines;
 		Line4 F, G, H;
 		Eigen::MatrixXd m = makePluckerMat(lines);
-
+		//int rank = singularValueDecomp(m, F, G);
+		//if (rank != 4) std::cout << "dim " << rank << std::endl;
 		findNullSpaceLU(m, F, G, H);
 		//if (rank == 4) 
 		intersectLinesQuadric(F, G, intersectLines);

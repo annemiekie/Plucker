@@ -7,5 +7,5 @@ struct Split {
 	Edge* edge = NULL;
 	int id;
 	bool edgeIsSilhouette = false;
-
+	bool edgeIsTriangle = false;
 };

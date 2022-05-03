@@ -80,17 +80,13 @@ struct PreviewCamera : Camera {
 
 	void updateRadius(float radiusChange) {
 		if (radiusChange == 0) return;
-		else {
-			//radiusChange /= 4.f;
-			radiusChange = radius * (radiusChange < 0 ? -1 : 1) * 0.05;
-			if (radius + radiusChange > 0) {
-				radius += radiusChange;
-				glm::mat4 camToWorld = glm::inverse(view);
-				glm::vec3 viewpos = camToWorld[3];
-				glm::vec3 norm = glm::normalize(viewpos);
-				view = glm::translate(view, norm * radiusChange);
-			}
-		}
+		radiusChange = radius * (radiusChange < 0 ? -1 : 1) * 0.05;
+		if (radius + radiusChange > 0) radius += radiusChange;
+		else radius = 10.f;
+		glm::mat4 camToWorld = glm::inverse(view);
+		glm::vec3 viewpos = camToWorld[3];
+		glm::vec3 norm = glm::normalize(viewpos);
+		view = glm::translate(view, norm * radiusChange);
 	};
 
 	void updateDirection(glm::vec2 rotSpeed, int width, int height)

@@ -25,4 +25,5 @@ struct VertexVis {
 	glm::dvec3 normal;
 	glm::vec3 color = glm::vec3(1);
 	float tri_id;
+	//float visible = 1.f;
 };

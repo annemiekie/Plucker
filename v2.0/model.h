@@ -25,9 +25,11 @@
 
 class Model {
 public:
-	GLuint vao = 0;
-	GLuint vbo = 0;
+	GLuint vaoModel = 0;
+	GLuint vboModel = 0;
 	GLuint vao2 = 0;
+	GLuint vaoPrim = 0;
+	GLuint vboPrim = 0;
 	std::vector<VertexVis> verticesVis;
 	std::vector<glm::uint> indices;
 
@@ -66,8 +68,8 @@ public:
 		loadModelFromFile(filename);
 		constructModelBounds();
 		setUpEmbreeTracer();
-		addGeometry(indexed);
-		createVAO();
+		addGeometry();
+		createVaoModel();
 		//createIBO();
 		//enlargeModel();
 		if (cacheEE) makeCacheEE();
@@ -203,6 +205,27 @@ public:
 		return model_geometry;
 	}
 
+	RTCGeometry makeEmbreeGeomPrim(int prim) {
+		RTCGeometry model_geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+		float* vertices_embr = (float*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), verticesVis.size());
+		unsigned* triangles_embr = (unsigned*)rtcSetNewGeometryBuffer(model_geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), indices.size() / 3);
+		for (int i = 0; i < verticesVis.size(); i++) {
+			if (verticesVis[i].tri_id == prim) {
+				vertices_embr[i * 3] = verticesVis[i].pos.x;
+				vertices_embr[i * 3 + 1] = verticesVis[i].pos.y;
+				vertices_embr[i * 3 + 2] = verticesVis[i].pos.z;
+			}
+			else {
+				vertices_embr[i * 3] = 0;
+				vertices_embr[i * 3 + 1] = 0;
+				vertices_embr[i * 3 + 2] = 0;
+			}
+		}
+		for (int i = 0; i < indices.size(); i++)
+			triangles_embr[i] = i;
+		return model_geometry;
+	}
+
 	void setUpEmbreeTracer() {
 		device = rtcNewDevice(NULL);
 		scene = rtcNewScene(device);
@@ -212,7 +235,7 @@ public:
 		rtcDetachGeometry(scene, 0);
 	}
 
-	void addGeometry(bool indexed = true) {
+	void addGeometry() {
 		RTCGeometry model_geometry = makeEmbreeGeom();
 		rtcCommitGeometry(model_geometry);
 		rtcAttachGeometry(scene, model_geometry);
@@ -401,18 +424,6 @@ public:
 			dot_fd(v2->pos, maindir) > dot_fd(v->pos, maindir))) return false;
 
 		return e->isSilhouetteForVertex(v, side);
-
-		//if (e->triangles.size() == 2) {
-		//
-		//	// define plane of triangle 1 and 2
-		//	Plane p1(v1->pos, e->triangles[0]->normal);
-		//	Plane p2(v2->pos, e->triangles[1]->normal);
-		//	if (p1.pointOnPositiveSide(vpos) != p2.pointOnPositiveSide(vpos)) return 1;
-		//	else { side = p1.pointOnPositiveSide(vpos); return 0; }
-		//
-		//	// optional check: if the triangle projected via vertices of edge falls outside box bounds
-		//}
-		//return true;
 	}
 
 	bool insertEdgeInMap(Edge* e, robin_hood::unordered_map<uint64_t, Edge*>& map) {
@@ -423,104 +434,6 @@ public:
 		}
 		return false;
 	}
-
-	//void findSilhouetteEdgesForTri(Primitive* tri, bool alldir, glm::vec3 maindir, std::vector<Edge*>& silhouetteEdge, std::set<int>& checktris = std::set<int>()) {
-
-	//	robin_hood::unordered_map<uint64_t, Edge*> edgesToCheck;
-
-	//	if (checktris.size() != 0) 	for (int t : checktris) for (Edge* e : triangles[t]->edges) insertEdgeInMap(e, edgesToCheck);
-	//	else edgesToCheck = edges;
-
-	//	glm::dvec3 invMaindir = glm::vec3(1.f) - maindir;
-	//	glm::dvec3 maindirMin = boundingBox.getBounds(0);
-	//	glm::dvec3 maindirMax = boundingBox.getBounds(1);
-	//	Square window = boundingBox.getCubeSideSquare(maindir);
-
-	//	for (auto& check_edge : edgesToCheck) {
-	//		Edge* e = check_edge.second;
-	//		// If edge is not in potential silhouettes
-	//		if (!alldir && !e->silhouette) continue;
-
-	//		// Don't use same triangle as silhouette edge.
-	//		if (e->triangles[0] == tri) continue;
-	//		if (e->triangles.size() == 2 && e->triangles[1] == tri) continue;
-
-	//		// check if edge lies on correct side of triangle plane
-	//		Plane triPlane = tri->getPlane();
-	//		bool cntn = false;
-	//		bool edgeIntersectPlane = true;
-	//		for (Vertex* v : e->vertices) {
-	//			if (!triPlane.pointOnPositiveSide(v->pos) || tri->hasVertex(v->id) || triPlane.pointOnPlane(v->pos, 1E-7)) {
-	//				edgeIntersectPlane = true;
-	//				cntn = true;
-	//			}
-	//			else cntn = false;
-	//		}
-	//		if (cntn) continue;
-
-	//		for (Primitive* p : e->triangles) {
-	//			if (glm::dot(window.normal, p->normal) < 0) {
-	//				if (!window.intersectsPlaneFromLines(p->getRayVector())) cntn = true;
-	//				else cntn = false;
-	//			}
-	//			else cntn = false;
-	//		}
-	//		if (cntn) continue;
-
-	//		bool sideCheck = false;
-	//		bool intersect = false;
-	//		std::vector<glm::dvec3> intersectpts;
-	//		bool first = true;
-	//		bool silhouetteFound = false;
-
-	//		glm::dvec3 v1pos = e->vertices[0]->pos;
-	//		glm::dvec3 v2pos = e->vertices[1]->pos;
-
-	//		for (int i = 0; i < 3; i++) {
-	//			bool side = false;
-	//			silhouetteFound = silhouetteFound || checkSilhouetteEdge(tri->vertices[i], e, alldir, maindir, side);
-	//			if (!alldir) {
-	//				Ray r1 = Ray(tri->vertices[i]->pos, v1pos);
-	//				Ray r2 = Ray(tri->vertices[i]->pos, v2pos);
-
-	//				intersect = intersect || window.inBounds(r1) || window.inBounds(r2);
-	//				glm::vec3 windowR1Intersect = window.rayIntersection(r1);
-	//				glm::vec3 windowR2Intersect = window.rayIntersection(r2);
-
-	//				if (edgeIntersectPlane) {
-	//					if (window.rayIntersectionDepth(r1) < 0) windowR1Intersect *= INFINITY;
-	//					if (window.rayIntersectionDepth(r2) < 0) windowR2Intersect *= INFINITY;
-	//				}
-	//				intersectpts.push_back(windowR1Intersect);
-	//				intersectpts.push_back(windowR2Intersect);
-	//			}
-
-	//			if (!silhouetteFound) {
-	//				if (first) { first = false;  sideCheck = side; }
-	//				else if (side != sideCheck) silhouetteFound = true;
-	//			}
-
-	//			if (silhouetteFound && (alldir || intersect)) { 
-	//				silhouetteEdge.push_back(e); 
-	//				break; 
-	//			}
-	//		}
-	//		if (silhouetteFound && !intersect) {
-	//			intersect = true;
-	//			Cube bb(intersectpts);
-	//			for (int i = 0; i < 3; i++) {
-	//				if (invMaindir[i] == 1) {
-	//					if (bb.getBounds(1)[i] < maindirMin[i] || bb.getBounds(0)[i] > maindirMax[i]) {
-	//						intersect = false;
-	//						break;
-	//					}
-	//				}
-	//			}
-	//			if (intersect) silhouetteEdge.push_back(e);
-	//		}
-	//	}
-	//}
-
 
 
 	bool getIntersectionNoAcceleration(const Ray& r, int& primIndex, float& depth) {
@@ -564,9 +477,14 @@ public:
 	//
 	//}
 
-	void draw() {
-		glBindVertexArray(vao);
+	void drawModel() {
+		glBindVertexArray(vaoModel);
 		glDrawArrays(GL_TRIANGLES, 0, verticesVis.size());
+	}
+
+	void drawPrim() {
+		glBindVertexArray(vaoPrim);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 
 	void clearColors(glm::vec3& color) {
@@ -585,16 +503,47 @@ public:
 		}
 	}
 
-	void changeSelected() {
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, verticesVis.size() * sizeof(VertexVis), verticesVis.data(), GL_STATIC_DRAW);
+	//void clearVisibility() {
+	//	for (int i = 0; i < verticesVis.size(); i++) verticesVis[i].visible = 1.f;
+	//}
+
+	//void changeVisibility(int prim) {
+	//	for (int i = 0; i < verticesVis.size(); i++) verticesVis[i].visible = -1.f;
+	//	for (int j = 0; j < 3; j++) {
+	//		verticesVis[3 * prim + j].visible = 1.f;
+	//	}
+	//}
+
+	void updateVaoModel() {
+		updateVao(vboModel, verticesVis);
 	}
 
-	void createVAO() {
+	void updateVaoPrim(int prim) {
+		std::vector<VertexVis> vertUpdate;
+		for (int j = 0; j < 3; j++) {
+			vertUpdate.push_back(verticesVis[3 * prim + j]);
+		}
+		updateVao(vboPrim, vertUpdate);
+	}
+
+	void updateVao(GLuint& vbo, std::vector<VertexVis> vertUpdate) {
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertUpdate.size() * sizeof(VertexVis), vertUpdate.data(), GL_STATIC_DRAW);
+	}
+
+	void createVaoPrim() {
+		createVAO(vaoPrim, vboPrim, 3);
+	}
+
+	void createVaoModel() {
+		createVAO(vaoModel, vboModel, verticesVis.size());
+	}
+
+	void createVAO(GLuint& vao, GLuint& vbo, int size) {
 		//////////////////// Create Vertex Buffer Object
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, verticesVis.size() * sizeof(VertexVis), verticesVis.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, size * sizeof(VertexVis), verticesVis.data(), GL_STATIC_DRAW);
 
 		// Bind vertex data to shader inputs using their index (location)
 		// These bindings are stored in the Vertex Array Object
@@ -618,6 +567,10 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, tri_id)));
 		glEnableVertexAttribArray(3);
+
+		//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		//glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(VertexVis), reinterpret_cast<void*>(offsetof(VertexVis, visible)));
+		//glEnableVertexAttribArray(4);
 	}
 
 };

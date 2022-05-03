@@ -3,12 +3,12 @@
 
 struct Sampler {
 	std::vector<glm::dvec3> main_grid;
-	int mainGridDim = 0;
-	int detailGridDim = 0;
-	int detailGridNum = 0;
-	int counter = 0;
-	int ratio = 1;
-	int nrOfSamples = 0;
+	uint64_t mainGridDim = 0;
+	uint64_t detailGridDim = 0;
+	uint64_t detailGridNum = 0;
+	uint64_t counter = 0;
+	uint64_t ratio = 1;
+	uint64_t nrOfSamples = 0;
 	glm::vec3 maindir;
 	bool alldir;
 	GLuint vao = 0;
@@ -31,7 +31,7 @@ struct Sampler {
 		return Ray();
 	};
 
-	virtual Ray getSample(int raynr) {
+	virtual Ray getSample(uint64_t raynr) {
 		return Ray();
 	};
 

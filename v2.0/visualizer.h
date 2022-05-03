@@ -26,18 +26,18 @@
 
 namespace Visualizer {
 	int width, height;
-	bool togglePoints, toggle4lines, toggleSphere, toggleBbox, toggleLines, toggleSampleLines, togglePicking, toggleGeo;
+	bool togglePoints, toggle4lines, toggleSphere, toggleBbox, toggleLines, toggleSampleLines, togglePicking, toggleGeo, toggleOnePrimitive;
 	GLFWwindow* window;
 	Shader mainShader, lineShader;
 	Model* model;
 	PreviewCamera cam;
-	LineModel splitters, samples, clickRay, edgeRays, silhEdges, eslLines;
+	LineModel splitters, samples, clickRay, edgeRays, silhEdges, eslLines, windowLines;
 	std::vector<GeoObject*> geoObjects;
 	int geoObjectnr = 0;
 	RaySpaceTree* rst;
 	Node* leaf;
 	int leafnum;
-	bool showing, changeColoring, viewline, edgelines;
+	bool showing, changeColoring, changeVisibility, viewline, edgelines;
 	float alphaLines;
 	int selectedPrim;
 	std::vector<int> notfoundprim;
@@ -64,8 +64,8 @@ namespace Visualizer {
 		glm::mat4 mvp = cam.vpMatrix();
 		glUseProgram(mainShader.index);
 		glUniformMatrix4fv(glGetUniformLocation(mainShader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
-		model->draw();
-		model->boundingCube.draw();
+		if (toggleOnePrimitive) model->drawPrim();
+		else model->drawModel();
 
 		if (togglePoints) {
 			glBindVertexArray(visComp.sampling_vao);
@@ -75,6 +75,13 @@ namespace Visualizer {
 
 		glUseProgram(lineShader.index);
 		glUniformMatrix4fv(glGetUniformLocation(lineShader.index, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+		
+		glUniform1i(glGetUniformLocation(lineShader.index, "setcol"), 1);
+		glUniform3fv(glGetUniformLocation(lineShader.index, "setcolor"), 1, glm::value_ptr(Colors::black));
+		model->boundingCube.draw();
+
+		//rst->window->draw();
+		//drawLines(windowLines, 1, 1.f, Colors::black);
 		if (toggleLines) {
 			if (rst->splitters.size() > 0) drawLines(splitters, 1, 1.f, Colors::yellow);
 			if (toggle4lines) drawLines(eslLines, 1, 1.f, Colors::hotpink);
@@ -95,14 +102,19 @@ namespace Visualizer {
 
 	}
 
-	void checkColorChange() {
+	void checkModel() {
 		if (changeColoring) {
 			model->clearColors(Colors::white);
 			model->changePrimColors<std::set<int>>(leaf->primitiveSet, Colors::bluegreen);
 			model->changePrimColors<std::vector<int>>(notfoundprim, Colors::red);
 			if (selectedPrim >= 0) model->changePrimColor(selectedPrim, Colors::green);
-			model->changeSelected();
+			model->updateVaoModel();
 			changeColoring = false;
+		}
+		if (changeVisibility) {
+			if (selectedPrim >= 0) model->updateVaoPrim(selectedPrim);
+			else toggleOnePrimitive = false;
+			changeVisibility = false;
 		}
 	}
 
@@ -148,6 +160,7 @@ namespace Visualizer {
 		selectedPrim = -1;
 		alphaLines = 1.f;
 		changeColoring = true;
+		changeVisibility = true;
 		if (skipEmpty) {
 			int trinum = 0;
 			while (trinum == 0) {
@@ -171,7 +184,6 @@ namespace Visualizer {
 		if (eslLines.size > 0 && toggle4lines) eslLines.updateVaoWithLines(geoObjects[geoObjectnr]);
 	}
 
-
 	void drawRay(int xpos, int ypos) {
 		alphaLines = 0.5f;
 		Ray r = cam.pixRayDirection(getDrawRayPos(xpos, ypos));
@@ -182,8 +194,8 @@ namespace Visualizer {
 		updateLines(false);
 	}
 
-
 	void picking(int xpos, int ypos) {
+		if (toggleOnePrimitive) return;
 		Ray r = cam.pixRayDirection(getDrawRayPos(xpos, ypos));
 		int primindex = -1;
 		double t = 0;
@@ -201,7 +213,8 @@ namespace Visualizer {
 			silhEdges.updateVaoWithLines(silh);
 			//edgeRays.makeVaoVbo(edges);
 			edgelines = true;
-
+			toggle4lines = true;
+			toggleSampleLines = true;
 			selectedPrim = primindex;
 			changeColoring = true;
 		}
@@ -211,7 +224,7 @@ namespace Visualizer {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			glUseProgram(0);
-			checkColorChange();
+			checkModel();
             updateCamera(cam, width, height);
 			drawElements();
 			// Present result to the screen
@@ -289,13 +302,18 @@ namespace Visualizer {
 				if (!toggle4lines) toggle4lines = true;
 				updateESLlines(true);
 				break;
-			case GLFW_KEY_F7:
+			case GLFW_KEY_F8:
 				if (!toggle4lines) toggle4lines = true;
 				updateESLasSplitCombis();
 				//updateLines(true);
 				break;
 			case GLFW_KEY_7:
 				togglePicking = !togglePicking;
+				break;
+			case GLFW_KEY_F7:
+				if (selectedPrim) toggleOnePrimitive = !toggleOnePrimitive;
+				else toggleOnePrimitive = false;
+				changeVisibility = true;
 				break;
 			case GLFW_KEY_8:
 				geoObjectnr = (geoObjectnr + 1) % geoObjects.size();
@@ -337,6 +355,8 @@ namespace Visualizer {
 		glEnable(GL_PROGRAM_POINT_SIZE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glAlphaFunc(GL_GREATER, 0.1);
+		//glEnable(GL_ALPHA_TEST);
 	}
 
 	void setupCamera() {
@@ -348,10 +368,13 @@ namespace Visualizer {
 		model->boundingBox.vaoGeneration();
 		model->boundingCube.vaoGeneration();
 		model->boundingSphere.vaoGeneration(10, 20);
+		model->createVaoPrim();
 
 		//make a large debug container for samples
 		largeCube = Cube(model->boundingCube.center, model->boundingCube.size.x * 10.f);
 		largeCube.vaoGeneration();
+
+		rst->window->vaoGeneration();
 
 		////////////////// Objects to intersect lines with
 		geoObjects = { &model->boundingCube, &model->boundingSphere, &largeCube };
@@ -363,6 +386,8 @@ namespace Visualizer {
 		edgeRays.setupVao();
 		silhEdges.setupVao();
 		eslLines.setupVao();
+		windowLines.setupVao();
+		windowLines.updateVaoWithLines(rst->window->vertices);
 
 		splitters.updateVaoWithLines(rst->getAllSplittingLines(), geoObjects[geoObjectnr], rst->maindir);
 	}
@@ -376,6 +401,7 @@ namespace Visualizer {
 		toggleSampleLines = false;
 		togglePicking = false;
 		toggleGeo = false;
+		toggleOnePrimitive = false;
 
 		leafnum = -1;
 		showing = false;

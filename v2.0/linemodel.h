@@ -44,6 +44,15 @@ public:
 		}
 	}
 
+	void updateVaoWithLines(std::vector<glm::dvec3>& vertices) {
+		std::vector<glm::vec3> lines;
+		for (int i = 0; i < vertices.size(); i++) {
+			lines.push_back(vertices[i]);
+			lines.push_back(vertices[(i+1)%vertices.size()]);
+		}
+		makeVaoVbo(lines);
+	}
+
 	void updateVaoWithLines(std::vector<Edge*> edges) {
 		std::vector<glm::vec3> lines;
 		for (Edge* e : edges) {

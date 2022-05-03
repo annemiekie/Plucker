@@ -63,6 +63,7 @@ private:
 	CombiConfigurations combiS;
 
 	bool splitVertexFlag = false;
+	SplitSide splitFlag;
 
 	bool findEsl() {
 
@@ -73,8 +74,11 @@ private:
 
 		// Check without occlusion to see if prim can be excluded
 		if (!checkCombi("SSV(T)", combiS.c2.size() * 3, 2, 0, 0, 2, combiS.c2, 0, cc, false) &&
+			!checkVtPlaneS(false) &&
 			!checkCombi("SSST", combiS.c3.size() * 3, 3, 0, 0, 1, combiS.c3, 0, cc, false) &&
-			!checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4, 0, cc, false)) return false;
+			!checkCombi("SSSS", combiS.c4.size(), 4, 0, 0, 0, combiS.c4, 0, cc, false)) {
+			if (checkDegenerateESLs(true)) return false;
+		}
 		// maybe these can be used to check for degeneracies?
 
 
@@ -132,30 +136,45 @@ private:
 
 	bool checkEdgeSplittingDuplicates() {
 		for (SplitSide& split : splitLines) {
-			bool throughEdge = false;
 			for (Edge* e : prim->edges) {
-				if (split.ray.equal(e->ray, 1E-5)) { // not very precise?!
-					throughEdge = true;
+				if (split.edge != NULL && split.edge->id == e->id) {
+					split.edgeIsTriangle = true;
+					splitFlag = split;
 					if (!prim->onRightSideOfSplitEdge(split.ray, split.side)) return false;
 				}
 			}
-			if (!throughEdge) {
-				for (Vertex* v : prim->vertices) {
-					if (split.ray.throughVertex(v)) {
-
+			if (!split.edgeIsTriangle) {
+				for (int i = 0; i < 3; i++) {// Vertex * v : prim->vertices) {
+					if (split.ray.throughVertex(prim->vertices[i])) {
+						splitFlag = split;
 						splitVertexFlag = true;
-						if (prim->onRightSideOfSplitVertex(v, split.ray, split.side)) break;
+						if (prim->onRightSideOfSplitVertex(prim->vertices[i], split.ray, split.side)) break;
 
-						Vertex* otherVertex;
+						//Vertex* otherVertex;
 						// Check which of the edges attached to the vertex is the splitline
-						for (Edge* e : v->edges) {
-							if (e->ray.equal(split.ray, 1E-5)) {
-								for (Vertex* v2 : e->vertices) if (v != v2) otherVertex = v2;
+						//if (split.edge != NULL) {
+						//	for (Edge* e : v->edges) {
+						//		if (split.edge->id == e->id) {
+						//			for (Vertex* v2 : e->vertices) if (v != v2) otherVertex = v2;
+						//		}
+						//	}
+						//}
+						//NOT ALWAYS CORRECT!!!
+						//if (prim->getPlane().pointOnPlane(v->pos - split.edge->ray.direction, 1E-8)) return false;
+						//if (prim->getPlane().pointOnPositiveSide(v->pos - split.edge->ray.direction)) return false;
+						//Vertex* v1 = prim->vertices[(i + 1) % 3];
+						//Vertex* v2 = prim->vertices[(i + 2) % 3];
+						//Ray otherEdge(v1->pos, v2->pos);
+						
+
+						if (split.edge != NULL) {
+							for (Primitive* p : split.edge->triangles) {
+								if (prim->getPlane().equal(p->getPlane(), 1E-8)) {
+									if (!p->onRightSideOfSplitEdge(split.ray, split.side)) return false;
+								}
 							}
 						}
 
-						if (prim->getPlane().pointOnPlane(otherVertex->pos)) return false;
-						else if (prim->getPlane().pointOnPositiveSide(otherVertex->pos)) return false;
 						break;
 					}
 				}
@@ -200,8 +219,8 @@ private:
 		bool foundRay = false;
 
 		for (int i = 0; i < intersectLines.size(); i++) {
-			bool inBox = true;
 			esl.ray = intersectLines[i];
+			esl.inPlane = false;
 			bool checkRay = eslChecker.isExtremalStabbing(esl, vischeck);
 			if (cache && esl.inBox) {
 				esl.ray.checkboth = false;
@@ -212,10 +231,17 @@ private:
 					if (i == 0) cacheLines.push_back(intersectLines[1]);
 					combiCache->storeValueAtLastKey(cacheLines);
 				}
+				if (print) {
+					if (!vischeck) std::cout << "No visibility Check: ";
+					esl.print();
+				}
 				foundRay = true;
-				if (vischeck) esls.push_back(esl);
-				else eslsNoVis.push_back(esl);
-				if (!storeAllESLs) return true;
+				if (vischeck);// esls.push_back(esl);
+				else {
+					eslsNoVis.push_back(esl);
+					esls.push_back(esl);
+				}
+				if (!storeAllESLs && vischeck) return true;
 			}
 		}
 		if (cache) combiCache->storeValueAtLastKey(cacheLines);
@@ -261,6 +287,33 @@ private:
 		}
 		return false;
 	};
+
+	bool checkVtPlaneS(bool vischeck =true) {
+		Plane plane = prim->getPlane();
+		for (SplitSide& split : splitLines) {
+			glm::dvec3 intersect = plane.rayIntersection(split.ray);
+			for (int i = 0; i < 3; i++) {
+				Line4 ray(prim->vertices[i]->pos, intersect);
+				ESLCandidate esl = { ray };
+				esl.triangleVertex = { prim->vertices[i] };
+				esl.splittingLines = { split };
+				esl.triangleEdges = { prim->edges[i], prim->edges[(i+2)%3] };
+				esl.fillUpLines();
+				if (eslChecker.isExtremalStabbing(esl)) {
+					if (print) {
+						std::cout << "V(t)PlaneS ";
+						esl.print();
+					}
+					if (vischeck);// esls.push_back(esl);
+					else {
+						eslsNoVis.push_back(esl);
+						esls.push_back(esl);
+					}
+					if (!storeAllESLs && vischeck) return true;
+				}
+			}
+		}
+	}
 
 	bool checkSilhouetteCombis(std::vector<Edge*>& silhouetteEdgesToAdd, std::set<Vertex*, Vertex::cmp_ptr>& silhVertices) {
 
@@ -454,17 +507,43 @@ private:
 		}
 	}
 
-	bool checkDegenerateESLs() {
+	bool checkDegenerateESLs(bool inplaneCheck = false) {
+		//if (inplaneCheck) {
+		//	for (ESLCandidate& esl : eslsNoVis) {
+		//		if (!esl.inPlane) return true;
+		//	}
+		//	return false;
+		//}
+		//if (splitVertexFlag) {
+		//	bool allintersect = true;
+		//	for (ESLCandidate esl : eslsNoVis) {
+		//		if (!esl.ray.intersect(splitFlag.ray, 1E-5)) {
+		//			allintersect = false;
+		//			break;
+		//		}
+		//	}
+		//	if (allintersect) return true;
+		//}
+
 		if (eslsNoVis.size() <= 2) return true;
 
 		bool allintersect = true;
 		for (int i = 0; i < eslsNoVis.size(); i++) {
-			if (!eslsNoVis[i].ray.intersect(eslsNoVis[(i + 1) % eslsNoVis.size()].ray)) allintersect = false;
+			if (!eslsNoVis[i].ray.intersect(eslsNoVis[(i + 1) % eslsNoVis.size()].ray)) {
+				allintersect = false;
+				break;
+			}
 		}
-		std::string tf = allintersect ? "true" : "false";
-		if (node->index == 275 && prim->id == 246) std::cout << "intersect all? " << tf << std::endl;
-
 		if (allintersect) return true;
+
+		//bool allWrongSide = true;
+		//for (ESLCandidate esl : eslsNoVis) {
+		//	if (!esl.stabBack && !esl.inPlane) {
+		//		allWrongSide = false;
+		//		break;
+		//	}
+		//}
+		//if (allWrongSide) return true;
 
 		std::set<int> sameIds;
 		for (Edge* e1 : eslsNoVis[0].allEdges) {
@@ -484,13 +563,12 @@ private:
 			}
 			for (int id : notfound) sameIds.erase(id);
 		}
-		tf = allintersect ? "true" : "false";
-		if (node->index == 275 && prim->id == 246) std::cout << "same ids nr? " << sameIds.size() << std::endl;
-		
-		if (sameIds.size() == 0) return false;
-
-
-		return true;
+		bool plane = false;
+		for (ESLCandidate esl : eslsNoVis) if (esl.inPlane) plane = true;
+		if (plane) {
+			for (Edge* e : prim->edges) sameIds.erase(e->id);
+		}
+		return sameIds.size() > 0;
 	}
 
 	bool checkCombi(std::string combi_text, int combiNr, 
@@ -503,7 +581,10 @@ private:
 
 		std::vector<Vertex*> vertexEdgeCheck;
 
-		for (int g = 0; g < std::max(1, std::min(nrOfTriEdges, 1) * 3); g++) {
+		int triEdgeCombi = 1;
+		if (nrOfTriEdges < 3) triEdgeCombi = 3;
+
+		for (int g = 0; g < triEdgeCombi; g++) {
 			if (nrOfTriEdges == 2) vertexEdgeCheck = { prim->vertices[(g + 1) % 3] };
 			//if (nrOfTriEdges == 1) vertexEdgeCheck = { (int)model->indices[prim * 3 + edges[g][0]] , (int)model->indices[prim * 3 + edges[g][1]] };
 
@@ -547,43 +628,26 @@ private:
 						for (int k = 0; k < nrOfsilhEdges; k++) esl.silhouetteEdges.push_back(silhouetteEdges[silhLineCombis[i][k]]);
 						for (int k = 0; k < nrOfTriEdges; k++) esl.triangleEdges.push_back(prim->edges[(g + k) % 3]);
 
-						// check equal lines
-						//cntn = false;
-						//for (int x = 0; x < esl.lines4.size(); x++) {
-						//	for (int y = x + 1; y < esl.lines4.size(); y++) {
-						//		if (esl.lines4[x].equal(esl.lines4[y])) cntn = true;
-						//		// also check for shared vertices among the triedges/silhouette edges and splitlines -- don't check these!
-						//		// need more info in eslcandidate
-						//	}
-						//}
-						//if (cntn) continue;
-
 						if (nrOfVertices) esl.silhouetteVertices = vertexEdgeCheck;
-						if (nrOfTriEdges == 2) esl.triangleVertex.push_back(prim->vertices[(g + 1) % 3]);
+						if (nrOfTriEdges == 2) esl.triangleVertex = vertexEdgeCheck;
 						esl.fillUpLines();
-						if (esl.combinationDegenerate()) continue;
+						if (esl.combinationDegenerate(splitVertexFlag)) continue;
 
 						for (SplitSide& s : esl.splittingLines) {
-								if (s.edge != NULL) {
-									for (Edge* e : silhouetteEdges) {
-										if (e->id == s.edge->id) s.edgeIsSilhouette = true;
-									}
+							if (s.edge != NULL) {
+								for (Edge* e : silhouetteEdges) {
+									if (e->id == s.edge->id) s.edgeIsSilhouette = true;
+								}
 							}
 						}
 
 						if (checkRaysThrough4Lines(esl, vischeck)) { 
-							if (print) {
-								std::cout << combi_text << " ";
-								if (!vischeck) std::cout << "No visibility Check: ";
-								for (Ray& r : esl.lines4) std::cout << r.index << " ";
-								std::cout << std::endl;
-							}
-							
+						
 							if (!storeAllESLs) {
 								if (vischeck) return true;
 								else if (!checkDegenerateESLs()) return true;
 							}
-							else if (!vischeck && !checkDegenerateESLs()) return true;
+							//else if (!vischeck && !checkDegenerateESLs()) return true;
 						}
 					}
 				}

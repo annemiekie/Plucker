@@ -30,6 +30,10 @@ class Node {
 		primitiveSet.insert(pri);
 	}
 
+	void remove(int pri) {
+		primitiveSet.erase(pri);
+	}
+
 	void insert(int pri, Ray ray) {
 		primitiveSet.insert(pri);
 		primAndRayVector.push_back(Sample{ray, pri});

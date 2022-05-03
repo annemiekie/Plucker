@@ -64,7 +64,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Execute draw command
-		glBindVertexArray(model->vao);
+		glBindVertexArray(model->vaoModel);
 		glDrawArrays(GL_TRIANGLES, 0, model->vertices.size());
 
 

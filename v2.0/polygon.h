@@ -5,6 +5,7 @@ class Polygone : public virtual Plane {
 public:
 	std::vector<Ray> edges;
 	std::vector<glm::dvec3> vertices;
+	GLuint vao;
 
 	Polygone(glm::dvec3 n, float c) : Plane(n, c) { };
 	Polygone() {};
@@ -48,7 +49,7 @@ public:
 		return maxim;
 	}
 
-	bool inBounds(const Ray& r, float thres = 0) {
+	bool inBounds(const Ray& r, double thres = 1E-8) {
 		int count = 0;
 		for (Ray& e : edges) {
 			double x = e.sideVal(r);
@@ -59,7 +60,7 @@ public:
 		return true;
 	}
 
-	bool inBounds(const glm::dvec3& pt, float thres = 0) {
+	bool inBounds(const glm::dvec3& pt, double thres = 1E-8) {
 		Ray r(pt + normal, pt);
 		return (inBounds(r, thres));
 	}
@@ -81,5 +82,29 @@ public:
 		}
 		return false;
 	}
+
+	void vaoGeneration() {
+		std::vector<glm::dvec3> lineSegments;
+		for (int i = 0; i < vertices.size(); i++) {
+			lineSegments.push_back(vertices[i]);
+			lineSegments.push_back(vertices[(i+1)%vertices.size()]);
+		}
+		GLuint lineVBO;
+		glGenBuffers(1, &lineVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+		glBufferData(GL_ARRAY_BUFFER, lineSegments.size() * sizeof(glm::dvec3), &lineSegments[0].x, GL_STATIC_DRAW);
+
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, sizeof(glm::dvec3), (void*)0);
+	}
+
+	void draw() {
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINES, 0, vertices.size());
+	};
+
 
 };

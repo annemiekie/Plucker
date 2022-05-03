@@ -118,48 +118,8 @@ public:
         }
 
         return AxisAlignedSquare(minm, maxm, point, normal);
-
-        //glm::vec3 vmin, vside1, vside2, vopp;
-        //vmin[xyz] = bounds[pm][xyz];
-        //vmin[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
-        //vmin[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
-
-        //vside1[xyz] = vmin[xyz];
-        //vside1[(xyz + 1) % 3] = bounds[1][(xyz + 1) % 3];
-        //vside1[(xyz + 2) % 3] = bounds[0][(xyz + 2) % 3];
-
-        //vside2[xyz] = vmin[xyz];
-        //vside2[(xyz + 1) % 3] = bounds[0][(xyz + 1) % 3];
-        //vside2[(xyz + 2) % 3] = bounds[1][(xyz + 2) % 3];
-
-        //vopp = vmin;
-        //vopp[xyz] = bounds[1 - pm][xyz];
-
-        //return Square(vmin, vside1, vside2, vopp);
     }
 
-    //// xyz = x, y or z direction, pm = plus or minus
-    //Square makeCubeSquareBig(int xyz, int pm) {
-    //    glm::vec3 vmin, vside1, vside2, vopp;
-    //    vmin[xyz] = bounds[pm][xyz];
-    //    vmin[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-    //    vmin[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
-
-    //    vside1[xyz] = vmin[xyz];
-    //    vside1[(xyz + 1) % 3] = bigbounds[1][(xyz + 1) % 3];
-    //    vside1[(xyz + 2) % 3] = bigbounds[0][(xyz + 2) % 3];
-
-    //    vside2[xyz] = vmin[xyz];
-    //    vside2[(xyz + 1) % 3] = bigbounds[0][(xyz + 1) % 3];
-    //    vside2[(xyz + 2) % 3] = bigbounds[1][(xyz + 2) % 3];
-
-    //    vopp = vmin;
-    //    vopp[xyz] = bounds[1 - pm][xyz];
-
-    //    return Square(vmin, vside1, vside2, vopp);
-    //}
-
-    //// CHECK IF THIS WORKS
     bool intersectSide(glm::vec3 mainDir, const Ray& r) {
         if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
         return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
@@ -167,10 +127,6 @@ public:
 
     glm::vec3 intersectSidePoint(glm::vec3 mainDir, const Ray& r) {
         return getCubeSideSquare(mainDir).rayIntersection(r);
-        //int b = getSgn(mainDir);
-        //double ttest = glm::dot(((bounds[b] - (glm::vec3)r.origin) / (glm::vec3)r.direction), glm::abs(mainDir));
-        //glm::vec3 intersectpt = r.origin + r.direction * ttest;
-        //return intersectpt;
     }
 
     bool intersectSegmSegm(glm::vec2& s1p1, glm::vec2& s1p2, glm::vec2& s2p1, glm::vec2& s2p2) {

@@ -32,14 +32,14 @@ struct SphereSampler : Sampler {
 		return { (x + .5f) / w * 2.0f - 1.0f, 1.0f - (y + .5f) / h * 2.0f };
 	}
 
-	void getIndices(int raynr, int& camNr, int& x, int& y) {
+	void getIndices(uint64_t raynr, int& camNr, int& x, int& y) {
 		camNr = raynr / detailGridNum;
 		int rayInCam = raynr % detailGridNum;
 		y = detailGridDim - rayInCam / detailGridDim;
 		x = rayInCam % detailGridDim;
 	}
 
-	virtual Ray getSample(int raynr) override {
+	virtual Ray getSample(uint64_t raynr) override {
 		int camNr, y, x;
 		getIndices(raynr, camNr, x, y);
 		const glm::vec2 pixpos = getPixPosFromIndex(detailGridDim, detailGridDim, x, y);
@@ -50,8 +50,10 @@ struct SphereSampler : Sampler {
 
 	virtual Ray getNextSample(bool inverseRatio) override {
 		if (inverseRatio && counter % ratio == 0) counter++;
-		if (counter % (detailGridDim * detailGridDim) == 0)
-			currentCam.setPositionAndForward(main_grid[counter / detailGridNum], camLookat);
+		if (counter % (detailGridDim * detailGridDim) == 0) {
+			int index = counter / detailGridNum;
+			currentCam.setPositionAndForward(main_grid[index], camLookat);
+		}
 		int camNr, y, x;
 		getIndices(counter, camNr, x, y);
 		counter += inverseRatio ? 1 : ratio;

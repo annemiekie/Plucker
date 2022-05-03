@@ -99,6 +99,7 @@ public:
 		//		if (options.rasterizationSampling) tri = int(pixels[pixloc]) - 1;
 		double t = 0.f;
 		rst->model->getIntersectionEmbree(ray, tri, t, true);
+		if (tri >= 0 && !rst->model->triangles[tri]->intersection(ray, t)) tri = -1;
 		if (options.construct == Options::ADAPTIVE) {
 			samples.push_back(SampleInd({ tri, sampler->counter }));
 			if (tri >= 0) triangles.insert(tri);
@@ -114,7 +115,15 @@ public:
 	static void fill(RaySpaceTree* rst, Options::BuildOptions& options, Sampler* sampler, TextureRenderer& texrender = TextureRenderer()) {
 
 		std::cout << "Creating camera samples to fill tree..." << std::endl;
+		float nrOfSteps = 1000;
+		float percentagePerStep = 100.f / nrOfSteps;
+		float samplesPerStep = sampler->nrOfSamples / nrOfSteps;
+		int step = 0;
 		while (sampler->counter < sampler->nrOfSamples) {
+			if (sampler->counter - uint64_t(step * samplesPerStep) == 0) {
+				std::cout << int(percentagePerStep * step) << "%...";
+				step++;
+			}
 			//GLfloat* pixels = 0;
 			//if (options.rasterizationSampling) pixels = texrender.render((SphereSampler)(sampler.currentCam), rst->model);
 			makeSample(rst, options, sampler);
