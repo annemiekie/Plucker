@@ -84,7 +84,7 @@ public:
 		bool found = eslFinder.find();
 		silhEdges = eslFinder.silhouetteEdges;
 
-		for (ESLCandidate& esl : eslFinder.esls) esls.push_back(esl.ray);
+		for (ESLCandidate& esl : eslFinder.eslsNoVis) esls.push_back(esl.ray);
 		if (!found) std::cout << "Not Found" << std::endl;
 		return found;
 	};

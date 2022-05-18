@@ -58,7 +58,7 @@ namespace Lines4Finder {
 		l0.normalize();
 		l1.normalize();
 		intersectLines.push_back(l0);
-		if (delta > 1E-15) intersectLines.push_back(l1);
+		if (delta > 1E-10) intersectLines.push_back(l1);
 		return delta == 0.0 ? 1 : 2;
 	}
 

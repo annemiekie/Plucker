@@ -1,6 +1,9 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
+#include "edge.h"
+#include "primitive.h"
+#include "plane.h"
 struct Edge;
 struct Primitive;
 
@@ -10,6 +13,14 @@ struct Vertex {
 	glm::dvec3 pos;
 	std::vector<Primitive*> triangles;
 	std::vector<Edge*> edges;
+	bool silhouette = false;
+	bool splitline = false;
+
+
+	bool isInFrontOfVertex(Vertex* v, Plane* plane) const {
+		if (v->id == id) return false;
+		return fabs(plane->distToPoint(pos)) < fabs(plane->distToPoint(v->pos));
+	}
 
 	struct cmp_ptr
 	{

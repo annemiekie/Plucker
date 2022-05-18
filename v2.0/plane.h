@@ -53,16 +53,20 @@ public:
         constant = glm::dot(normal, point);
     }
 
-    bool rayInPlane(const Ray& r, float eps = 1E-10) {
-        return (pointOnPlane(r.origin, eps) && pointOnPlane(r.origin + r.direction, eps));
+    bool rayInPlane(const Ray& r, double eps = 1E-10) {
+        return glm::dot(r.direction, normal) < eps && pointOnPlane(r.origin, eps);
     }
 
-    bool pointOnPlane(glm::dvec3 pt, float eps = 1E-10) {
-        return  fabsf(glm::dot(normal, pt) - constant) < eps;
+    double distToPoint(glm::dvec3 pt) {
+        return glm::dot(normal, pt) - constant;
+    }
+
+    bool pointOnPlane(glm::dvec3 pt, double eps = 1E-10) {
+        return  fabsf(distToPoint(pt)) < eps;
     }
 
     bool pointOnPositiveSide(glm::dvec3 pt) {
-        return (glm::dot(normal, pt) - constant) > 0;
+        return distToPoint(pt) > 0;
     }
 
     double rayIntersectionDepth(const Ray& r) {

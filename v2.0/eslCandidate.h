@@ -13,36 +13,90 @@ struct ESLCandidate {
 	std::vector<Edge*> triangleEdges;
 	std::vector<Vertex*> triangleVertex;
 	std::vector<uint64_t> indices;
-	std::vector<Edge*> allEdges;
+	std::set<Edge*, Edge::cmp_ptr> allEdges;
 	bool inBox = true;
 	bool inPlane = false;
+	bool inplaneNotVertex = false;
+	bool throughVertex = false;
 //	bool stabBack = false;
 	
 	void fillUpLines() {
 		for (SplitSide& s : splittingLines) {
 			lines4.push_back(s.ray);
-			if (s.edge != NULL) allEdges.push_back(s.edge);
+			if (s.edge != NULL) allEdges.insert(s.edge);
 			indices.push_back(s.ray.index);
 		}
 		for (Vertex* v : silhouetteVertices) {
 			lines4.push_back(v->edges[0]->ray);
 			lines4.push_back(v->edges[1]->ray);
-			for (Edge* ve : v->edges) allEdges.push_back(ve);
+			for (Edge* ve : v->edges) allEdges.insert(ve);
 			indices.push_back(v->id);
 		}
 		for (Edge* e : silhouetteEdges) {
 			lines4.push_back(e->ray);
-			allEdges.push_back(e);
+			allEdges.insert(e);
 			indices.push_back(e->id);
 		}
 		for (Edge* e : triangleEdges) {
 			lines4.push_back(e->ray);
-			allEdges.push_back(e);
+			allEdges.insert(e);
 			indices.push_back(e->id);
+		}
+		for (Vertex* v : triangleVertex) {
+			for (Edge* ve : v->edges) allEdges.insert(ve);
 		}
 	}
 
-	bool combinationDegenerate(bool splitVertexFlag) {
+	bool doublesSplit(Split& s) {
+		if (s.edge != NULL) {
+			for (Edge* ae : allEdges) {
+				if (s.edge->id == ae->id) return true;
+				if (s.edge->ray.equal(ae->ray)) return true;
+			}
+		}
+		else {
+			for (SplitSide& sa : splittingLines) {
+				if (sa.id == s.id) return true;
+			}
+		}
+		return false;
+	}
+
+	bool doublesEdge(Edge* e) {
+		for (Edge* ae : allEdges) {
+			if (e->id == ae->id) return true;
+			if (e->ray.equal(ae->ray)) return true;
+		}
+		return false;
+	}
+
+	void putRay(Ray& r) {
+		ray = r;
+		if (triangleVertex.size() > 0) {
+			if (!ray.throughPoint(triangleVertex[0]->pos)) {
+				inPlane = true;
+				inPlaneNotVertex();
+			}
+			else throughVertex = true;
+		}
+	}
+
+	void inPlaneNotVertex() {
+		inplaneNotVertex = true;
+		if (triangleVertex.size() == 0) return;
+		triangleVertex = std::vector<Vertex*>();
+		allEdges = std::set<Edge*, Edge::cmp_ptr>();
+		for (Edge* e : triangleEdges) allEdges.insert(e);
+		for (SplitSide& s : splittingLines) {
+			if (s.edge != NULL) allEdges.insert(s.edge);
+		}
+		for (Vertex* v : silhouetteVertices) {
+			for (Edge* ve : v->edges) allEdges.insert(ve);
+		}
+		for (Edge* e : silhouetteEdges) allEdges.insert(e);
+	}
+
+	bool combinationDegenerate(Primitive* prim) {
 		//for (int i = 0; i < allEdges.size(); i++) {
 		//	for (Vertex* v1 : allEdges[i]->vertices) {
 		//		for (int j = i+1; j < allEdges.size(); j++) {
@@ -52,16 +106,6 @@ struct ESLCandidate {
 		//		}
 		//		for (Vertex* v : triangleVertex) {
 		//			if (v1->id == v->id) return true;
-		//		}
-		//	}
-		//}
-
-		//for (Edge* se : silhouetteEdges) {
-		//	for (Vertex* v1 : se->vertices) {
-		//		for (Edge* te : triangleEdges) {
-		//			for (Vertex* v2 : te->vertices) {
-		//				if (v1->id == v2->id) return true;
-		//			}
 		//		}
 		//	}
 		//}
@@ -91,22 +135,18 @@ struct ESLCandidate {
 					if (s.edge->ray.throughVertex(v)) return true;
 				}
 			}
+			if (prim->getPlane().pointOnPlane(v->pos, 1E-8)) return true;
+		}
+
+		for (Edge* e : silhouetteEdges) {
+			if (prim->getPlane().rayInPlane(e->ray, 1E-8)) return true;
 		}
 
 		for (SplitSide& s : splittingLines) {
 			if (s.edgeIsTriangle) return true;
+			if (prim->getPlane().rayInPlane(s.ray, 1E-8)) return true;
 		}
 
-		//if (splitVertexFlag) {
-		//	for (SplitSide &s : splittingLines) {
-		//		if (s.edge != NULL) {
-		//			for (Edge* e : triangleEdges) {
-		//				for (Vertex* v : e->vertices)
-		//					if (s.edge->ray.throughVertex(v)) return true;
-		//			}
-		//		}
-		//	}
-		//}
 
 		return false;
 	}

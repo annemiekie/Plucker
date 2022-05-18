@@ -17,11 +17,20 @@ public:
     glm::dvec3 u;
     glm::dvec3 v;
     int index = -1;
-    bool checkboth = true;
+   // bool checkboth = true;
 
     Ray() {};
 
     ~Ray() {};
+
+    Ray(const Ray& r) {
+        origin = r.origin;
+        direction = r.direction;
+        invdir = r.invdir;
+        u = r.u;
+        v = r.v;
+        index = r.index;
+    }
 
     Ray(glm::dvec3 from, glm::dvec3 to, int index = -1) : origin(from), index(index) {
         u = to - from;

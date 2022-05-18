@@ -35,7 +35,6 @@ public:
 
 	bool checkExtremalStabbingLine(ESLCandidate& esl, bool visCheck, bool primCheck) {
 		
-		esl.ray.get3DfromPlucker();
 		if (esl.ray.checkboth) {
 			if (!checkRayInWindow(esl.ray)) {
 				esl.inBox = false;
@@ -43,8 +42,6 @@ public:
 			}
 		}
 		if (!checkRayInLeaf(esl, leaf)) return false;
-
-		//if (primCheck && (prim->id == 339 || prim->id == 338) && !visCheck && esl.triangleEdges.size()==2) return true;
 
 		if (primCheck && !checkRayInPrim(esl, visCheck)) return false;
 
@@ -55,61 +52,46 @@ public:
 	};
 
 	bool checkRayInPrim(ESLCandidate& esl, bool visCheck) {
+		if (esl.inPlane && esl.throughVertex) return true;
 		//check orientation
 		double orient = glm::dot(esl.ray.direction, prim->normal);
-		if (orient > eps) {
-		//	if (!visCheck) esl.stabBack = true;
-		//	else {
-				if (print) std::cout << "Ray not in Prim (wrong orientation): " << orient << std::endl << std::endl;
-				return false;
-		//	}
+		if (orient > eps && !esl.inPlane) {
+			if (print) std::cout << "Ray not in Prim (wrong orientation): " << orient << std::endl << std::endl;
+			return false;
 		}
-		//int checks = 0;
-		//int left = 0;
-		for (auto& er : prim->rays) {
-			bool equal = false;
-			for (auto& igray : esl.lines4) {
-				if (igray.equal(er, 1E-8)) {
-					equal = true;
-					break;
-				}
-				// also check if vertex gets intersected?
-				// if the resulting esls are not built with vertex, then why does the same combi with vertex not work?
-			}
 
-			if (!equal) {
-			//	if (!visCheck) checks++;
-				double side = er.sideVal(esl.ray);
+		for (int i = 0; i < 3; i++) {
+			if (!esl.doublesEdge(prim->edges[i])) {
+				double side = prim->rays[i].sideVal(esl.ray);
 				if (side < -eps) {
-					//if (!visCheck) left++;
-					//else {
-						if (print) std::cout << "Ray not in Prim (wrong side of edge): " << er.sideVal(esl.ray) << std::endl << std::endl;
-						return false;
-					//}
+					if (print) std::cout << "Ray not in Prim (wrong side of edge): " << prim->rays[i].sideVal(esl.ray) << std::endl << std::endl;
+					return false;
 				}
-				else if (abs(orient) < 1E-8 && abs(side) < 1E-8) {
+				else if (esl.inPlane || (abs(orient) < 1E-8 && abs(side) < 1E-8)) {
 					esl.inPlane = true;
-					return checkRayInPlane(esl.ray);
+					return checkRayInPlane(esl);
 				}
 			}
 		}
-		//if (!visCheck) if (left != 0 && checks != left) return false;
-
 		return true;
 	};
 
 	// add ray through triangle
-	bool checkRayInPlane(Line4& ray) {
+	bool checkRayInPlane(ESLCandidate& esl) {
 		if (print) std::cout << "Ray in plane " << " ";
 		int leftSide = 0;
+		if (esl.throughVertex) return true;
 		for (Vertex* v : prim->vertices) {
-			if (ray.throughVertex(v, eps)) {
+			if (esl.ray.throughVertex(v, eps)) {
 				if (print) std::cout << " and through vertex " << std::endl;
 				return true;
 			}
-			if (Ray(v->pos, v->pos + prim->normal).side(ray)) leftSide++;
+			if (Ray(v->pos, v->pos + prim->normal).side(esl.ray)) leftSide++;
 		}
-		if (leftSide > 0 && leftSide < 3) return true;
+		if (leftSide > 0 && leftSide < 3) {
+			esl.inPlaneNotVertex();
+			return true;
+		}
 		if (print) std::cout << std::endl;
 		return false;
 	};
@@ -118,13 +100,7 @@ public:
 
 		if (node == rst->rootNode) return true;
 		Node* parent = node->parent;
-		bool ign = false;
-		for (Ray& r : esl.lines4) {
-			if (r.equal(parent->splitter.ray, 1E-8)) {
-				ign = true;
-				break;
-			}
-		}
+		bool ign = esl.doublesSplit(parent->splitter);
 		double sidev = parent->splitter.ray.sideVal(esl.ray);
 		if (abs(sidev) < eps) ign = true;
 
@@ -199,8 +175,8 @@ public:
 		esl.ray.offsetByDepth(t);
 
 		std::set<int> intersectionPrims;
-		double primaryprimdepth = prim->getIntersectionDepth(esl.ray, esl.inPlane);
-		if (primaryprimdepth <= 0) primaryprimdepth = prim->getIntersectionDepth(esl.ray, true);
+		double primaryprimdepth = prim->getIntersectionDepth(esl.ray, esl.inPlane, true);
+		if (primaryprimdepth <= 0) primaryprimdepth = prim->getIntersectionDepth(esl.ray, true, true);
 
 		if (!checkSilhouettesForRay(esl, intersectionPrims, primaryprimdepth)) return false;
 
@@ -214,10 +190,11 @@ public:
 		double depth = checkDepth;
 		double offset = 0.001;
 		double jump = offset + checkDepth;
-		bool inPlaneOfPrim = false;
 
 
 		while (depth < primaryprimdepth - 1E-6 && embreePrim != prim->id) {
+			bool inPlaneOfPrim = false;
+
 			bool found = false;
 			// check if it hits a silhouette vertex or edge
 			for (int primid : intersectionPrims) {

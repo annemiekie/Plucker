@@ -15,12 +15,15 @@ struct Primitive {
 	Edge* edges[3];
 	Ray rays[3];
 
-	double getIntersectionDepth(const Ray& r, bool inplane = false) {
+	double getIntersectionDepth(const Ray& r, bool inplane = false, bool closestEdge = false) {
 		if (inplane || getPlane().rayInPlane(r, 1E-7)) {
 			double depth = -INFINITY;
 			for (Ray er : rays) {
 				double edgeIntersect = r.depthToIntersectionWithRay(er);
-				if (edgeIntersect > depth) depth = edgeIntersect;
+				if (closestEdge) {
+					if (edgeIntersect < depth) depth = edgeIntersect;
+				}
+				else if (edgeIntersect > depth) depth = edgeIntersect;
 			}
 			return depth;
 		}

@@ -1,10 +1,8 @@
 #pragma once
-#include "lineThroughFourLines.h"
 #include "node.h"
 #include "primitive.h"
+#include "eslCandidate.h"
 
-struct ExtremalStabbingLine {
-	Node* leaf;
-	Primitive* prim;
-	Line4 ray;
+struct ExtremalStabbingLine : public ESLCandidate {
+	std::vector<Primitive*> forPrimitives;
 };
