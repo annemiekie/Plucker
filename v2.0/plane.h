@@ -3,6 +3,7 @@
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
 #include "ray.h"
+#include <vector>
 class Plane {
 public:
     glm::dvec3 normal;
@@ -54,7 +55,7 @@ public:
     }
 
     bool rayInPlane(const Ray& r, double eps = 1E-10) {
-        return glm::dot(r.direction, normal) < eps && pointOnPlane(r.origin, eps);
+        return (pointOnPlane(r.origin, eps) && pointOnPlane(r.origin + r.direction, eps)); //glm::dot(r.direction, normal) < eps && pointOnPlane(r.origin, eps);
     }
 
     double distToPoint(glm::dvec3 pt) {
@@ -62,7 +63,7 @@ public:
     }
 
     bool pointOnPlane(glm::dvec3 pt, double eps = 1E-10) {
-        return  fabsf(distToPoint(pt)) < eps;
+        return  fabs(distToPoint(pt)) < eps;
     }
 
     bool pointOnPositiveSide(glm::dvec3 pt) {
@@ -93,6 +94,24 @@ public:
         if (fabs(constant - other.constant) > thres) return false;
         return true;
     }
+
+    bool isInFrontOf(glm::dvec3 v1, glm::dvec3 v2) {
+        if (glm::length(v1-v2)<1E-10) return false;
+        return fabs(distToPoint(v1)) < fabs(distToPoint(v2));
+    }
+
+    bool isInFrontOf(glm::dvec3 v, std::vector<glm::dvec3>& e) {
+        return  isInFrontOf(v, e[0]) || isInFrontOf(v, e[1]);
+    }
+
+    bool isInFrontOf(std::vector<glm::dvec3>& e, glm::dvec3 v) {
+        return isInFrontOf(e[0], v) || isInFrontOf(e[1], v);
+    }
+
+    bool isInFrontOf(std::vector<glm::dvec3>& e1, std::vector<glm::dvec3>& e2)  {
+        return  isInFrontOf(e1, e2[0]) || isInFrontOf(e1, e2[1]);
+    }
+
 
     ~Plane() {};
 

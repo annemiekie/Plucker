@@ -48,6 +48,7 @@
     <ClInclude Include="exactBuildTracker.h" />
     <ClInclude Include="axisAlignedPlane.h" />
     <ClInclude Include="axisAlignedSquare.h" />
+    <ClInclude Include="eslFindAll.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="polygon.h" />
     <ClInclude Include="qrDecomposition.h" />

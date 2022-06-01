@@ -118,21 +118,21 @@ struct ESLCandidate {
 
 		for (Vertex* v : triangleVertex) {
 			for (Edge* e : silhouetteEdges) {
-				if (e->ray.throughVertex(v)) return true;
+				if (e->ray.throughPoint(v->pos)) return true;
 			}
 			for (SplitSide& s : splittingLines) {
 				if (s.edge != NULL) {
-					if (s.edge->ray.throughVertex(v)) return true;
+					if (s.edge->ray.throughPoint(v->pos)) return true;
 				}
 			}
 		}
 		for (Vertex* v : silhouetteVertices) {
 			for (Edge* e : triangleEdges) {
-				if (e->ray.throughVertex(v)) return true;
+				if (e->ray.throughPoint(v->pos)) return true;
 			}
 			for (SplitSide& s : splittingLines) {
 				if (s.edge != NULL) {
-					if (s.edge->ray.throughVertex(v)) return true;
+					if (s.edge->ray.throughPoint(v->pos)) return true;
 				}
 			}
 			if (prim->getPlane().pointOnPlane(v->pos, 1E-8)) return true;

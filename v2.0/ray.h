@@ -7,7 +7,7 @@
 #include <vector>
 #include <Eigen/dense>
 #include <iostream>
-#include "vertex.h"
+//#include "vertex.h"
 
 class Ray {
 public:
@@ -111,13 +111,13 @@ public:
         std::cout << "Origin: (" << origin.x << "," << origin.y << "," << origin.z << ") Direction: (" << direction.x << "," << direction.y << "," << direction.z << ")";
     }
 
-    bool throughVertex(Vertex* vertex, double eps = 1E-8) {
-        return throughPoint(vertex->pos, eps);
+    //bool throughVertex(Vertex* vertex, double eps = 1E-8) {
+    //    return throughPoint(vertex->pos, eps);
         //glm::dvec3 dir = vertex - origin;
         //if (dir.x * direction.x < 0) dir = -dir;
         //double dist = glm::distance(glm::normalize(dir), glm::normalize(direction));
         //return (dist < eps);
-    }
+    //}
 
     void offsetByDepth(double depth) {
         origin += (depth * direction);

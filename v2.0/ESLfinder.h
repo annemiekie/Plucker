@@ -148,7 +148,7 @@ private:
 			}
 			if (!split.edgeIsTriangle) {
 				for (int i = 0; i < 3; i++) {// Vertex * v : prim->vertices) {
-					if (split.ray.throughVertex(prim->vertices[i])) {
+					if (split.ray.throughPoint(prim->vertices[i]->pos)) {
 						splitFlag = split;
 						splitVertexFlag = true;
 						if (prim->onRightSideOfSplitVertex(prim->vertices[i], split.ray, split.side)) break;
@@ -555,7 +555,7 @@ private:
 		}
 	}
 
-	bool checkDegenerateESLs(std::vector<ESLCandidate> eslchecks, bool inplaneCheck = false) {
+	bool checkDegenerateESLs(std::vector<ESLCandidate>& eslchecks, bool inplaneCheck = false) {
 
 		//if (splitVertexFlag) {
 		//	bool allintersect = true;

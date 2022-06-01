@@ -44,6 +44,8 @@ namespace Visualizer {
 	Lights lights;
 	VisComponents visComp;
 	Cube largeCube;
+	std::vector<std::vector<Ray>> raysPerPrimitive;
+
 	//static Visualizer vis;
 
 
@@ -105,7 +107,7 @@ namespace Visualizer {
 	void checkModel() {
 		if (changeColoring) {
 			model->clearColors(Colors::white);
-			model->changePrimColors<std::set<int>>(leaf->primitiveSet, Colors::bluegreen);
+			if (leafnum >= 0) model->changePrimColors<std::set<int>>(leaf->primitiveSet, Colors::bluegreen);
 			model->changePrimColors<std::vector<int>>(notfoundprim, Colors::red);
 			if (selectedPrim >= 0) model->changePrimColor(selectedPrim, Colors::green);
 			model->updateVaoModel();
@@ -202,15 +204,22 @@ namespace Visualizer {
 		selectedPrim = -1;
 		model->getIntersectionEmbree(r, primindex, t);
 		if (primindex >= 0) {
-			std::cout << primindex << std::endl;
+			Primitive* p = rst->model->triangles[primindex];
+			std::cout << "primitive: " << primindex << "edges: ";
+			for (Edge* e : p->edges) std::cout << e->id << " ";
+			std::cout << "vertices: ";
+			for (Vertex* v : p->vertices) std::cout << v->id << " ";
+			std::cout << std::endl;
+
 			std::vector<Ray> esls;
 			//std::vector<glm::vec3> edges;
 			std::vector<Edge*> silh;
 
-			RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls, true, silh);
+			if (leafnum >= 0) RSTBuilderExact::check1Prim(rst, rst->model->triangles[primindex], leaf, true, esls, true, silh);
+			else esls = raysPerPrimitive[primindex];
 			eslLines.updateVaoWithLines(esls, geoObjects[geoObjectnr], rst->maindir);
-			samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
-			silhEdges.updateVaoWithLines(silh);
+			if (leafnum >= 0) samples.updateVaoWithLines(rst->getviewingLinesInLeafInTri(leaf, primindex), geoObjects[geoObjectnr]);
+			if (leafnum >= 0) silhEdges.updateVaoWithLines(silh);
 			//edgeRays.makeVaoVbo(edges);
 			edgelines = true;
 			toggle4lines = true;
@@ -464,13 +473,14 @@ namespace Visualizer {
 		glfwTerminate();
 	}
 
-	void visualize(int w, int h, Model* m, RaySpaceTree* r, VisComponents& vis, GLFWwindow* glfww) {// : width(w), height(h), model(m), rst(rst), visComp(vis) {
+	void visualize(int w, int h, Model* m, RaySpaceTree* r, VisComponents& vis, GLFWwindow* glfww, std::vector<std::vector<Ray>> rays) {// : width(w), height(h), model(m), rst(rst), visComp(vis) {
 		visComp = vis;
 		width = w;
 		height = h;
 		model = m;
 		window = glfww;
 		rst = r;
+		raysPerPrimitive = rays;
 		initialize();
 		render();
 		cleanup();

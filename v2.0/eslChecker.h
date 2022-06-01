@@ -82,7 +82,7 @@ public:
 		int leftSide = 0;
 		if (esl.throughVertex) return true;
 		for (Vertex* v : prim->vertices) {
-			if (esl.ray.throughVertex(v, eps)) {
+			if (esl.ray.throughPoint(v->pos, eps)) {
 				if (print) std::cout << " and through vertex " << std::endl;
 				return true;
 			}
@@ -248,7 +248,7 @@ public:
 	bool checkNoSplitVertexProblem(Line4& ray) {
 		// if ray through vertex
 		bool throughvertex = false;
-		for (Vertex* v : prim->vertices) if (ray.throughVertex(v)) throughvertex = true;
+		for (Vertex* v : prim->vertices) if (ray.throughPoint(v->pos)) throughvertex = true;
 		if (!throughvertex) return true;
 
 	}

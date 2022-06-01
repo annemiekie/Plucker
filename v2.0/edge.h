@@ -1,6 +1,5 @@
 #ifndef EDGE_H
 #define EDGE_H
-#include "plane.h"
 #include "primitive.h"
 #include "vertex.h"
 
@@ -17,6 +16,10 @@ struct Edge {
 		glm::dvec3 tvec = (ipoint - vertices[0]->pos) /
 						 (vertices[1]->pos - vertices[0]->pos);
 		return (tvec.x > 0 && tvec.x < 1);
+	}
+
+	std::vector<glm::dvec3> getVecPos() {
+		return { vertices[0]->pos, vertices[1]->pos };
 	}
 
 	bool pointOnRay(glm::dvec3& pt) {
@@ -41,6 +44,11 @@ struct Edge {
 		side = p1.pointOnPositiveSide(pt);// || p1.pointOnPlane(pt, 1E-6);
 		bool side2 = p2.pointOnPositiveSide(pt);// || p2.pointOnPlane(pt, 1E-6);
 		if (side != side2) return true;
+		if (side || side2) {
+			// point on one of the two planes (triangles?) not completely working
+			if (!side && p2.pointOnPlane(pt, 1E-6)) return true;
+			if (!side2 && p1.pointOnPlane(pt, 1E-6)) return true;
+		}
 		//if (p1.pointOnPlane(pt, 1E-6) && p2.pointOnPlane(pt, 1E-6)) return true;
 		return false;
 	}
@@ -59,14 +67,6 @@ struct Edge {
 		return isSilhouetteForPos(v->pos, side);
 	}
 
-	bool isInFrontOfEdge(Edge* e, Plane* plane) const {
-		return  isInFrontOfVertex(e->vertices[0], plane) || isInFrontOfVertex(e->vertices[1], plane);
-	}
-
-	bool isInFrontOfVertex(Vertex* v, Plane* plane) const {
-		return vertices[0]->isInFrontOfVertex(v, plane) || vertices[1]->isInFrontOfVertex(v, plane);
-	}
-
 	bool isSilhouetteForEdge(Edge* e) const {
 		if (triangles.size() == 1) return true;
 		Plane p1 = triangles[0]->getPlane();
@@ -77,11 +77,11 @@ struct Edge {
 			if (isSilhouetteForPos(v->pos, p1, p2, side)) return true;
 			if (side) count++;
 		}
-		if (count < 2) return true;
+		if (count > 0 && count < 2) return true;
 		return false;
 	}
 
-	bool isSilhouetteForPrim(std::vector<glm::dvec3>& pts) const {
+	bool isSilhouetteForPrim(std::vector<glm::dvec3> pts) const {
 		if (triangles.size() == 1) return true;
 		Plane p1 = triangles[0]->getPlane();
 		Plane p2 = triangles[1]->getPlane();
@@ -91,7 +91,7 @@ struct Edge {
 			if (isSilhouetteForPos(pt, p1, p2, side)) return true;
 			if (side) count++;
 		}
-		if (count < pts.size()) return true;
+		if (count > 0 && count < pts.size()) return true;
 		return false;
 	}
 

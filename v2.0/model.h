@@ -188,7 +188,8 @@ public:
 			}
 			h += shape.mesh.indices.size();
 		}
-		for (auto& e : edges) edgeVector.push_back(e.second);
+		edgeVector = std::vector<Edge*>(edges.size());
+		for (auto& e : edges) edgeVector[e.second->id] = e.second;
 	};
 
 	RTCGeometry makeEmbreeGeom() {
@@ -396,9 +397,9 @@ public:
 		glm::vec3 e1v2 = e1->vertices[1]->pos;
 		glm::vec3 e2v1 = e2->vertices[0]->pos;
 		glm::vec3 e2v2 = e2->vertices[1]->pos;
-		if (!alldir) {
-			if (!boundingCube.intersectSideBB(std::vector<Ray> {Ray(e1v1, e2v1), Ray(e1v1, e2v2), Ray(e1v2, e2v1), Ray(e1v2, e2v2)}, maindir)) return false;
-		}
+		//if (!alldir) {
+		//	if (!boundingCube.intersectSideBB(std::vector<Ray> {Ray(e1v1, e2v1), Ray(e1v1, e2v2), Ray(e1v2, e2v1), Ray(e1v2, e2v2)}, maindir)) return false;
+		//}
 
 		// edge 1 to 2
 		bool side1, side2;
@@ -436,12 +437,13 @@ public:
 	}
 
 
-	bool getIntersectionNoAcceleration(const Ray& r, int& primIndex, float& depth) {
+	bool getIntersectionNoAcceleration(const Ray& r, int& primIndex, double& depth) {
 		primIndex = -1;
-		depth = 10000.f;
+		depth = 10000;
 		for (Primitive* prim : triangles) {
 			double newdepth;
 			if (prim->intersection(r, newdepth)) {
+				if (newdepth < 0) continue;
 				if (newdepth < depth) {
 					depth = newdepth;
 					primIndex = prim->id;

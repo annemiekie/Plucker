@@ -1,6 +1,7 @@
 #pragma once
 #include "polygon.h"
 #include "axisAlignedPlane.h"
+#include "segment2D.h"
 
 class AxisAlignedPolygon : virtual public Polygone, public AxisAlignedPlane {
 public:
@@ -19,20 +20,41 @@ public:
 
 	AxisAlignedPolygon(glm::dvec3 point, glm::dvec3 normal) : Plane(point, normal), AxisAlignedPlane(point, normal) {	};
 
-	AxisAlignedPolygon(std::vector<glm::dvec3> vertices, glm::ivec3 normal) : Plane(vertices, normal), AxisAlignedPlane(vertices[0], normal), Polygone(vertices, normal) {
-		
+	AxisAlignedPolygon(std::vector<glm::dvec3> vertices, glm::ivec3 normal) : Plane(vertices, normal), AxisAlignedPlane(vertices[0], normal), Polygone(vertices, normal) {		
 		for (int i = 0; i < vertices.size(); i++) {
-			int c2 = 0;
-			for (int c3 = 0; c3 < 3; c3++) {
-				if (c3 != constantCoord) {
-					vertices2D[i][c2] = vertices[i][c3];
-					c2++;
-				}
-				
-			}
+			vertices2D[i] = filter3Dto2D(vertices[i]);
 		}
 	}
 
+	glm::dvec2 filter3Dto2D(glm::dvec3 vec3) {
+		glm::dvec2 vec2;
+		int c2 = 0;
+		for (int c3 = 0; c3 < 3; c3++) {
+			if (c3 != constantCoord) {
+				vec2[c2] = vec3[c3];
+				c2++;
+			}
+		}
+		return vec2;
+	}
+
+	bool intersectionInBounds(Segment2D& rseg) {
+		for (int i = 0; i < vertices2D.size(); i++) {
+			glm::dvec2 v1 = vertices2D[i];
+			glm::dvec2 v2 = vertices2D[(i+1) % vertices2D.size()];
+			Segment2D vseg = { v1, v2 };
+			if (vseg.intersectSegmSegm(rseg)) return true;
+		}
+		return false;
+	}
+
+	virtual bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
+		for (Ray& r : lines) if (lineInBounds(r)) return true;
+		glm::dvec2 pt1 = filter3Dto2D(rayIntersection(lines[0]));
+		glm::dvec2 pt2 = filter3Dto2D(rayIntersection(lines[1]));
+		Segment2D pts = { pt1, pt2 };
+		return intersectionInBounds(pts);
+	}
 
 	double getMaxSize() {
 		glm::vec2 size = getMaxAA() - getMinAA();

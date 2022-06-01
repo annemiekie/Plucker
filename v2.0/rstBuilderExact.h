@@ -6,7 +6,7 @@
 #include "rst.h"
 #include <chrono>
 #include "exactBuildTracker.h"
-
+#include "eslFindAll.h"
 
 static bool false_bool = false;
 
@@ -19,8 +19,14 @@ public:
 	//Cache<std::vector<Ray>> combiCache;
 
 	static void build(Options::BuildOptions& options, RaySpaceTree* rst, VisComponents& visComp, bool print) {
-		fill(options, rst, print);
+		//fill(options, rst, print);
+		//fill2(rst);
 	};
+
+	static void fill2(RaySpaceTree* rst) {
+		ESLFindAll findesls(rst);
+		findesls.find();
+	}
 
 	static void fill(Options::BuildOptions& options, RaySpaceTree* rst, bool print, bool depthFirst = false) {
 		ExactBuildTracker track;

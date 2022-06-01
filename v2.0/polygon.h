@@ -65,14 +65,15 @@ public:
 		return (inBounds(r, thres));
 	}
 
-	bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
-		if (lines.size() == 1) {
-			Ray r = lines[0];
-			if (inBounds(r)) return true;
-			r.inverseDir();
-			if (inBounds(r)) return true;
-			return false;
-		}
+	bool lineInBounds(Ray& r, double thres = 1E-8) {
+		if (inBounds(r)) return true;
+		r.inverseDir();
+		if (inBounds(r)) return true;
+		return false;
+	}
+
+	virtual bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
+		for (Ray& r : lines) if (lineInBounds(r)) return true;
 		glm::dvec3 pt1 = rayIntersection(lines[0]);
 		glm::dvec3 pt2 = rayIntersection(lines[1]);
 		Ray r12(pt1, pt2);

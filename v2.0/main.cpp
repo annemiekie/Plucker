@@ -159,11 +159,15 @@ int main() {
 	glm::vec3 maindir = glm::vec3(0);
 	if (!options.alldir) maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
 	AxisAlignedPolygon polyWindow = model.boundingCube.getCubeSideSquare(maindir);
+
 	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, &polyWindow, dir, sgn, options, visComp, false);
 	else if (options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, &polyWindow, dir, sgn, options, visComp, true);
 	if (options.sampling && options.exact) RSTBuilderExact::fill(options, &rst, true);
 	//rst.printLeafNodes();
-	Visualizer::visualize(width, height, &model, &rst, visComp, window);
+	ESLFindAll eslfinder(&rst);
+	eslfinder.find();
+
+	Visualizer::visualize(width, height, &model, &rst, visComp, window, eslfinder.raysPerPrimitive);
 
 
 	return 0;

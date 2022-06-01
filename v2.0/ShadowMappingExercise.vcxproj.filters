@@ -244,5 +244,8 @@
     <ClInclude Include="axisAlignedSquare.h">
       <Filter>Headers\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="eslFindAll.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

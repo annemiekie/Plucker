@@ -120,14 +120,14 @@ public:
         return AxisAlignedSquare(minm, maxm, point, normal);
     }
 
-    bool intersectSide(glm::vec3 mainDir, const Ray& r) {
-        if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
-        return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
-    }
+    //bool intersectSide(glm::vec3 mainDir, const Ray& r) {
+    //    if (glm::dot(glm::vec3(r.direction), mainDir) < 0) return false;
+    //    return getCubeSideSquare(mainDir).inBounds(r, 1E-8);
+    //}
 
-    glm::vec3 intersectSidePoint(glm::vec3 mainDir, const Ray& r) {
-        return getCubeSideSquare(mainDir).rayIntersection(r);
-    }
+    //glm::vec3 intersectSidePoint(glm::vec3 mainDir, const Ray& r) {
+    //    return getCubeSideSquare(mainDir).rayIntersection(r);
+    //}
 
     bool intersectSegmSegm(glm::vec2& s1p1, glm::vec2& s1p2, glm::vec2& s2p1, glm::vec2& s2p2) {
         float d = (s1p2.x - s1p1.x) * (s2p2.y - s2p1.y) - (s1p2.y - s1p1.y) * (s2p2.x - s2p1.x);
@@ -155,52 +155,52 @@ public:
     //    return false;
     //}
 
-    // should do this with square
-    bool intersectSideBB(std::vector<Ray>& rays, glm::vec3& mainDir) {
-        std::vector<glm::dvec3> points;
-        for (Ray& r : rays) points.push_back(intersectSidePoint(mainDir, r));
-        Cube bb(points);
-        for (int j = 0; j < 3; j++) {
-            if (!mainDir[j]) {
-                if (bb.bounds[1][j] < bounds[0][j] || bb.bounds[0][j] > bounds[1][j]) return false;
-            }
-        }
-        return true;
-    }
+    //// should do this with square
+    //bool intersectSideBB(std::vector<Ray>& rays, glm::vec3& mainDir) {
+    //    std::vector<glm::dvec3> points;
+    //    for (Ray& r : rays) points.push_back(intersectSidePoint(mainDir, r));
+    //    Cube bb(points);
+    //    for (int j = 0; j < 3; j++) {
+    //        if (!mainDir[j]) {
+    //            if (bb.bounds[1][j] < bounds[0][j] || bb.bounds[0][j] > bounds[1][j]) return false;
+    //        }
+    //    }
+    //    return true;
+    //}
 
-    bool intersectSideSwath(glm::dvec3& vpos, glm::dvec3& v1pos, glm::dvec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
+    //bool intersectSideSwath(glm::dvec3& vpos, glm::dvec3& v1pos, glm::dvec3& v2pos, glm::vec3& mainDir, std::vector<glm::vec3>& intersects = std::vector<glm::vec3>()) {
 
-        glm::dvec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
-        glm::dvec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
-        intersects = { intr1, intr2 };
-        glm::dvec3 invMain = 1.f - glm::abs(mainDir);
-        glm::dvec3 sidemin = invMain * bounds[0];
-        glm::dvec3 sidemax = invMain * bounds[1];
-        intr1 = intr1 * invMain;
-        if (glm::all(glm::lessThanEqual(intr1, sidemax)) && glm::all(glm::greaterThanEqual(intr1, sidemin))) return true;
-        intr1 = intr1 * invMain;
-        if (glm::all(glm::lessThanEqual(intr2, sidemax)) && glm::all(glm::greaterThanEqual(intr2, sidemin))) return true;
-        glm::vec2 int2r1, int2r2;
-        glm::vec2 smin, smax;
-        int count = 0;
-        for (int i = 0; i < 3; i++) {
-            if (invMain[i]) {
-                if (intr1[i] < sidemin[i] && intr2[i] < sidemin[i]) return false;
-                else if (intr1[i] > sidemax[i] && intr2[i] > sidemax[i]) return false;
-                int2r1[count] = intr1[i];
-                int2r2[count] = intr2[i];
-                smin[count] = sidemin[i];
-                smax[count] = sidemax[i];
-                count++;
-            }
-        }
-        if (intersectSegmSegm(int2r1, int2r2, smin, glm::vec2{ smin.x, smax.y })) return true;
-        if (intersectSegmSegm(int2r1, int2r2, smin, glm::vec2{ smin.y, smax.x })) return true;
-        if (intersectSegmSegm(int2r1, int2r2, smax, glm::vec2{ smin.x, smax.y })) return true;
-        if (intersectSegmSegm(int2r1, int2r2, smax, glm::vec2{ smin.y, smax.x })) return true;
+    //    glm::dvec3 intr1 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
+    //    glm::dvec3 intr2 = intersectSidePoint(mainDir, Ray(vpos, v1pos));
+    //    intersects = { intr1, intr2 };
+    //    glm::dvec3 invMain = 1.f - glm::abs(mainDir);
+    //    glm::dvec3 sidemin = invMain * bounds[0];
+    //    glm::dvec3 sidemax = invMain * bounds[1];
+    //    intr1 = intr1 * invMain;
+    //    if (glm::all(glm::lessThanEqual(intr1, sidemax)) && glm::all(glm::greaterThanEqual(intr1, sidemin))) return true;
+    //    intr1 = intr1 * invMain;
+    //    if (glm::all(glm::lessThanEqual(intr2, sidemax)) && glm::all(glm::greaterThanEqual(intr2, sidemin))) return true;
+    //    glm::vec2 int2r1, int2r2;
+    //    glm::vec2 smin, smax;
+    //    int count = 0;
+    //    for (int i = 0; i < 3; i++) {
+    //        if (invMain[i]) {
+    //            if (intr1[i] < sidemin[i] && intr2[i] < sidemin[i]) return false;
+    //            else if (intr1[i] > sidemax[i] && intr2[i] > sidemax[i]) return false;
+    //            int2r1[count] = intr1[i];
+    //            int2r2[count] = intr2[i];
+    //            smin[count] = sidemin[i];
+    //            smax[count] = sidemax[i];
+    //            count++;
+    //        }
+    //    }
+    //    if (intersectSegmSegm(int2r1, int2r2, smin, glm::vec2{ smin.x, smax.y })) return true;
+    //    if (intersectSegmSegm(int2r1, int2r2, smin, glm::vec2{ smin.y, smax.x })) return true;
+    //    if (intersectSegmSegm(int2r1, int2r2, smax, glm::vec2{ smin.x, smax.y })) return true;
+    //    if (intersectSegmSegm(int2r1, int2r2, smax, glm::vec2{ smin.y, smax.x })) return true;
 
-        return false;
-    }
+    //    return false;
+    //}
 
     virtual bool intersect(const Ray& r, double& tmin, double& tmax, bool getcolor = false, glm::vec3& maindir = glm::vec3(0), glm::vec3& color = glm::vec3()) override  //const
     {
@@ -357,27 +357,27 @@ public:
         //return lineVAO;
     };
 
-    GLuint vaoSideQuad(glm::vec3 mainDir) {
-        //int ind = getIndex(mainDir);
-        Square sq = getCubeSideSquare(mainDir);
-        std::vector<glm::vec3> lines;
+    //GLuint vaoSideQuad(glm::vec3 mainDir) {
+    //    //int ind = getIndex(mainDir);
+    //    Square sq = getCubeSideSquare(mainDir);
+    //    std::vector<glm::vec3> lines;
 
-        for (int i = 0; i < 4; i++) {
-            lines.push_back(sq.vertices[i]);
-            lines.push_back(sq.vertices[(i + 1) % 4]);
-        }
+    //    for (int i = 0; i < 4; i++) {
+    //        lines.push_back(sq.vertices[i]);
+    //        lines.push_back(sq.vertices[(i + 1) % 4]);
+    //    }
 
-        GLuint lineVAO, lineVBO;
-        glGenVertexArrays(1, &lineVAO);
-        glGenBuffers(1, &lineVBO);
-        glBindVertexArray(lineVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), &lines[0], GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+    //    GLuint lineVAO, lineVBO;
+    //    glGenVertexArrays(1, &lineVAO);
+    //    glGenBuffers(1, &lineVBO);
+    //    glBindVertexArray(lineVAO);
+    //    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    //    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), &lines[0], GL_STATIC_DRAW);
+    //    glEnableVertexAttribArray(0);
+    //    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
 
-        return lineVAO;
-    };
+    //    return lineVAO;
+    //};
 
     virtual void draw() override {
         glBindVertexArray(vao);
