@@ -142,7 +142,8 @@ public:
 		}
 		for (SplitSide& s : esl.splittingLines) {
 			if (s.edge != NULL) { 
-				glm::dvec3 pt = s.edge->ray.pointOfintersectWithRay(esl.ray);
+				double depth;
+				glm::dvec3 pt = s.edge->ray.pointOfintersectWithRay(esl.ray, depth);
 				// check if intersection is on edge
 				if (s.edge->pointOnRay(pt)) {
 					// check if edge is silhouette
@@ -205,7 +206,7 @@ public:
 			}
 			// check if primitive in same plane as target is hit
 			if (esl.inPlane) {
-				if (prim->getPlane().equal(rst->model->triangles[embreePrim]->getPlane())) {
+				if (prim->getPlane()->equal(rst->model->triangles[embreePrim]->getPlane())) {
 					found = true;
 					inPlaneOfPrim = true;
 				}

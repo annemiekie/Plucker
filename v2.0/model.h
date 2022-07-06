@@ -51,7 +51,7 @@ public:
 	Cube boundingCube;
 	Sphere boundingSphere;
 	glm::dvec3 center = glm::dvec3(0);
-	float radius = 0.f;
+	double radius = 0.f;
 
 	RTCDevice device;
 	RTCScene scene;
@@ -88,17 +88,17 @@ public:
 
 		for (Vertex* vertex : vertices) {
 			if (vertex->pos.x > maxx) maxx = vertex->pos.x;
-			else if (vertex->pos.x < minx) minx = vertex->pos.x;
+			if (vertex->pos.x < minx) minx = vertex->pos.x;
 			if (vertex->pos.y > maxy) maxy = vertex->pos.y;
-			else if (vertex->pos.y < miny) miny = vertex->pos.y;
+			if (vertex->pos.y < miny) miny = vertex->pos.y;
 			if (vertex->pos.z > maxz) maxz = vertex->pos.z;
-			else if (vertex->pos.z < minz) minz = vertex->pos.z;
+			if (vertex->pos.z < minz) minz = vertex->pos.z;
 		}
 
 		boundingBox = Cube(glm::dvec3(minx, miny, minz), glm::dvec3(maxx, maxy, maxz));
 		center = glm::dvec3((minx + maxx) / 2., (miny + maxy) / 2., (minz + maxz) / 2.);
 		radius = glm::length(glm::dvec3(maxx, maxy, maxz) - center);
-		float maxside = std::max(std::max(maxx - minx, maxy - miny), maxz - minz);
+		double maxside = std::max(std::max(maxx - minx, maxy - miny), maxz - minz);
 		boundingCube = Cube(center, maxside);
 		boundingSphere = Sphere(center, glm::length(boundingCube.getBounds(1) - center));
 	}
@@ -188,6 +188,14 @@ public:
 			}
 			h += shape.mesh.indices.size();
 		}
+		int resizeVec = 0;
+		for (int i = 0; i < vertices.size(); i++) {
+			if (vertices[i] == NULL) {
+				resizeVec = i;
+				break;
+			}
+		}
+		if (resizeVec > 0) vertices.resize(resizeVec);
 		edgeVector = std::vector<Edge*>(edges.size());
 		for (auto& e : edges) edgeVector[e.second->id] = e.second;
 	};

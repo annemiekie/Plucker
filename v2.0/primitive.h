@@ -4,7 +4,7 @@
 #include "vertex.h"
 #include "ray.h"
 #include "plane.h"
-
+#include <set>
 struct Edge;
 
 struct Primitive {
@@ -14,22 +14,55 @@ struct Primitive {
 	Vertex* vertices[3];
 	Edge* edges[3];
 	Ray rays[3];
+	Plane* plane = NULL;
+	std::set<int> esls;
 
 	double getIntersectionDepth(const Ray& r, bool inplane = false, bool closestEdge = false) {
-		if (inplane || getPlane().rayInPlane(r, 1E-7)) {
-			double depth = -INFINITY;
-			for (Ray er : rays) {
-				double edgeIntersect = r.depthToIntersectionWithRay(er);
-				if (closestEdge) {
-					if (edgeIntersect < depth) depth = edgeIntersect;
-				}
-				else if (edgeIntersect > depth) depth = edgeIntersect;
-			}
-			return depth;
-		}
+		//if (inplane || getPlane().rayInPlane(r, 1E-7)) {
+		//	double depth = -INFINITY;
+		//	for (Ray er : rays) {
+		//		double edgeIntersect = r.depthToIntersectionWithRay(er);
+		//		if (closestEdge) {
+		//			if (edgeIntersect < depth) depth = edgeIntersect;
+		//		}
+		//		else if (edgeIntersect > depth) depth = edgeIntersect;
+		//	}
+		//	return depth;
+		//}
 		double ndotdir = glm::dot(normal, r.direction);
 		return glm::dot(normal, vertices[0]->pos - r.origin) / ndotdir;
 	}
+
+	//double getIntersectionDepth(const Ray& r, bool inplane = false, bool closestEdge = false) {
+	//	return getPlane().rayIntersectionDepth(r);
+	//}
+	bool vertexNeighbor(Primitive* other) {
+		for (Vertex* v1 : vertices) {
+			for (Vertex* v2 : other->vertices) {
+				if (v1->id == v2->id) return true;
+			}
+		}
+		return false;
+	}
+
+	std::set<Vertex*> sameVertices(Primitive* other) {
+		std::set<Vertex*> verts;
+		for (Vertex* v1 : vertices) {
+			for (Vertex* v2 : other->vertices) {
+				if (v1->id == v2->id) verts.insert(v1);
+			}
+		}
+		return verts;
+	}
+
+	//bool edgeNeighbor(Primitive* other) {
+	//	for (auto* e1 : edges) {
+	//		for (auto* e2 : other->edges) {
+	//			if (e1->id == e2->id) return true;
+	//		}
+	//	}
+	//	return false;
+	//}
 
 	bool onRightSideOfSplitEdge(Ray& split, bool side) {
 		Ray checkRay = Ray(center + normal, center);
@@ -53,8 +86,9 @@ struct Primitive {
 		return true;
 	}
 
-	Plane getPlane() {
-		return Plane(vertices[0]->pos, normal);
+	Plane* getPlane() {
+		if (plane == NULL) plane = new Plane(vertices[0]->pos, normal);
+		return plane;
 	}
 
 	std::vector<Ray> getRayVector() {

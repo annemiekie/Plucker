@@ -11,12 +11,13 @@ public:
 	~AxisAlignedPolygon() {};
 	AxisAlignedPolygon(AxisAlignedPolygon* polygon) : Plane(polygon), AxisAlignedPlane(polygon) {
 		vertices = polygon->vertices;
+		s = polygon->s;
 		edges = polygon->edges;
+		vertexEdges = polygon->vertexEdges;
 		vertices2D = polygon->vertices2D;
 	};
 
 	AxisAlignedPolygon(AxisAlignedPlane* plane) : Plane(plane), AxisAlignedPlane(plane) {};
-
 
 	AxisAlignedPolygon(glm::dvec3 point, glm::dvec3 normal) : Plane(point, normal), AxisAlignedPlane(point, normal) {	};
 
@@ -48,7 +49,7 @@ public:
 		return false;
 	}
 
-	virtual bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
+	bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
 		for (Ray& r : lines) if (lineInBounds(r)) return true;
 		glm::dvec2 pt1 = filter3Dto2D(rayIntersection(lines[0]));
 		glm::dvec2 pt2 = filter3Dto2D(rayIntersection(lines[1]));

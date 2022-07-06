@@ -22,7 +22,7 @@ public:
 		};
 	}
 
-	bool segmInTetra(glm::dvec3 v1, glm::dvec3 v2, float err = 0) {
+	bool segmInTetra(glm::dvec3 v1, glm::dvec3 v2, double err = 0) {
 		if (pointInTetra(v1, 0) || pointInTetra(v2, 0)) return true;
 		glm::dvec3 intPt;
 		for (TriWedge& w : wedges) if (w.raySegmentIntersection(v1, v2, intPt)) return true;
@@ -30,12 +30,12 @@ public:
 		return false;
 	}
 
-	bool pointInTetra(glm::dvec3 pt, float err) {
+	bool pointInTetra(glm::dvec3 pt, double err) {
 		int volNr = unbound ? 3 : 1;
 		for (int i=0; i<volNr; i++) {
 			bool inVolume = true;
 			for (int j = 0; j < wedges.size(); j++) {
-				float x = glm::dot(wedges[j].normal * m[i][j], pt) - wedges[j].constant * m[i][j];
+				double x = glm::dot(wedges[j].normal * m[i][j], pt) - wedges[j].constant * m[i][j];
 				if (glm::dot(wedges[j].normal * m[i][j], pt) - wedges[j].constant * m[i][j] > err) {
 					inVolume = false;
 					break;

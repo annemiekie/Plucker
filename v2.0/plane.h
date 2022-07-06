@@ -7,7 +7,7 @@
 class Plane {
 public:
     glm::dvec3 normal;
-    float constant = 0;
+    double constant = 0;
 
     Plane() {};
 
@@ -16,7 +16,7 @@ public:
         constant = plane->constant;
     };
 
-    Plane(glm::dvec3 n, float c) : normal(n), constant(c) {};
+    Plane(glm::dvec3 n, double c) : normal(n), constant(c) {};
 
     Plane(glm::dvec3 point, glm::dvec3 normal) : normal(normal) {
         constant = glm::dot(normal, point);
@@ -89,9 +89,9 @@ public:
         return true;
     }
 
-    bool equal(Plane& other, double thres = 1E-10) {
-        if (glm::length(glm::normalize(normal) - glm::normalize(other.normal)) > thres) return false;
-        if (fabs(constant - other.constant) > thres) return false;
+    bool equal(Plane* other, double thres = 1E-10) {
+        if (glm::length(glm::normalize(normal) - glm::normalize(other->normal)) > thres) return false;
+        if (fabs(constant - other->constant) > thres) return false;
         return true;
     }
 

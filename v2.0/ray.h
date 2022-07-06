@@ -11,8 +11,8 @@
 
 class Ray {
 public:
-    glm::dvec3 origin{ 0.0f };
-    glm::dvec3 direction{ 0.0f, 0.0f, -1.0f };
+    glm::dvec3 origin{ 0.0 };
+    glm::dvec3 direction{ 0.0, 0.0, -1.0 };
     glm::dvec3 invdir;
     glm::dvec3 u;
     glm::dvec3 v;
@@ -92,15 +92,46 @@ public:
         return false;
     };
 
-    bool intersectsWithRayAtDepth(Ray& oRay, double depth, float thres = 1E-8) {
+    bool intersectsWithRayAtDepth(Ray& oRay, double depth, double thres = 1E-8) {
         glm::dvec3 intersectionTs = (origin + direction * depth - oRay.origin) / oRay.direction;
-        return (fabsf(intersectionTs.x - intersectionTs.y) < thres && fabsf(intersectionTs.x - intersectionTs.z) < thres);
+        return (fabs(intersectionTs.x - intersectionTs.y) < thres && fabs(intersectionTs.x - intersectionTs.z) < thres);
     }
 
-    glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {
-        glm::dvec3 N(0, 0, 1);
-        return (glm::dot(v, N) * oRay.u - glm::dot(oRay.v, N) * u - glm::dot(v, oRay.u) * N) /
-                   glm::dot(glm::cross(u, oRay.u), N);
+    //glm::dvec3 pointOfintersectWithRay(const Ray& oRay) const {
+    //    glm::dvec3 N(0, 0, 1);
+    //    return (glm::dot(v, N) * oRay.u - glm::dot(oRay.v, N) * u - glm::dot(v, oRay.u) * N) /
+    //               glm::dot(glm::cross(u, oRay.u), N);
+    //}
+
+    glm::dvec3 pointOfintersectWithRay(const Ray& oray, double& mua) const {
+        glm::dvec3 p13, p43, p21;
+        double d1343, d4321, d1321, d4343, d2121;
+        double numer, denom;
+
+        p13 = origin - oray.origin;
+        p43 = oray.direction;
+
+        //if (ABS(p43.x) < EPS && ABS(p43.y) < EPS && ABS(p43.z) < EPS)
+        //    return(FALSE);
+        p21 = direction;
+        //if (ABS(p21.x) < EPS && ABS(p21.y) < EPS && ABS(p21.z) < EPS)
+        //    return(FALSE);
+
+        d1343 = glm::dot(p13, p43);
+        d4321 = glm::dot(p43, p21);
+        d1321 = glm::dot(p13, p21);
+        d4343 = glm::dot(p43, p43);
+        d2121 = glm::dot(p21, p21);
+
+        denom = d2121 * d4343 - d4321 * d4321;
+        //if (ABS(denom) < EPS)
+        //    return(FALSE);
+        numer = d1343 * d4321 - d1321 * d4343;
+
+        mua = numer / denom;
+       // double mub = (d1343 + d4321 * (mua)) / d4343;
+
+        return origin + mua * direction;
     }
 
     void print() {
@@ -134,8 +165,10 @@ public:
     }
 
     double depthToIntersectionWithRay(Ray& oRay) const {
-        glm::dvec3 intersect = pointOfintersectWithRay(oRay);
-        return depthToPointOnRay(intersect);
+        double depth;
+        glm::dvec3 intersect = pointOfintersectWithRay(oRay, depth);
+       // return depthToPointOnRay(intersect);
+        return depth;
     }
 
     double depthToPointOnRay(glm::dvec3 pt) const {

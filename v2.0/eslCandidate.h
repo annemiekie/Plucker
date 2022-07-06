@@ -135,16 +135,16 @@ struct ESLCandidate {
 					if (s.edge->ray.throughPoint(v->pos)) return true;
 				}
 			}
-			if (prim->getPlane().pointOnPlane(v->pos, 1E-8)) return true;
+			if (prim->getPlane()->pointOnPlane(v->pos, 1E-8)) return true;
 		}
 
 		for (Edge* e : silhouetteEdges) {
-			if (prim->getPlane().rayInPlane(e->ray, 1E-8)) return true;
+			if (prim->getPlane()->rayInPlane(e->ray, 1E-8)) return true;
 		}
 
 		for (SplitSide& s : splittingLines) {
 			if (s.edgeIsTriangle) return true;
-			if (prim->getPlane().rayInPlane(s.ray, 1E-8)) return true;
+			if (prim->getPlane()->rayInPlane(s.ray, 1E-8)) return true;
 		}
 
 

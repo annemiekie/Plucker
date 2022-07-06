@@ -3,6 +3,7 @@
 #include <glm/common.hpp>
 #include "edge.h"
 #include "primitive.h"
+#include <set>
 struct Edge;
 struct Primitive;
 
@@ -14,6 +15,8 @@ struct Vertex {
 	std::vector<Edge*> edges;
 	bool silhouette = false;
 	bool splitline = false;
+	std::set<int> valid_esls;
+	std::set<int> generator_esls;
 
 	struct cmp_ptr
 	{

@@ -62,7 +62,7 @@ public:
 		makeVaoVbo(lines);
 	}
 
-	void updateVaoWithLines(std::vector<Ray> rays_new, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
+	void updateVaoWithLines(std::vector<Ray>& rays_new, GeoObject* object, glm::vec3 maindir = glm::vec3(0)) {
 		//if (rays_new.size() == 0) return;
 		rays = rays_new;
 		updateVaoWithLines(object, maindir);

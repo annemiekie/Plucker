@@ -172,7 +172,7 @@ private:
 
 						if (split.edge != NULL) {
 							for (Primitive* p : split.edge->triangles) {
-								if (prim->getPlane().equal(p->getPlane(), 1E-8)) {
+								if (prim->getPlane()->equal(p->getPlane(), 1E-8)) {
 									if (!p->onRightSideOfSplitEdge(split.ray, split.side)) return false;
 								}
 							}

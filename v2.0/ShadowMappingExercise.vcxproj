@@ -41,6 +41,7 @@
     <ClInclude Include="cubeSampler.h" />
     <ClInclude Include="edge.h" />
     <ClInclude Include="eslCandidate.h" />
+    <ClInclude Include="eslCandidatePre.h" />
     <ClInclude Include="eslChecker.h" />
     <ClInclude Include="eslFinder.h" />
     <ClInclude Include="extremalStabbingLine.h" />

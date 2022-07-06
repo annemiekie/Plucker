@@ -247,5 +247,8 @@
     <ClInclude Include="eslFindAll.h">
       <Filter>Headers\Tree Building\Exact</Filter>
     </ClInclude>
+    <ClInclude Include="eslCandidatePre.h">
+      <Filter>Headers\Tree Building\Exact</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

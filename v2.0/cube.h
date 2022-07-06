@@ -273,9 +273,9 @@ public:
         sign[0] = (r.invdir.x < 0);
         sign[1] = (r.invdir.y < 0);
         sign[2] = (r.invdir.z < 0);
-        float txmin, txmax, tymin, tymax, tzmin, tzmax;
-        float tmin = -INFINITY;
-        float tmax = INFINITY;
+        double txmin, txmax, tymin, tymax, tzmin, tzmax;
+        double tmin = -INFINITY;
+        double tmax = INFINITY;
 
         if (r.direction.x == 0) {
             if (r.origin.x < bounds[sign[0]].x) return false;

@@ -5,6 +5,8 @@ class Polygone : public virtual Plane {
 public:
 	std::vector<Ray> edges;
 	std::vector<glm::dvec3> vertices;
+	std::vector<std::vector<glm::dvec3>> vertexEdges;
+	int s = 0;
 	GLuint vao;
 
 	Polygone(glm::dvec3 n, float c) : Plane(n, c) { };
@@ -13,7 +15,15 @@ public:
 
 	Polygone(std::vector<glm::dvec3>& vertices, glm::dvec3 voppo) 
 		: Plane(vertices, voppo), vertices(vertices) {
+		s = vertices.size();
 		makeDirectedEdges();
+		makeVertexEdges();
+	}
+
+	void makeVertexEdges() {
+		for (int i = 0; i < vertices.size(); i++) {
+			vertexEdges.push_back({ vertices[(i - 1 + vertices.size()) % vertices.size()], vertices[i] });
+		}
 	}
 
 	void makeDirectedEdges() {
@@ -72,13 +82,14 @@ public:
 		return false;
 	}
 
-	virtual bool intersectsPlaneFromLines(std::vector<Ray>& lines) {
+	bool planeIntersectionFromLines(std::vector<Ray>& lines) {
 		for (Ray& r : lines) if (lineInBounds(r)) return true;
 		glm::dvec3 pt1 = rayIntersection(lines[0]);
 		glm::dvec3 pt2 = rayIntersection(lines[1]);
 		Ray r12(pt1, pt2);
 		for (Ray& e : edges) {
-			glm::dvec3 intersect = e.pointOfintersectWithRay(r12);
+			double depth;
+			glm::dvec3 intersect = e.pointOfintersectWithRay(r12, depth);
 			if (inBounds(intersect)) return true;
 		}
 		return false;

@@ -6,13 +6,20 @@ public:
 	glm::dvec3 vec1;
 	glm::dvec3 vec2;
 	glm::dvec3 vMain;
+	std::vector<Ray> rays;
 
     TriWedge(glm::dvec3 n, float c) : Plane(n,c) { };
 
 	TriWedge(glm::dvec3 v1main, glm::dvec3 v2, glm::dvec3 v3, glm::dvec3 voppo) : Plane(v1main, v2, v3, voppo), vMain(v1main) {
 		vec1 = v2 - v1main;
 		vec2 = v3 - v1main;
+		rays.push_back(Ray(v1main, v2));
+		rays.push_back(Ray(v1main, v3));
 	};
+
+	bool inBounds(Ray& r) {
+		return r.side(rays[0]) != r.side(rays[1]);
+	}
 
 	bool inBounds(glm::dvec3& pt) {	
 		return glm::dot(glm::cross(vec1, pt - vMain), glm::cross(vec2, pt - vMain)) <= 0;

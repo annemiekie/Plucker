@@ -20,7 +20,7 @@ public:
 		: Plane(point, normal), AxisAlignedPolygon(point, normal), minm(minm), maxm(maxm) {
 		makeVerticesFromMinMax();
 		makeDirectedEdges();
-
+		makeVertexEdges();
 	}
 
 	AxisAlignedSquare(std::vector<Ray>& rays, AxisAlignedPlane* plane) : Plane(plane), AxisAlignedPolygon(plane) {
@@ -29,18 +29,21 @@ public:
 		getMinMaxFromPoints(points);
 		makeVerticesFromMinMax();
 		makeDirectedEdges();
+		makeVertexEdges();
 	};
 
 	AxisAlignedSquare(std::vector<glm::dvec3>& points, AxisAlignedPlane* plane) : Plane(plane), AxisAlignedPolygon(plane) {
 		getMinMaxFromPoints(points);
 		makeVerticesFromMinMax();
 		makeDirectedEdges();
+		makeVertexEdges();
 	};
 
 	AxisAlignedSquare(AxisAlignedPolygon* polygon) : Plane(polygon), AxisAlignedPolygon(polygon) {
 		getMinMaxFromPoints(polygon->vertices);
 		makeVerticesFromMinMax();
 		makeDirectedEdges();
+		makeVertexEdges();
 	}
 
 	void getMinMaxFromPoints(std::vector<glm::dvec3>& points) {

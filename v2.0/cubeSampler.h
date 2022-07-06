@@ -13,11 +13,11 @@ struct CubeSampler : Sampler {
 
 
 	CubeSampler(Cube* cube, int N, int wh, glm::vec3 maindir, bool alldir, int ratio = 1) :
-				cube(cube), Sampler(round(sqrt(1.f*N)), wh, ratio, maindir, alldir) {
+				cube(cube), Sampler(round(sqrt(1.*N)), wh, ratio, maindir, alldir) {
 
-		if (fabsf(maindir.x)) dir = glm::ivec3(1, 2, 0);
-		else if (fabsf(maindir.y)) dir = glm::ivec3(2, 0, 1);
-		else if (fabsf(maindir.z)) dir = glm::ivec3(0, 1, 2);
+		if (fabs(maindir.x)) dir = glm::ivec3(1, 2, 0);
+		else if (fabs(maindir.y)) dir = glm::ivec3(2, 0, 1);
+		else if (fabs(maindir.z)) dir = glm::ivec3(0, 1, 2);
 		sgn = glm::dot(maindir, glm::vec3(1));
 		createMainSamples();
 		currentDome = main_grid[0];
@@ -51,10 +51,10 @@ struct CubeSampler : Sampler {
 
 	virtual void createSamples() override {
 		Square side = cube->getCubeSideSquare(maindir);
-		glm::vec3 min = side.getMin();
-		glm::vec3 max = side.getMax();
+		glm::dvec3 min = side.getMin();
+		glm::dvec3 max = side.getMax();
 
-		glm::vec3 sample;
+		glm::dvec3 sample;
 		sample[dir.z] = min[dir.z];
 		for (int i = 0; i <= mainGridDim; i++) {
 			sample[dir.x] = min[dir.x] + i * (max[dir.x] - min[dir.x]) / (1.*mainGridDim);

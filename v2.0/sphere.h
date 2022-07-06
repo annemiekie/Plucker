@@ -33,14 +33,14 @@ public:
         double C = glm::dot(center, center) + glm::dot(ori, ori) - 2.f * glm::dot(ori, center) - radius * radius;
 
         // discriminant
-        double D = B * B - 4.f * A * C;
+        double D = B * B - 4. * A * C;
         if (D <= 0) return false;
-        tmin = (-B - sqrtf(D)) / (2.f * A);
+        tmin = (-B - sqrtf(D)) / (2. * A);
         //start = ori + t1 * dir;
 
         //   if (D == 0) return 1;
 
-        tmax = (-B + sqrtf(D)) / (2.f * A);
+        tmax = (-B + sqrtf(D)) / (2. * A);
         //end = ori + t2 * dir;
         if (tmax < tmin) {
             double t = tmin;
@@ -51,9 +51,9 @@ public:
         if (getcolor) {
             glm::dvec3 entry = ori + tmin * dir;
             glm::dvec3 vector = glm::normalize(entry - center);
-            color.x = 0.2f;
+            color.x = 0.2;
             color.y = acos(vector.z) / M_PI;
-            color.z = atan(vector.y / vector.x) / (M_PI / 2.f);
+            color.z = atan(vector.y / vector.x) / (M_PI / 2.);
         }
 
         return true;
@@ -63,10 +63,10 @@ public:
         std::vector<VertexVis> vertices;
 
         GLfloat x, y, z, xy;                              // vertex position
-        GLfloat nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
+        GLfloat nx, ny, nz, lengthInv = 1.0 / radius;    // vertex normal
        // GLfloat s, t;                                     // vertex texCoord
 
-        GLfloat sectorStep = 2.f * glm::pi<float>() / (float)sectorCount;
+        GLfloat sectorStep = 2. * glm::pi<float>() / (float)sectorCount;
         GLfloat stackStep = glm::pi<float>() / (float)stackCount;
         GLfloat sectorAngle, stackAngle;
 

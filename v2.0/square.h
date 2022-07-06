@@ -15,6 +15,7 @@ public:
 		vertices[1] = v2;
 		vertices[2] = v2 + v3 - v1main;
 		vertices[3] = v3;
+		s = 4;
 		makeDirectedEdges();
 	};
 

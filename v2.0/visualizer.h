@@ -205,9 +205,9 @@ namespace Visualizer {
 		model->getIntersectionEmbree(r, primindex, t);
 		if (primindex >= 0) {
 			Primitive* p = rst->model->triangles[primindex];
-			std::cout << "primitive: " << primindex << "edges: ";
+			std::cout << "primitive: " << primindex << "  edges: ";
 			for (Edge* e : p->edges) std::cout << e->id << " ";
-			std::cout << "vertices: ";
+			std::cout << " vertices: ";
 			for (Vertex* v : p->vertices) std::cout << v->id << " ";
 			std::cout << std::endl;
 
