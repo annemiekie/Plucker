@@ -74,7 +74,7 @@ public:
         return (-glm::dot(r.origin, normal) + constant) / glm::dot(r.direction, normal);
     }
 
-    virtual glm::vec3 rayIntersection(const Ray& r) {
+    virtual glm::dvec3 rayIntersection(const Ray& r) {
         return r.origin + rayIntersectionDepth(r) * r.direction;
     }
 

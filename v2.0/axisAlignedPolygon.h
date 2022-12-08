@@ -6,6 +6,8 @@
 class AxisAlignedPolygon : virtual public Polygone, public AxisAlignedPlane {
 public:
 	std::vector<glm::dvec2> vertices2D;
+	glm::dvec2 minAA;
+	glm::dvec2 maxAA;
 
 	AxisAlignedPolygon() {};
 	~AxisAlignedPolygon() {};
@@ -15,6 +17,8 @@ public:
 		edges = polygon->edges;
 		vertexEdges = polygon->vertexEdges;
 		vertices2D = polygon->vertices2D;
+		minAA = getMinAA();
+		maxAA = getMaxAA();
 	};
 
 	AxisAlignedPolygon(AxisAlignedPlane* plane) : Plane(plane), AxisAlignedPlane(plane) {};
@@ -22,9 +26,47 @@ public:
 	AxisAlignedPolygon(glm::dvec3 point, glm::dvec3 normal) : Plane(point, normal), AxisAlignedPlane(point, normal) {	};
 
 	AxisAlignedPolygon(std::vector<glm::dvec3> vertices, glm::ivec3 normal) : Plane(vertices, normal), AxisAlignedPlane(vertices[0], normal), Polygone(vertices, normal) {		
+		vertices2D.resize(vertices.size());
 		for (int i = 0; i < vertices.size(); i++) {
 			vertices2D[i] = filter3Dto2D(vertices[i]);
 		}
+		minAA = getMinAA();
+		maxAA = getMaxAA();
+	}
+
+	bool boundingBoxIntersect(AxisAlignedPolygon& other) {
+		if (maxAA.x < other.minAA.x) return false;
+		if (maxAA.y < other.minAA.y) return false;
+		if (other.maxAA.x < minAA.x) return false;
+		if (other.maxAA.y < minAA.y) return false;
+		return true;
+	}
+
+	void makeSmaller(double perc) {
+		glm::dvec2 center;
+		for (glm::dvec2 v2 : vertices2D) center += v2;
+		center /= vertices2D.size();
+		for (int i = 0; i < vertices2D.size(); i++) {
+			vertices2D[i] = perc * vertices2D[i] + (1 - perc) * center;
+			vertices[i] = expand2Dto3D(vertices2D[i]);
+		}
+		makeDirectedEdges();
+		makeVertexEdges();
+		minAA = getMinAA();
+		maxAA = getMaxAA();
+	}
+
+	glm::dvec3 expand2Dto3D(glm::dvec2 vec2) {
+		glm::dvec3 vec3;
+		int c2 = 0;
+		for (int c3 = 0; c3 < 3; c3++) {
+			if (c3 != constantCoord) {
+				vec3[c3] = vec2[c2];
+				c2++;
+			}
+			else vec3[c3] = aaPosition[c3];
+		}
+		return vec3;
 	}
 
 	glm::dvec2 filter3Dto2D(glm::dvec3 vec3) {

@@ -159,6 +159,7 @@ int main() {
 	glm::vec3 maindir = glm::vec3(0);
 	if (!options.alldir) maindir = sgn * glm::ivec3(dir == 'X', dir == 'Y', dir == 'Z');
 	AxisAlignedPolygon polyWindow = model.boundingCube.getCubeSideSquare(maindir);
+	//polyWindow.makeSmaller(0.2);
 
 	if (options.sampling) rst = RSTBuilder<RSTBuilderSamples>::build(&model, &polyWindow, dir, sgn, options, visComp, false);
 	else if (options.exact)	rst = RSTBuilder<RSTBuilderExact>::build(&model, &polyWindow, dir, sgn, options, visComp, true);

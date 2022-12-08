@@ -21,8 +21,9 @@ public:
 	}
 
 	void makeVertexEdges() {
+		vertexEdges.resize(vertices.size());
 		for (int i = 0; i < vertices.size(); i++) {
-			vertexEdges.push_back({ vertices[(i - 1 + vertices.size()) % vertices.size()], vertices[i] });
+			vertexEdges[i] = { vertices[(i - 1 + vertices.size()) % vertices.size()], vertices[i] };
 		}
 	}
 
@@ -33,7 +34,7 @@ public:
 		center /= (float)vertices.size();
 		Ray centerInvNormal = Ray(normal + center, center);
 		for (int i = 0; i < vertices.size(); i++) {
-			edges[i] = Ray(vertices[i], vertices[(i + 1) % 4]);
+			edges[i] = Ray(vertices[i], vertices[(i + 1) % s]);
 			if (centerInvNormal.side(edges[i])) edges[i].inverseDir();
 		}
 	}

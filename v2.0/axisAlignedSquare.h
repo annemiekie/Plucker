@@ -9,16 +9,23 @@ public:
 	//AxisAlignedPolygon(std::vector<glm::dvec3> vertices, glm::ivec3 normal) : AxisAlignedPolygon(vertices[0], normal) {
 
 	//}
-	glm::dvec2 minm = { INFINITY, INFINITY };
-	glm::dvec2 maxm = { -INFINITY, -INFINITY };
+	//glm::dvec2 minm = { INFINITY, INFINITY };
+	//glm::dvec2 maxm = { -INFINITY, -INFINITY };
 
 	AxisAlignedSquare(std::vector<glm::dvec3>& vertices, glm::ivec3 normal) : Plane(vertices[0], normal), AxisAlignedPolygon(vertices, normal) {
 		getMinMaxFromPoints(vertices);
+		makeVerticesFromMinMax();
+		s = 4;
+		makeDirectedEdges();
+		makeVertexEdges();
 	}
 
 	AxisAlignedSquare(glm::dvec2& minm, glm::dvec2& maxm, glm::dvec3 point, glm::ivec3 normal) 
-		: Plane(point, normal), AxisAlignedPolygon(point, normal), minm(minm), maxm(maxm) {
+		: Plane(point, normal), AxisAlignedPolygon(point, normal) {
+		maxAA = maxm;
+		minAA = minm;
 		makeVerticesFromMinMax();
+		s = 4;
 		makeDirectedEdges();
 		makeVertexEdges();
 	}
@@ -28,6 +35,7 @@ public:
 		for (Ray& r : rays) points.push_back(rayIntersection(r));
 		getMinMaxFromPoints(points);
 		makeVerticesFromMinMax();
+		s = 4;
 		makeDirectedEdges();
 		makeVertexEdges();
 	};
@@ -35,6 +43,7 @@ public:
 	AxisAlignedSquare(std::vector<glm::dvec3>& points, AxisAlignedPlane* plane) : Plane(plane), AxisAlignedPolygon(plane) {
 		getMinMaxFromPoints(points);
 		makeVerticesFromMinMax();
+		s = 4;
 		makeDirectedEdges();
 		makeVertexEdges();
 	};
@@ -42,6 +51,7 @@ public:
 	AxisAlignedSquare(AxisAlignedPolygon* polygon) : Plane(polygon), AxisAlignedPolygon(polygon) {
 		getMinMaxFromPoints(polygon->vertices);
 		makeVerticesFromMinMax();
+		s = 4;
 		makeDirectedEdges();
 		makeVertexEdges();
 	}
@@ -51,8 +61,8 @@ public:
 			int c2 = 0;
 			for (int c3 = 0; c3 < 3; c3++) {
 				if (c3 != constantCoord) {
-					if (v[c3] < minm[c2]) minm[c2] = v[c3];
-					if (v[c3] > maxm[c2]) maxm[c2] = v[c3];
+					if (v[c3] < minAA[c2]) minAA[c2] = v[c3];
+					if (v[c3] > maxAA[c2]) maxAA[c2] = v[c3];
 					c2++;
 				}
 			}
@@ -60,7 +70,7 @@ public:
 	}
 
 	void makeVerticesFromMinMax() {
-		vertices2D = { {minm[0], minm[1] }, {maxm[0], minm[1]}, {maxm[0], maxm[1]}, {minm[0], maxm[1]} };
+		vertices2D = { {minAA[0], minAA[1] }, {maxAA[0], minAA[1]}, {maxAA[0], maxAA[1]}, {minAA[0], maxAA[1]} };
 		vertices.resize(vertices2D.size());
 		for (int i = 0; i < vertices2D.size(); i++) {
 			int c2 = 0;
@@ -77,8 +87,8 @@ public:
 
 	bool noIntersection(AxisAlignedSquare& other) {
 		for (int i = 0; i < 2; i++) {
-			if (minm[i] > other.maxm[i]) return true;
-			if (maxm[i] < other.minm[i]) return true;
+			if (minAA[i] > other.maxAA[i]) return true;
+			if (maxAA[i] < other.minAA[i]) return true;
 		}
 		return false;
 	};

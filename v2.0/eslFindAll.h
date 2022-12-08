@@ -1,5 +1,5 @@
 #pragma once
-#pragma once
+#include <chrono>
 #include "cache.h"
 #include "model.h"
 #include "node.h"
@@ -104,6 +104,9 @@ private:
 	CombiConfigurations combiS;
 
 	bool findAllEsl() {
+
+		auto start_time = std::chrono::high_resolution_clock::now();
+
 		// remove veve if same primitive - but add another check that does this? (also add window check?)
 		// also for edge/edge edge/vertex combis?
 		std::cout << "Nr of Primitives: " << rst->model->primsize << std::endl;
@@ -142,18 +145,27 @@ private:
 		// or make sure that if edgeA is in plane of 1 of 2 silh triangles of edgeB, edgeB is silh for edgeA
 		// especially extra check to see if part of same primitive -> definitely in plane
 		makeESLsFromCombi();
+
+		auto end_time = std::chrono::high_resolution_clock::now();
+
+		std::cout << std::endl << "Found " << esls.size() << " ESLs in " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << " ms!" << std::endl;
+		//for (ESLCandidatePre &esl : esls) {
+		//	std::cout << esl.Ve[0]->id << " " << esl.Ve[1]->id << std::endl;
+		//}
+
 		return true;
 	}
 
 	void fillPrimsFromESLs(ESLCandidatePre& candidate) {
-		candidate.id = esls.size();
 		candidate.findPrimsForESLs();
-		esls.push_back(candidate);
-
+		bool addESL = false;
 		for (Line4& r : candidate.rays) {
-			for (int prim : r.prims) {
-				raysPerPrimitive[prim].push_back(r);
-			}
+			if (r.prims.size()) addESL = true;
+			for (int prim : r.prims) raysPerPrimitive[prim].push_back(r);
+		}
+		if (addESL) {
+			candidate.id = esls.size();
+			esls.push_back(candidate);
 		}
 	}
 
@@ -714,6 +726,17 @@ private:
 				if (!e1_for_e2) e1_for_e2 = (side[0] != side[1]);
 				for (int i = 0; i < 2; i++) e1v_for_e2[i] = e1_for_e2 && e1v[i]->silhouette;
 				if (!e1_for_e2) continue;
+
+				std::vector<Ray> flat;
+				for (Vertex* e1ver : e1v) {
+					for (Vertex* e2ver : e2v) {
+						if (e2ver->id != e1ver->id) flat.push_back(Ray(e1ver->pos, e2ver->pos));
+					}
+				}
+				std::vector<glm::dvec3> pts;
+				for (Ray& r : flat) pts.push_back(rst->window->rayIntersection(r));
+				AxisAlignedPolygon poly(pts, rst->window->normal);
+				if (!rst->window->boundingBoxIntersect(poly)) continue;
 				ET.insert({ (uint32_t)e1->id, (uint32_t)e2->id });
 				
 				// remove silhouettes when vertices are equal
@@ -736,9 +759,6 @@ private:
 					}
 				}
 
-				// remove everything not intersecting window
-				// 
-				//fix this -->if (!rst->window->intersectsPlaneFromLines(flatten(v_to_v))) continue;
 				for (int i = 0; i < 2; i++) {
 					if (e1_for_e2v[i] && !rst->window->intersectsPlaneFromLines(getCol(v_to_v, i)))
 						e1_for_e2v[i] = false;
@@ -854,6 +874,7 @@ private:
 
 		std::cout << std::endl << "VeVt VeVe " << VeVt.size() << std::endl;
 		getTwoWayfromOneWay(VeVt, VeVe);
+
 		//remove = std::vector<std::vector<uint32_t>>();
 		//for (std::vector<uint32_t> vv : VeVt) {
 		//	if (!rst->window->isInFrontOf(rst->model->vertices[vv[0]]->pos, rst->model->vertices[vv[1]]->pos)) remove.push_back(vv);
