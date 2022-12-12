@@ -1,0 +1,2 @@
+E:\PhD\PluckerCode\libraries\libconfig-1.7.2.tar\libconfig-1.7.2\libtinytest\Debug\libtinytest.pdb
+E:\PhD\PluckerCode\libraries\libconfig-1.7.2.tar\libconfig-1.7.2\tinytest\Debug\libtinytest.pdb
